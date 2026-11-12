@@ -1,0 +1,9 @@
+packages:
+  - packages/common
+  - packages/bridge
+  - packages/protocol
+  - packages/onebot
+  - packages/sqlite
+  - packages/websocket
+  - packages/proton
+  - packages/core

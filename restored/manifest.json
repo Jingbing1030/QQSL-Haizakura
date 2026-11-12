@@ -1,0 +1,4205 @@
+[
+ {
+  "region": "\\0rolldown/runtime.js",
+  "kind": "runtime-internal",
+  "out": "packages/core/src/_rolldown-runtime.ts",
+  "start_line": 47,
+  "end_line": 86,
+  "body_lines": 38,
+  "body_bytes": 1454
+ },
+ {
+  "region": "../common/src/errors.ts",
+  "kind": "workspace",
+  "out": "packages/common/src/errors.ts",
+  "start_line": 87,
+  "end_line": 92,
+  "body_lines": 4,
+  "body_bytes": 137
+ },
+ {
+  "region": "../common/src/log-sanitize.ts",
+  "kind": "workspace",
+  "out": "packages/common/src/log-sanitize.ts",
+  "start_line": 93,
+  "end_line": 173,
+  "body_lines": 79,
+  "body_bytes": 2319
+ },
+ {
+  "region": "../common/src/coerce.ts",
+  "kind": "workspace",
+  "out": "packages/common/src/coerce.ts",
+  "start_line": 174,
+  "end_line": 196,
+  "body_lines": 21,
+  "body_bytes": 1012
+ },
+ {
+  "region": "../common/src/update-source.ts",
+  "kind": "workspace",
+  "out": "packages/common/src/update-source.ts",
+  "start_line": 197,
+  "end_line": 222,
+  "body_lines": 24,
+  "body_bytes": 1162
+ },
+ {
+  "region": "../common/src/runtime.ts",
+  "kind": "workspace",
+  "out": "packages/common/src/runtime.ts",
+  "start_line": 223,
+  "end_line": 410,
+  "body_lines": 186,
+  "body_bytes": 8197
+ },
+ {
+  "region": "../common/src/log-file-transport.ts",
+  "kind": "workspace",
+  "out": "packages/common/src/log-file-transport.ts",
+  "start_line": 411,
+  "end_line": 1174,
+  "body_lines": 762,
+  "body_bytes": 24913
+ },
+ {
+  "region": "../common/src/log-summary.ts",
+  "kind": "workspace",
+  "out": "packages/common/src/log-summary.ts",
+  "start_line": 1175,
+  "end_line": 1389,
+  "body_lines": 213,
+  "body_bytes": 7805
+ },
+ {
+  "region": "../common/src/request-context.ts",
+  "kind": "workspace",
+  "out": "packages/common/src/request-context.ts",
+  "start_line": 1390,
+  "end_line": 1424,
+  "body_lines": 33,
+  "body_bytes": 1134
+ },
+ {
+  "region": "../common/src/logger.ts",
+  "kind": "workspace",
+  "out": "packages/common/src/logger.ts",
+  "start_line": 1425,
+  "end_line": 1651,
+  "body_lines": 225,
+  "body_bytes": 7528
+ },
+ {
+  "region": "../common/src/uin.ts",
+  "kind": "workspace",
+  "out": "packages/common/src/uin.ts",
+  "start_line": 1652,
+  "end_line": 1657,
+  "body_lines": 4,
+  "body_bytes": 75
+ },
+ {
+  "region": "../common/src/env.ts",
+  "kind": "workspace",
+  "out": "packages/common/src/env.ts",
+  "start_line": 1658,
+  "end_line": 1681,
+  "body_lines": 22,
+  "body_bytes": 810
+ },
+ {
+  "region": "../bridge/src/packet-timeout.ts",
+  "kind": "workspace",
+  "out": "packages/bridge/src/packet-timeout.ts",
+  "start_line": 1682,
+  "end_line": 1689,
+  "body_lines": 6,
+  "body_bytes": 244
+ },
+ {
+  "region": "../common/src/protocol-types.ts",
+  "kind": "workspace",
+  "out": "packages/common/src/protocol-types.ts",
+  "start_line": 1690,
+  "end_line": 1692,
+  "body_lines": 1,
+  "body_bytes": 57
+ },
+ {
+  "region": "../bridge/src/hook-runtime-dir.ts",
+  "kind": "workspace",
+  "out": "packages/bridge/src/hook-runtime-dir.ts",
+  "start_line": 1693,
+  "end_line": 1764,
+  "body_lines": 70,
+  "body_bytes": 3142
+ },
+ {
+  "region": "../bridge/src/qq-hook-client.ts",
+  "kind": "workspace",
+  "out": "packages/bridge/src/qq-hook-client.ts",
+  "start_line": 1765,
+  "end_line": 2648,
+  "body_lines": 882,
+  "body_bytes": 28332
+ },
+ {
+  "region": "../bridge/src/hook-packet-client.ts",
+  "kind": "workspace",
+  "out": "packages/bridge/src/hook-packet-client.ts",
+  "start_line": 2649,
+  "end_line": 2696,
+  "body_lines": 46,
+  "body_bytes": 1264
+ },
+ {
+  "region": "../common/src/native-path.ts",
+  "kind": "workspace",
+  "out": "packages/common/src/native-path.ts",
+  "start_line": 2697,
+  "end_line": 2709,
+  "body_lines": 11,
+  "body_bytes": 413
+ },
+ {
+  "region": "../bridge/src/injector.ts",
+  "kind": "workspace",
+  "out": "packages/bridge/src/injector.ts",
+  "start_line": 2710,
+  "end_line": 2779,
+  "body_lines": 68,
+  "body_bytes": 2428
+ },
+ {
+  "region": "../bridge/src/qq-account/database-holders.ts",
+  "kind": "workspace",
+  "out": "packages/bridge/src/qq-account/database-holders.ts",
+  "start_line": 2780,
+  "end_line": 2851,
+  "body_lines": 70,
+  "body_bytes": 3285
+ },
+ {
+  "region": "../sqlite/src/native.ts",
+  "kind": "workspace",
+  "out": "packages/sqlite/src/native.ts",
+  "start_line": 2852,
+  "end_line": 2876,
+  "body_lines": 23,
+  "body_bytes": 1439
+ },
+ {
+  "region": "../sqlite/src/driver.ts",
+  "kind": "workspace",
+  "out": "packages/sqlite/src/driver.ts",
+  "start_line": 2877,
+  "end_line": 2948,
+  "body_lines": 70,
+  "body_bytes": 2467
+ },
+ {
+  "region": "../sqlite/src/index.ts",
+  "kind": "workspace",
+  "out": "packages/sqlite/src/index.ts",
+  "start_line": 2949,
+  "end_line": 3083,
+  "body_lines": 133,
+  "body_bytes": 4382
+ },
+ {
+  "region": "../bridge/src/qq-account/paths.ts",
+  "kind": "workspace",
+  "out": "packages/bridge/src/qq-account/paths.ts",
+  "start_line": 3084,
+  "end_line": 3163,
+  "body_lines": 78,
+  "body_bytes": 3182
+ },
+ {
+  "region": "../bridge/src/qq-account/sqlcipher.ts",
+  "kind": "workspace",
+  "out": "packages/bridge/src/qq-account/sqlcipher.ts",
+  "start_line": 3164,
+  "end_line": 3471,
+  "body_lines": 306,
+  "body_bytes": 12461
+ },
+ {
+  "region": "../bridge/src/qq-account/login-db.ts",
+  "kind": "workspace",
+  "out": "packages/bridge/src/qq-account/login-db.ts",
+  "start_line": 3472,
+  "end_line": 3601,
+  "body_lines": 128,
+  "body_bytes": 3618
+ },
+ {
+  "region": "../bridge/src/qq-account/detect.ts",
+  "kind": "workspace",
+  "out": "packages/bridge/src/qq-account/detect.ts",
+  "start_line": 3602,
+  "end_line": 3639,
+  "body_lines": 36,
+  "body_bytes": 1360
+ },
+ {
+  "region": "../bridge/src/qq-account/watch.ts",
+  "kind": "workspace",
+  "out": "packages/bridge/src/qq-account/watch.ts",
+  "start_line": 3640,
+  "end_line": 3703,
+  "body_lines": 62,
+  "body_bytes": 2162
+ },
+ {
+  "region": "../bridge/src/hook-status.ts",
+  "kind": "workspace",
+  "out": "packages/bridge/src/hook-status.ts",
+  "start_line": 3704,
+  "end_line": 3719,
+  "body_lines": 14,
+  "body_bytes": 574
+ },
+ {
+  "region": "../bridge/src/hook-session.ts",
+  "kind": "workspace",
+  "out": "packages/bridge/src/hook-session.ts",
+  "start_line": 3720,
+  "end_line": 4497,
+  "body_lines": 776,
+  "body_bytes": 27898
+ },
+ {
+  "region": "../bridge/src/pipe-watcher.ts",
+  "kind": "workspace",
+  "out": "packages/bridge/src/pipe-watcher.ts",
+  "start_line": 4498,
+  "end_line": 4625,
+  "body_lines": 126,
+  "body_bytes": 3646
+ },
+ {
+  "region": "../bridge/src/process-enumerator.ts",
+  "kind": "workspace",
+  "out": "packages/bridge/src/process-enumerator.ts",
+  "start_line": 4626,
+  "end_line": 4670,
+  "body_lines": 43,
+  "body_bytes": 1095
+ },
+ {
+  "region": "../bridge/src/hook-manager.ts",
+  "kind": "workspace",
+  "out": "packages/bridge/src/hook-manager.ts",
+  "start_line": 4671,
+  "end_line": 5061,
+  "body_lines": 389,
+  "body_bytes": 14153
+ },
+ {
+  "region": "../bridge/src/runtime-integrity.ts",
+  "kind": "workspace",
+  "out": "packages/bridge/src/runtime-integrity.ts",
+  "start_line": 5062,
+  "end_line": 5109,
+  "body_lines": 46,
+  "body_bytes": 2071
+ },
+ {
+  "region": "../protocol/src/highway/upload-settings.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/highway/upload-settings.ts",
+  "start_line": 5110,
+  "end_line": 5123,
+  "body_lines": 12,
+  "body_bytes": 520
+ },
+ {
+  "region": "../onebot/src/config.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/config.ts",
+  "start_line": 5124,
+  "end_line": 5931,
+  "body_lines": 806,
+  "body_bytes": 35726
+ },
+ {
+  "region": "../onebot/src/global-config.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/global-config.ts",
+  "start_line": 5932,
+  "end_line": 6083,
+  "body_lines": 150,
+  "body_bytes": 5262
+ },
+ {
+  "region": "../common/src/version.ts",
+  "kind": "workspace",
+  "out": "packages/common/src/version.ts",
+  "start_line": 6084,
+  "end_line": 6142,
+  "body_lines": 57,
+  "body_bytes": 2419
+ },
+ {
+  "region": "../protocol/src/format.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/format.ts",
+  "start_line": 6143,
+  "end_line": 6370,
+  "body_lines": 226,
+  "body_bytes": 9579
+ },
+ {
+  "region": "../protocol/src/element-manifest.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/element-manifest.ts",
+  "start_line": 6371,
+  "end_line": 6904,
+  "body_lines": 532,
+  "body_bytes": 17364
+ },
+ {
+  "region": "../onebot/src/types.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/types.ts",
+  "start_line": 6905,
+  "end_line": 6931,
+  "body_lines": 25,
+  "body_bytes": 525
+ },
+ {
+  "region": "../onebot/src/streaming.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/streaming.ts",
+  "start_line": 6932,
+  "end_line": 6996,
+  "body_lines": 63,
+  "body_bytes": 2468
+ },
+ {
+  "region": "../onebot/src/action-kit.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/action-kit.ts",
+  "start_line": 6997,
+  "end_line": 7521,
+  "body_lines": 523,
+  "body_bytes": 15137
+ },
+ {
+  "region": "../onebot/src/actions/info.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/actions/info.ts",
+  "start_line": 7522,
+  "end_line": 7677,
+  "body_lines": 154,
+  "body_bytes": 2830
+ },
+ {
+  "region": "../onebot/src/action-result-schemas.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/action-result-schemas.ts",
+  "start_line": 7678,
+  "end_line": 7868,
+  "body_lines": 189,
+  "body_bytes": 3462
+ },
+ {
+  "region": "../onebot/src/actions/message.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/actions/message.ts",
+  "start_line": 7869,
+  "end_line": 8057,
+  "body_lines": 187,
+  "body_bytes": 6151
+ },
+ {
+  "region": "../onebot/src/actions/contact-profile-schema.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/actions/contact-profile-schema.ts",
+  "start_line": 8058,
+  "end_line": 8215,
+  "body_lines": 156,
+  "body_bytes": 2402
+ },
+ {
+  "region": "../onebot/src/actions/friend.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/actions/friend.ts",
+  "start_line": 8216,
+  "end_line": 8421,
+  "body_lines": 204,
+  "body_bytes": 4462
+ },
+ {
+  "region": "../protocol/src/web/request-util.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/web/request-util.ts",
+  "start_line": 8422,
+  "end_line": 8876,
+  "body_lines": 453,
+  "body_bytes": 15699
+ },
+ {
+  "region": "../protocol/src/web/group-honor.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/web/group-honor.ts",
+  "start_line": 8877,
+  "end_line": 8917,
+  "body_lines": 39,
+  "body_bytes": 1415
+ },
+ {
+  "region": "../onebot/src/actions/group-info.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/actions/group-info.ts",
+  "start_line": 8918,
+  "end_line": 9663,
+  "body_lines": 744,
+  "body_bytes": 15233
+ },
+ {
+  "region": "../onebot/src/actions/group-admin.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/actions/group-admin.ts",
+  "start_line": 9664,
+  "end_line": 10339,
+  "body_lines": 674,
+  "body_bytes": 16816
+ },
+ {
+  "region": "../onebot/src/actions/group-file.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/actions/group-file.ts",
+  "start_line": 10340,
+  "end_line": 10923,
+  "body_lines": 582,
+  "body_bytes": 14031
+ },
+ {
+  "region": "../onebot/src/actions/request.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/actions/request.ts",
+  "start_line": 10924,
+  "end_line": 10977,
+  "body_lines": 52,
+  "body_bytes": 1361
+ },
+ {
+  "region": "../common/src/hex.ts",
+  "kind": "workspace",
+  "out": "packages/common/src/hex.ts",
+  "start_line": 10978,
+  "end_line": 10996,
+  "body_lines": 17,
+  "body_bytes": 626
+ },
+ {
+  "region": "../common/src/concurrency.ts",
+  "kind": "workspace",
+  "out": "packages/common/src/concurrency.ts",
+  "start_line": 10997,
+  "end_line": 11021,
+  "body_lines": 23,
+  "body_bytes": 1107
+ },
+ {
+  "region": "../protocol/src/web/friend-dress.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/web/friend-dress.ts",
+  "start_line": 11022,
+  "end_line": 11176,
+  "body_lines": 153,
+  "body_bytes": 6971
+ },
+ {
+  "region": "../protocol/src/qq-info.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/qq-info.ts",
+  "start_line": 11177,
+  "end_line": 11194,
+  "body_lines": 16,
+  "body_bytes": 486
+ },
+ {
+  "region": "../onebot/src/modules/contact-profile.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/modules/contact-profile.ts",
+  "start_line": 11195,
+  "end_line": 11244,
+  "body_lines": 48,
+  "body_bytes": 1697
+ },
+ {
+  "region": "../onebot/src/message-id.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/message-id.ts",
+  "start_line": 11245,
+  "end_line": 11262,
+  "body_lines": 16,
+  "body_bytes": 864
+ },
+ {
+  "region": "../onebot/src/actions/extended.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/actions/extended.ts",
+  "start_line": 11263,
+  "end_line": 15686,
+  "body_lines": 4422,
+  "body_bytes": 115837
+ },
+ {
+  "region": "../onebot/src/actions/group-album.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/actions/group-album.ts",
+  "start_line": 15687,
+  "end_line": 16225,
+  "body_lines": 537,
+  "body_bytes": 12228
+ },
+ {
+  "region": "../onebot/src/actions/qzone.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/actions/qzone.ts",
+  "start_line": 16226,
+  "end_line": 16866,
+  "body_lines": 639,
+  "body_bytes": 18307
+ },
+ {
+  "region": "../onebot/src/actions/qzone-public.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/actions/qzone-public.ts",
+  "start_line": 16867,
+  "end_line": 17362,
+  "body_lines": 494,
+  "body_bytes": 12883
+ },
+ {
+  "region": "../onebot/src/stream-storage.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/stream-storage.ts",
+  "start_line": 17363,
+  "end_line": 17593,
+  "body_lines": 229,
+  "body_bytes": 7395
+ },
+ {
+  "region": "../onebot/src/actions/stream-file.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/actions/stream-file.ts",
+  "start_line": 17594,
+  "end_line": 17923,
+  "body_lines": 328,
+  "body_bytes": 11634
+ },
+ {
+  "region": "../protocol/src/highway/download-settings.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/highway/download-settings.ts",
+  "start_line": 17924,
+  "end_line": 17967,
+  "body_lines": 42,
+  "body_bytes": 1720
+ },
+ {
+  "region": "../protocol/src/highway/utils.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/highway/utils.ts",
+  "start_line": 17968,
+  "end_line": 18320,
+  "body_lines": 351,
+  "body_bytes": 11079
+ },
+ {
+  "region": "../onebot/src/actions/stream-download.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/actions/stream-download.ts",
+  "start_line": 18321,
+  "end_line": 18778,
+  "body_lines": 456,
+  "body_bytes": 14297
+ },
+ {
+  "region": "../proton/src/runtime.ts",
+  "kind": "workspace",
+  "out": "packages/proton/src/runtime.ts",
+  "start_line": 18779,
+  "end_line": 18806,
+  "body_lines": 26,
+  "body_bytes": 1169
+ },
+ {
+  "region": "../protocol/src/bridge-oidb.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/bridge-oidb.ts",
+  "start_line": 18807,
+  "end_line": 18828,
+  "body_lines": 20,
+  "body_bytes": 601
+ },
+ {
+  "region": "../protocol/src/oidb-service.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-service.ts",
+  "start_line": 18829,
+  "end_line": 19155,
+  "body_lines": 325,
+  "body_bytes": 12178
+ },
+ {
+  "region": "../protocol/src/oidb-services/sys-faces/fetch-sys-faces.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/sys-faces/fetch-sys-faces.ts",
+  "start_line": 19156,
+  "end_line": 21048,
+  "body_lines": 1891,
+  "body_bytes": 61732
+ },
+ {
+  "region": "../onebot/src/actions/system-face.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/actions/system-face.ts",
+  "start_line": 21049,
+  "end_line": 21208,
+  "body_lines": 158,
+  "body_bytes": 3895
+ },
+ {
+  "region": "../onebot/src/actions/index.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/actions/index.ts",
+  "start_line": 21209,
+  "end_line": 21376,
+  "body_lines": 166,
+  "body_bytes": 5425
+ },
+ {
+  "region": "../onebot/src/network/quick-operation.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/network/quick-operation.ts",
+  "start_line": 21377,
+  "end_line": 21444,
+  "body_lines": 66,
+  "body_bytes": 2372
+ },
+ {
+  "region": "../onebot/src/api-handler.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/api-handler.ts",
+  "start_line": 21445,
+  "end_line": 21673,
+  "body_lines": 227,
+  "body_bytes": 9059
+ },
+ {
+  "region": "../onebot/src/event-converter/utils.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/event-converter/utils.ts",
+  "start_line": 21674,
+  "end_line": 21697,
+  "body_lines": 22,
+  "body_bytes": 1031
+ },
+ {
+  "region": "../onebot/src/event-converter/element-codecs.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/event-converter/element-codecs.ts",
+  "start_line": 21698,
+  "end_line": 22155,
+  "body_lines": 456,
+  "body_bytes": 14344
+ },
+ {
+  "region": "../onebot/src/reply-preview.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/reply-preview.ts",
+  "start_line": 22156,
+  "end_line": 22204,
+  "body_lines": 47,
+  "body_bytes": 1576
+ },
+ {
+  "region": "../onebot/src/message-parser.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/message-parser.ts",
+  "start_line": 22205,
+  "end_line": 22570,
+  "body_lines": 364,
+  "body_bytes": 15065
+ },
+ {
+  "region": "../onebot/src/helper/cq.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/helper/cq.ts",
+  "start_line": 22571,
+  "end_line": 22626,
+  "body_lines": 54,
+  "body_bytes": 2416
+ },
+ {
+  "region": "../onebot/src/sqlite-open.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/sqlite-open.ts",
+  "start_line": 22627,
+  "end_line": 22632,
+  "body_lines": 4,
+  "body_bytes": 157
+ },
+ {
+  "region": "../onebot/src/media-store.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/media-store.ts",
+  "start_line": 22633,
+  "end_line": 22863,
+  "body_lines": 229,
+  "body_bytes": 7486
+ },
+ {
+  "region": "../onebot/src/message-media.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/message-media.ts",
+  "start_line": 22864,
+  "end_line": 22963,
+  "body_lines": 98,
+  "body_bytes": 4168
+ },
+ {
+  "region": "../onebot/src/event-converter/to-segment.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/event-converter/to-segment.ts",
+  "start_line": 22964,
+  "end_line": 23017,
+  "body_lines": 52,
+  "body_bytes": 2056
+ },
+ {
+  "region": "../onebot/src/event-converter/envelope.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/event-converter/envelope.ts",
+  "start_line": 23018,
+  "end_line": 23049,
+  "body_lines": 30,
+  "body_bytes": 732
+ },
+ {
+  "region": "../onebot/src/event-converter/to-message.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/event-converter/to-message.ts",
+  "start_line": 23050,
+  "end_line": 23128,
+  "body_lines": 77,
+  "body_bytes": 3073
+ },
+ {
+  "region": "../onebot/src/event-converter/to-notice.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/event-converter/to-notice.ts",
+  "start_line": 23129,
+  "end_line": 23320,
+  "body_lines": 190,
+  "body_bytes": 5192
+ },
+ {
+  "region": "../onebot/src/event-converter/to-request.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/event-converter/to-request.ts",
+  "start_line": 23321,
+  "end_line": 23342,
+  "body_lines": 20,
+  "body_bytes": 518
+ },
+ {
+  "region": "../onebot/src/event-converter/index.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/event-converter/index.ts",
+  "start_line": 23343,
+  "end_line": 23415,
+  "body_lines": 71,
+  "body_bytes": 1991
+ },
+ {
+  "region": "../protocol/src/highway/ffmpeg-addon.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/highway/ffmpeg-addon.ts",
+  "start_line": 23416,
+  "end_line": 23588,
+  "body_lines": 171,
+  "body_bytes": 6545
+ },
+ {
+  "region": "../protocol/src/oidb-services/highway/ntv2-upload-request.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/highway/ntv2-upload-request.ts",
+  "start_line": 23589,
+  "end_line": 30044,
+  "body_lines": 6454,
+  "body_bytes": 204747
+ },
+ {
+  "region": "../protocol/src/highway/highway-client.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/highway/highway-client.ts",
+  "start_line": 30045,
+  "end_line": 34721,
+  "body_lines": 4675,
+  "body_bytes": 151914
+ },
+ {
+  "region": "../protocol/src/highway/pipeline.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/highway/pipeline.ts",
+  "start_line": 34722,
+  "end_line": 37075,
+  "body_lines": 2352,
+  "body_bytes": 74893
+ },
+ {
+  "region": "../protocol/src/highway/stage.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/highway/stage.ts",
+  "start_line": 37076,
+  "end_line": 37278,
+  "body_lines": 201,
+  "body_bytes": 6343
+ },
+ {
+  "region": "../protocol/src/highway/sha1-stream.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/highway/sha1-stream.ts",
+  "start_line": 37279,
+  "end_line": 37375,
+  "body_lines": 95,
+  "body_bytes": 3225
+ },
+ {
+  "region": "../protocol/src/highway/hash-file.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/highway/hash-file.ts",
+  "start_line": 37376,
+  "end_line": 37471,
+  "body_lines": 94,
+  "body_bytes": 3081
+ },
+ {
+  "region": "../protocol/src/highway/video-upload.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/highway/video-upload.ts",
+  "start_line": 37472,
+  "end_line": 37737,
+  "body_lines": 264,
+  "body_bytes": 15720
+ },
+ {
+  "region": "../onebot/src/history-persistence.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/history-persistence.ts",
+  "start_line": 37738,
+  "end_line": 37782,
+  "body_lines": 43,
+  "body_bytes": 2319
+ },
+ {
+  "region": "../onebot/src/self-sent-event.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/self-sent-event.ts",
+  "start_line": 37783,
+  "end_line": 37904,
+  "body_lines": 120,
+  "body_bytes": 5074
+ },
+ {
+  "region": "../onebot/src/modules/message-actions.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/modules/message-actions.ts",
+  "start_line": 37905,
+  "end_line": 39059,
+  "body_lines": 1153,
+  "body_bytes": 53646
+ },
+ {
+  "region": "../onebot/src/modules/ptt-trans-waiter.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/modules/ptt-trans-waiter.ts",
+  "start_line": 39060,
+  "end_line": 39097,
+  "body_lines": 36,
+  "body_bytes": 1388
+ },
+ {
+  "region": "../onebot/src/event-pipeline.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/event-pipeline.ts",
+  "start_line": 39098,
+  "end_line": 39316,
+  "body_lines": 217,
+  "body_bytes": 9072
+ },
+ {
+  "region": "../onebot/src/modules/contact-actions.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/modules/contact-actions.ts",
+  "start_line": 39317,
+  "end_line": 39759,
+  "body_lines": 441,
+  "body_bytes": 16207
+ },
+ {
+  "region": "../onebot/src/media-url-resolver.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/media-url-resolver.ts",
+  "start_line": 39760,
+  "end_line": 39794,
+  "body_lines": 33,
+  "body_bytes": 1502
+ },
+ {
+  "region": "../onebot/src/modules/media-actions.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/modules/media-actions.ts",
+  "start_line": 39795,
+  "end_line": 39913,
+  "body_lines": 117,
+  "body_bytes": 5173
+ },
+ {
+  "region": "../onebot/src/modules/request-actions.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/modules/request-actions.ts",
+  "start_line": 39914,
+  "end_line": 40031,
+  "body_lines": 116,
+  "body_bytes": 6352
+ },
+ {
+  "region": "../onebot/src/instance-context.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/instance-context.ts",
+  "start_line": 40032,
+  "end_line": 40137,
+  "body_lines": 104,
+  "body_bytes": 6264
+ },
+ {
+  "region": "../onebot/src/temp-session-store.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/temp-session-store.ts",
+  "start_line": 40138,
+  "end_line": 40179,
+  "body_lines": 40,
+  "body_bytes": 1555
+ },
+ {
+  "region": "../onebot/src/instance-rkey.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/instance-rkey.ts",
+  "start_line": 40180,
+  "end_line": 40371,
+  "body_lines": 190,
+  "body_bytes": 7879
+ },
+ {
+  "region": "../onebot/src/media-indexer.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/media-indexer.ts",
+  "start_line": 40372,
+  "end_line": 40437,
+  "body_lines": 64,
+  "body_bytes": 1794
+ },
+ {
+  "region": "../onebot/src/message-store-migration.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/message-store-migration.ts",
+  "start_line": 40438,
+  "end_line": 40744,
+  "body_lines": 305,
+  "body_bytes": 12254
+ },
+ {
+  "region": "../onebot/src/message-store.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/message-store.ts",
+  "start_line": 40745,
+  "end_line": 41252,
+  "body_lines": 506,
+  "body_bytes": 24223
+ },
+ {
+  "region": "../onebot/src/message-id-resolver.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/message-id-resolver.ts",
+  "start_line": 41253,
+  "end_line": 41261,
+  "body_lines": 7,
+  "body_bytes": 682
+ },
+ {
+  "region": "../onebot/src/modules/status-command.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/modules/status-command.ts",
+  "start_line": 41262,
+  "end_line": 41313,
+  "body_lines": 50,
+  "body_bytes": 1886
+ },
+ {
+  "region": "../protocol/src/oidb-services/web/get-pskey.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/web/get-pskey.ts",
+  "start_line": 41314,
+  "end_line": 42436,
+  "body_lines": 1121,
+  "body_bytes": 37203
+ },
+ {
+  "region": "../protocol/src/web/collection.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/web/collection.ts",
+  "start_line": 42437,
+  "end_line": 46830,
+  "body_lines": 4392,
+  "body_bytes": 143559
+ },
+ {
+  "region": "src/bridge/apis/collection.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/bridge/apis/collection.ts",
+  "start_line": 46831,
+  "end_line": 46851,
+  "body_lines": 19,
+  "body_bytes": 558
+ },
+ {
+  "region": "../protocol/src/group-invite-tracker.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/group-invite-tracker.ts",
+  "start_line": 46852,
+  "end_line": 46920,
+  "body_lines": 67,
+  "body_bytes": 2312
+ },
+ {
+  "region": "../protocol/src/oidb-services/contacts/fetch-download-rkeys.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/contacts/fetch-download-rkeys.ts",
+  "start_line": 46921,
+  "end_line": 50205,
+  "body_lines": 3283,
+  "body_bytes": 104194
+ },
+ {
+  "region": "../protocol/src/oidb-services/contacts/public-profile.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/contacts/public-profile.ts",
+  "start_line": 50206,
+  "end_line": 50819,
+  "body_lines": 612,
+  "body_bytes": 19867
+ },
+ {
+  "region": "../protocol/src/oidb-services/contacts/fetch-friend-list-page.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/contacts/fetch-friend-list-page.ts",
+  "start_line": 50820,
+  "end_line": 53064,
+  "body_lines": 2243,
+  "body_bytes": 71833
+ },
+ {
+  "region": "../protocol/src/oidb-services/contacts/fetch-group-detail.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/contacts/fetch-group-detail.ts",
+  "start_line": 53065,
+  "end_line": 55009,
+  "body_lines": 1943,
+  "body_bytes": 62286
+ },
+ {
+  "region": "../protocol/src/oidb-services/contacts/fetch-group-list.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/contacts/fetch-group-list.ts",
+  "start_line": 55010,
+  "end_line": 57054,
+  "body_lines": 2043,
+  "body_bytes": 63322
+ },
+ {
+  "region": "../protocol/src/oidb-services/contacts/fetch-group-member-list-page.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/contacts/fetch-group-member-list-page.ts",
+  "start_line": 57055,
+  "end_line": 59070,
+  "body_lines": 2014,
+  "body_bytes": 63576
+ },
+ {
+  "region": "../protocol/src/oidb-services/contacts/fetch-group-requests.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/contacts/fetch-group-requests.ts",
+  "start_line": 59071,
+  "end_line": 61533,
+  "body_lines": 2461,
+  "body_bytes": 79581
+ },
+ {
+  "region": "../protocol/src/oidb-services/contacts/fetch-robot-uin-ranges.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/contacts/fetch-robot-uin-ranges.ts",
+  "start_line": 61534,
+  "end_line": 62850,
+  "body_lines": 1315,
+  "body_bytes": 43467
+ },
+ {
+  "region": "../protocol/src/oidb-services/extras/get-stranger-status.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/extras/get-stranger-status.ts",
+  "start_line": 62851,
+  "end_line": 64245,
+  "body_lines": 1393,
+  "body_bytes": 45736
+ },
+ {
+  "region": "../protocol/src/oidb-services/contacts/fetch-user-profile.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/contacts/fetch-user-profile.ts",
+  "start_line": 64246,
+  "end_line": 66068,
+  "body_lines": 1821,
+  "body_bytes": 59635
+ },
+ {
+  "region": "../protocol/src/oidb-services/contacts/fetch-user-profile-by-uid.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/contacts/fetch-user-profile-by-uid.ts",
+  "start_line": 66069,
+  "end_line": 67739,
+  "body_lines": 1669,
+  "body_bytes": 54581
+ },
+ {
+  "region": "../protocol/src/services/qidian/fetch-corp-info.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/services/qidian/fetch-corp-info.ts",
+  "start_line": 67740,
+  "end_line": 68125,
+  "body_lines": 384,
+  "body_bytes": 13924
+ },
+ {
+  "region": "../protocol/src/oidb-services/contacts/get-buddy-recommend-ark.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/contacts/get-buddy-recommend-ark.ts",
+  "start_line": 68126,
+  "end_line": 69185,
+  "body_lines": 1058,
+  "body_bytes": 35153
+ },
+ {
+  "region": "../protocol/src/oidb-services/contacts/get-group-recommend-ark.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/contacts/get-group-recommend-ark.ts",
+  "start_line": 69186,
+  "end_line": 70261,
+  "body_lines": 1074,
+  "body_bytes": 35135
+ },
+ {
+  "region": "../protocol/src/oidb-services/contacts/get-group-share-link.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/contacts/get-group-share-link.ts",
+  "start_line": 70262,
+  "end_line": 71427,
+  "body_lines": 1164,
+  "body_bytes": 38482
+ },
+ {
+  "region": "../protocol/src/oidb-services/contacts/send-tuwen-ark.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/contacts/send-tuwen-ark.ts",
+  "start_line": 71428,
+  "end_line": 73101,
+  "body_lines": 1672,
+  "body_bytes": 53995
+ },
+ {
+  "region": "../protocol/src/oidb-services/contacts/set-friend-category.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/contacts/set-friend-category.ts",
+  "start_line": 73102,
+  "end_line": 74149,
+  "body_lines": 1046,
+  "body_bytes": 34506
+ },
+ {
+  "region": "../common/src/single-flight-cache.ts",
+  "kind": "workspace",
+  "out": "packages/common/src/single-flight-cache.ts",
+  "start_line": 74150,
+  "end_line": 74209,
+  "body_lines": 58,
+  "body_bytes": 1761
+ },
+ {
+  "region": "src/bridge/apis/contacts.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/bridge/apis/contacts.ts",
+  "start_line": 74210,
+  "end_line": 74595,
+  "body_lines": 384,
+  "body_bytes": 16552
+ },
+ {
+  "region": "../protocol/src/oidb-services/extras/fetch-ai-voice.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/extras/fetch-ai-voice.ts",
+  "start_line": 74596,
+  "end_line": 76581,
+  "body_lines": 1984,
+  "body_bytes": 63483
+ },
+ {
+  "region": "../protocol/src/oidb-services/extras/fetch-ai-voice-list.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/extras/fetch-ai-voice-list.ts",
+  "start_line": 76582,
+  "end_line": 77842,
+  "body_lines": 1259,
+  "body_bytes": 41583
+ },
+ {
+  "region": "../protocol/src/oidb-services/extras/get-group-todo-list.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/extras/get-group-todo-list.ts",
+  "start_line": 77843,
+  "end_line": 80058,
+  "body_lines": 2214,
+  "body_bytes": 71782
+ },
+ {
+  "region": "../protocol/src/oidb-services/extras/group-todo.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/extras/group-todo.ts",
+  "start_line": 80059,
+  "end_line": 81055,
+  "body_lines": 995,
+  "body_bytes": 32457
+ },
+ {
+  "region": "src/bridge/apis/extras.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/bridge/apis/extras.ts",
+  "start_line": 81056,
+  "end_line": 82477,
+  "body_lines": 1420,
+  "body_bytes": 47723
+ },
+ {
+  "region": "../protocol/src/oidb-services/shared.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/shared.ts",
+  "start_line": 82478,
+  "end_line": 82499,
+  "body_lines": 20,
+  "body_bytes": 848
+ },
+ {
+  "region": "../protocol/src/self-uid.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/self-uid.ts",
+  "start_line": 82500,
+  "end_line": 82524,
+  "body_lines": 23,
+  "body_bytes": 1090
+ },
+ {
+  "region": "../protocol/src/oidb-services/flash-transfer/get-fileset-detail.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/flash-transfer/get-fileset-detail.ts",
+  "start_line": 82525,
+  "end_line": 84062,
+  "body_lines": 1536,
+  "body_bytes": 50764
+ },
+ {
+  "region": "../protocol/src/oidb-services/flash-transfer/list-filesets.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/flash-transfer/list-filesets.ts",
+  "start_line": 84063,
+  "end_line": 85632,
+  "body_lines": 1568,
+  "body_bytes": 51706
+ },
+ {
+  "region": "../protocol/src/oidb-services/flash-transfer/get-download-url.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/flash-transfer/get-download-url.ts",
+  "start_line": 85633,
+  "end_line": 87911,
+  "body_lines": 2277,
+  "body_bytes": 73346
+ },
+ {
+  "region": "../protocol/src/oidb-services/flash-transfer/get-flash-download.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/flash-transfer/get-flash-download.ts",
+  "start_line": 87912,
+  "end_line": 90727,
+  "body_lines": 2814,
+  "body_bytes": 88455
+ },
+ {
+  "region": "../protocol/src/oidb-services/flash-transfer/delete-file.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/flash-transfer/delete-file.ts",
+  "start_line": 90728,
+  "end_line": 91765,
+  "body_lines": 1036,
+  "body_bytes": 34140
+ },
+ {
+  "region": "../protocol/src/oidb-services/flash-transfer/rename-file.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/flash-transfer/rename-file.ts",
+  "start_line": 91766,
+  "end_line": 92925,
+  "body_lines": 1158,
+  "body_bytes": 37930
+ },
+ {
+  "region": "../protocol/src/oidb-services/flash-transfer/apply-fileset.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/flash-transfer/apply-fileset.ts",
+  "start_line": 92926,
+  "end_line": 94522,
+  "body_lines": 1595,
+  "body_bytes": 51436
+ },
+ {
+  "region": "../protocol/src/oidb-services/flash-transfer/commit-file.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/flash-transfer/commit-file.ts",
+  "start_line": 94523,
+  "end_line": 96168,
+  "body_lines": 1644,
+  "body_bytes": 53044
+ },
+ {
+  "region": "../protocol/src/oidb-services/flash-transfer/complete-fileset.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/flash-transfer/complete-fileset.ts",
+  "start_line": 96169,
+  "end_line": 97174,
+  "body_lines": 1004,
+  "body_bytes": 33210
+ },
+ {
+  "region": "../protocol/src/oidb-services/flash-transfer/set-status.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/flash-transfer/set-status.ts",
+  "start_line": 97175,
+  "end_line": 98177,
+  "body_lines": 1001,
+  "body_bytes": 32912
+ },
+ {
+  "region": "../protocol/src/oidb-services/flash-transfer/apply-upload.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/flash-transfer/apply-upload.ts",
+  "start_line": 98178,
+  "end_line": 101320,
+  "body_lines": 3141,
+  "body_bytes": 98214
+ },
+ {
+  "region": "../protocol/src/oidb-services/flash-transfer/prepare-upload.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/flash-transfer/prepare-upload.ts",
+  "start_line": 101321,
+  "end_line": 104696,
+  "body_lines": 3374,
+  "body_bytes": 104952
+ },
+ {
+  "region": "../protocol/src/oidb-services/flash-transfer/send-flash.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/flash-transfer/send-flash.ts",
+  "start_line": 104697,
+  "end_line": 106305,
+  "body_lines": 1607,
+  "body_bytes": 52437
+ },
+ {
+  "region": "src/bridge/apis/flash-transfer.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/bridge/apis/flash-transfer.ts",
+  "start_line": 106306,
+  "end_line": 107997,
+  "body_lines": 1690,
+  "body_bytes": 54224
+ },
+ {
+  "region": "../protocol/src/oidb-services/sys-faces/fetch-sys-face.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/sys-faces/fetch-sys-face.ts",
+  "start_line": 107998,
+  "end_line": 109442,
+  "body_lines": 1443,
+  "body_bytes": 46677
+ },
+ {
+  "region": "../protocol/src/sys-face-store.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/sys-face-store.ts",
+  "start_line": 109443,
+  "end_line": 109712,
+  "body_lines": 268,
+  "body_bytes": 11340
+ },
+ {
+  "region": "../protocol/src/highway/image-upload.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/highway/image-upload.ts",
+  "start_line": 109713,
+  "end_line": 110443,
+  "body_lines": 729,
+  "body_bytes": 22686
+ },
+ {
+  "region": "../protocol/src/highway/ptt-waveform.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/highway/ptt-waveform.ts",
+  "start_line": 110444,
+  "end_line": 110632,
+  "body_lines": 187,
+  "body_bytes": 6264
+ },
+ {
+  "region": "../protocol/src/highway/ptt-upload.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/highway/ptt-upload.ts",
+  "start_line": 110633,
+  "end_line": 110837,
+  "body_lines": 203,
+  "body_bytes": 5832
+ },
+ {
+  "region": "../protocol/src/element-builder.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/element-builder.ts",
+  "start_line": 110838,
+  "end_line": 121658,
+  "body_lines": 10819,
+  "body_bytes": 344552
+ },
+ {
+  "region": "../protocol/src/msg-push/helpers.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/msg-push/helpers.ts",
+  "start_line": 121659,
+  "end_line": 122165,
+  "body_lines": 505,
+  "body_bytes": 18056
+ },
+ {
+  "region": "../protocol/src/msg-push/xml-card.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/msg-push/xml-card.ts",
+  "start_line": 122166,
+  "end_line": 122223,
+  "body_lines": 56,
+  "body_bytes": 2420
+ },
+ {
+  "region": "../protocol/src/msg-push/rich-body-decoder.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/msg-push/rich-body-decoder.ts",
+  "start_line": 122224,
+  "end_line": 135710,
+  "body_lines": 13485,
+  "body_bytes": 428591
+ },
+ {
+  "region": "../protocol/src/msg-push/blank-filter.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/msg-push/blank-filter.ts",
+  "start_line": 135711,
+  "end_line": 135786,
+  "body_lines": 74,
+  "body_bytes": 2965
+ },
+ {
+  "region": "../protocol/src/msg-push/context.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/msg-push/context.ts",
+  "start_line": 135787,
+  "end_line": 142944,
+  "body_lines": 7156,
+  "body_bytes": 221623
+ },
+ {
+  "region": "../protocol/src/msg-push/enums.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/msg-push/enums.ts",
+  "start_line": 142945,
+  "end_line": 143088,
+  "body_lines": 142,
+  "body_bytes": 7947
+ },
+ {
+  "region": "../protocol/src/msg-push/decoders/event-0x210.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/msg-push/decoders/event-0x210.ts",
+  "start_line": 143089,
+  "end_line": 146591,
+  "body_lines": 3501,
+  "body_bytes": 114589
+ },
+ {
+  "region": "../protocol/src/msg-push/decoders/event-0x2dc.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/msg-push/decoders/event-0x2dc.ts",
+  "start_line": 146592,
+  "end_line": 149455,
+  "body_lines": 2862,
+  "body_bytes": 93771
+ },
+ {
+  "region": "../protocol/src/dataline/codec.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/dataline/codec.ts",
+  "start_line": 149456,
+  "end_line": 151565,
+  "body_lines": 2108,
+  "body_bytes": 67457
+ },
+ {
+  "region": "../protocol/src/dataline/decode-push.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/dataline/decode-push.ts",
+  "start_line": 151566,
+  "end_line": 151606,
+  "body_lines": 39,
+  "body_bytes": 1546
+ },
+ {
+  "region": "../protocol/src/msg-push/decoders/friend-message.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/msg-push/decoders/friend-message.ts",
+  "start_line": 151607,
+  "end_line": 151658,
+  "body_lines": 50,
+  "body_bytes": 2287
+ },
+ {
+  "region": "../protocol/src/msg-push/decoders/group-admin.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/msg-push/decoders/group-admin.ts",
+  "start_line": 151659,
+  "end_line": 152147,
+  "body_lines": 487,
+  "body_bytes": 16631
+ },
+ {
+  "region": "../protocol/src/msg-push/decoders/group-join-request.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/msg-push/decoders/group-join-request.ts",
+  "start_line": 152148,
+  "end_line": 153208,
+  "body_lines": 1059,
+  "body_bytes": 34088
+ },
+ {
+  "region": "../protocol/src/msg-push/decoders/group-member-change.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/msg-push/decoders/group-member-change.ts",
+  "start_line": 153209,
+  "end_line": 153788,
+  "body_lines": 578,
+  "body_bytes": 19229
+ },
+ {
+  "region": "../protocol/src/msg-push/decoders/group-message.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/msg-push/decoders/group-message.ts",
+  "start_line": 153789,
+  "end_line": 153820,
+  "body_lines": 30,
+  "body_bytes": 956
+ },
+ {
+  "region": "../protocol/src/msg-push/decoders/temp-message.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/msg-push/decoders/temp-message.ts",
+  "start_line": 153821,
+  "end_line": 153848,
+  "body_lines": 26,
+  "body_bytes": 786
+ },
+ {
+  "region": "../protocol/src/msg-push/registry.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/msg-push/registry.ts",
+  "start_line": 153849,
+  "end_line": 153903,
+  "body_lines": 53,
+  "body_bytes": 1557
+ },
+ {
+  "region": "../protocol/src/msg-push/sysmsg-dedup.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/msg-push/sysmsg-dedup.ts",
+  "start_line": 153904,
+  "end_line": 153967,
+  "body_lines": 62,
+  "body_bytes": 2519
+ },
+ {
+  "region": "../protocol/src/msg-push/packet-response.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/msg-push/packet-response.ts",
+  "start_line": 153968,
+  "end_line": 153974,
+  "body_lines": 5,
+  "body_bytes": 339
+ },
+ {
+  "region": "../protocol/src/msg-push/fetch-c2c-history.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/msg-push/fetch-c2c-history.ts",
+  "start_line": 153975,
+  "end_line": 161770,
+  "body_lines": 7794,
+  "body_bytes": 243022
+ },
+ {
+  "region": "../protocol/src/msg-push/client-message-receipt.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/msg-push/client-message-receipt.ts",
+  "start_line": 161771,
+  "end_line": 169581,
+  "body_lines": 7809,
+  "body_bytes": 243517
+ },
+ {
+  "region": "../protocol/src/msg-push/fetch-group-history.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/msg-push/fetch-group-history.ts",
+  "start_line": 169582,
+  "end_line": 177026,
+  "body_lines": 7443,
+  "body_bytes": 231492
+ },
+ {
+  "region": "../protocol/src/msg-push/index.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/msg-push/index.ts",
+  "start_line": 177027,
+  "end_line": 177139,
+  "body_lines": 111,
+  "body_bytes": 4548
+ },
+ {
+  "region": "src/bridge/apis/forward-cache.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/bridge/apis/forward-cache.ts",
+  "start_line": 177140,
+  "end_line": 177178,
+  "body_lines": 37,
+  "body_bytes": 1172
+ },
+ {
+  "region": "src/bridge/apis/forward.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/bridge/apis/forward.ts",
+  "start_line": 177179,
+  "end_line": 194771,
+  "body_lines": 17591,
+  "body_bytes": 552956
+ },
+ {
+  "region": "../protocol/src/oidb-services/friend/approve-doubt-buddy-req.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/friend/approve-doubt-buddy-req.ts",
+  "start_line": 194772,
+  "end_line": 195850,
+  "body_lines": 1077,
+  "body_bytes": 35541
+ },
+ {
+  "region": "../protocol/src/oidb-services/friend/clear-friend-remark.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/friend/clear-friend-remark.ts",
+  "start_line": 195851,
+  "end_line": 196884,
+  "body_lines": 1032,
+  "body_bytes": 34010
+ },
+ {
+  "region": "../protocol/src/oidb-services/friend/delete-friend.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/friend/delete-friend.ts",
+  "start_line": 196885,
+  "end_line": 198161,
+  "body_lines": 1275,
+  "body_bytes": 40939
+ },
+ {
+  "region": "../protocol/src/oidb-services/friend/get-doubt-buddy-req.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/friend/get-doubt-buddy-req.ts",
+  "start_line": 198162,
+  "end_line": 200164,
+  "body_lines": 2001,
+  "body_bytes": 65006
+ },
+ {
+  "region": "../protocol/src/oidb-services/friend/handle-friend-request.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/friend/handle-friend-request.ts",
+  "start_line": 200165,
+  "end_line": 201170,
+  "body_lines": 1004,
+  "body_bytes": 33086
+ },
+ {
+  "region": "../protocol/src/oidb-services/friend/reject-doubt-buddy-req.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/friend/reject-doubt-buddy-req.ts",
+  "start_line": 201171,
+  "end_line": 202216,
+  "body_lines": 1044,
+  "body_bytes": 34157
+ },
+ {
+  "region": "../protocol/src/oidb-services/friend/set-friend-remark.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/friend/set-friend-remark.ts",
+  "start_line": 202217,
+  "end_line": 203763,
+  "body_lines": 1545,
+  "body_bytes": 51465
+ },
+ {
+  "region": "src/bridge/apis/friend.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/bridge/apis/friend.ts",
+  "start_line": 203764,
+  "end_line": 203846,
+  "body_lines": 81,
+  "body_bytes": 2825
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-admin/get-at-all-remain.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-admin/get-at-all-remain.ts",
+  "start_line": 203847,
+  "end_line": 205031,
+  "body_lines": 1183,
+  "body_bytes": 38023
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-admin/kick-member.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-admin/kick-member.ts",
+  "start_line": 205032,
+  "end_line": 206232,
+  "body_lines": 1199,
+  "body_bytes": 39155
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-admin/kick-members.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-admin/kick-members.ts",
+  "start_line": 206233,
+  "end_line": 207481,
+  "body_lines": 1247,
+  "body_bytes": 40724
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-admin/leave-group.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-admin/leave-group.ts",
+  "start_line": 207482,
+  "end_line": 208447,
+  "body_lines": 964,
+  "body_bytes": 31557
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-admin/mute-all.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-admin/mute-all.ts",
+  "start_line": 208448,
+  "end_line": 209490,
+  "body_lines": 1041,
+  "body_bytes": 33745
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-admin/mute-member.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-admin/mute-member.ts",
+  "start_line": 209491,
+  "end_line": 210601,
+  "body_lines": 1109,
+  "body_bytes": 36004
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-admin/set-add-option.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-admin/set-add-option.ts",
+  "start_line": 210602,
+  "end_line": 211753,
+  "body_lines": 1150,
+  "body_bytes": 37553
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-admin/set-add-request.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-admin/set-add-request.ts",
+  "start_line": 211754,
+  "end_line": 212927,
+  "body_lines": 1172,
+  "body_bytes": 38154
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-admin/set-admin.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-admin/set-admin.ts",
+  "start_line": 212928,
+  "end_line": 213938,
+  "body_lines": 1009,
+  "body_bytes": 32925
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-admin/get-admin-permissions.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-admin/get-admin-permissions.ts",
+  "start_line": 213939,
+  "end_line": 215538,
+  "body_lines": 1598,
+  "body_bytes": 53365
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-admin/get-admin-receive-verify.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-admin/get-admin-receive-verify.ts",
+  "start_line": 215539,
+  "end_line": 216989,
+  "body_lines": 1449,
+  "body_bytes": 48090
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-admin/set-admin-permissions.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-admin/set-admin-permissions.ts",
+  "start_line": 216990,
+  "end_line": 218158,
+  "body_lines": 1167,
+  "body_bytes": 38316
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-admin/set-admin-receive-verify.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-admin/set-admin-receive-verify.ts",
+  "start_line": 218159,
+  "end_line": 219398,
+  "body_lines": 1238,
+  "body_bytes": 41194
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-admin/set-group-name.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-admin/set-group-name.ts",
+  "start_line": 219399,
+  "end_line": 220443,
+  "body_lines": 1043,
+  "body_bytes": 34065
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-admin/set-group-remark.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-admin/set-group-remark.ts",
+  "start_line": 220444,
+  "end_line": 221523,
+  "body_lines": 1078,
+  "body_bytes": 35325
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-admin/set-member-card.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-admin/set-member-card.ts",
+  "start_line": 221524,
+  "end_line": 222605,
+  "body_lines": 1080,
+  "body_bytes": 35309
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-admin/get-group-ext-info.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-admin/get-group-ext-info.ts",
+  "start_line": 222606,
+  "end_line": 223935,
+  "body_lines": 1328,
+  "body_bytes": 43465
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-admin/set-member-invite-policy.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-admin/set-member-invite-policy.ts",
+  "start_line": 223936,
+  "end_line": 225094,
+  "body_lines": 1157,
+  "body_bytes": 38002
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-admin/set-new-member-history-visibility.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-admin/set-new-member-history-visibility.ts",
+  "start_line": 225095,
+  "end_line": 226202,
+  "body_lines": 1106,
+  "body_bytes": 36357
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-admin/set-member-permission.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-admin/set-member-permission.ts",
+  "start_line": 226203,
+  "end_line": 227325,
+  "body_lines": 1121,
+  "body_bytes": 36983
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-admin/set-search.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-admin/set-search.ts",
+  "start_line": 227326,
+  "end_line": 228429,
+  "body_lines": 1102,
+  "body_bytes": 35760
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-admin/get-group-category-tags.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-admin/get-group-category-tags.ts",
+  "start_line": 228430,
+  "end_line": 229556,
+  "body_lines": 1125,
+  "body_bytes": 36922
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-admin/add-group-category-tag.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-admin/add-group-category-tag.ts",
+  "start_line": 229557,
+  "end_line": 230566,
+  "body_lines": 1008,
+  "body_bytes": 33292
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-admin/delete-group-category-tag.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-admin/delete-group-category-tag.ts",
+  "start_line": 230567,
+  "end_line": 231576,
+  "body_lines": 1008,
+  "body_bytes": 33304
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-admin/set-special-title.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-admin/set-special-title.ts",
+  "start_line": 231577,
+  "end_line": 232725,
+  "body_lines": 1147,
+  "body_bytes": 37476
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-admin/modify-group-ext-info.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-admin/modify-group-ext-info.ts",
+  "start_line": 232726,
+  "end_line": 233928,
+  "body_lines": 1201,
+  "body_bytes": 38787
+ },
+ {
+  "region": "src/bridge/apis/group-admin.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/bridge/apis/group-admin.ts",
+  "start_line": 233929,
+  "end_line": 234202,
+  "body_lines": 272,
+  "body_bytes": 9600
+ },
+ {
+  "region": "../protocol/src/web/group-album.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/web/group-album.ts",
+  "start_line": 234203,
+  "end_line": 234614,
+  "body_lines": 410,
+  "body_bytes": 12996
+ },
+ {
+  "region": "src/bridge/apis/group-album.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/bridge/apis/group-album.ts",
+  "start_line": 234615,
+  "end_line": 243902,
+  "body_lines": 9286,
+  "body_bytes": 302305
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-file/create-group-folder.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-file/create-group-folder.ts",
+  "start_line": 243903,
+  "end_line": 245674,
+  "body_lines": 1770,
+  "body_bytes": 57775
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-file/delete-group-file.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-file/delete-group-file.ts",
+  "start_line": 245675,
+  "end_line": 248524,
+  "body_lines": 2848,
+  "body_bytes": 91878
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-file/delete-group-folder.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-file/delete-group-folder.ts",
+  "start_line": 248525,
+  "end_line": 250285,
+  "body_lines": 1759,
+  "body_bytes": 57433
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-file/get-group-file-count.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-file/get-group-file-count.ts",
+  "start_line": 250286,
+  "end_line": 251737,
+  "body_lines": 1450,
+  "body_bytes": 46965
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-file/get-group-file-space.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-file/get-group-file-space.ts",
+  "start_line": 251738,
+  "end_line": 253188,
+  "body_lines": 1449,
+  "body_bytes": 46903
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-file/get-group-file-url.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-file/get-group-file-url.ts",
+  "start_line": 253189,
+  "end_line": 256053,
+  "body_lines": 2863,
+  "body_bytes": 92630
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-file/ntv2-download.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-file/ntv2-download.ts",
+  "start_line": 256054,
+  "end_line": 256095,
+  "body_lines": 40,
+  "body_bytes": 1706
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-file/get-group-ptt-url.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-file/get-group-ptt-url.ts",
+  "start_line": 256096,
+  "end_line": 259377,
+  "body_lines": 3280,
+  "body_bytes": 103928
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-file/get-group-video-url.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-file/get-group-video-url.ts",
+  "start_line": 259378,
+  "end_line": 262659,
+  "body_lines": 3280,
+  "body_bytes": 103954
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-file/get-private-file-url.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-file/get-private-file-url.ts",
+  "start_line": 262660,
+  "end_line": 264285,
+  "body_lines": 1624,
+  "body_bytes": 52915
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-file/get-private-ptt-url.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-file/get-private-ptt-url.ts",
+  "start_line": 264286,
+  "end_line": 267570,
+  "body_lines": 3283,
+  "body_bytes": 103983
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-file/get-private-video-url.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-file/get-private-video-url.ts",
+  "start_line": 267571,
+  "end_line": 270855,
+  "body_lines": 3283,
+  "body_bytes": 103853
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-file/list-group-files-page.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-file/list-group-files-page.ts",
+  "start_line": 270856,
+  "end_line": 272988,
+  "body_lines": 2131,
+  "body_bytes": 68334
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-file/move-group-file.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-file/move-group-file.ts",
+  "start_line": 272989,
+  "end_line": 275841,
+  "body_lines": 2851,
+  "body_bytes": 91932
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-file/publish-group-file.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-file/publish-group-file.ts",
+  "start_line": 275842,
+  "end_line": 277229,
+  "body_lines": 1386,
+  "body_bytes": 44845
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-file/rename-group-file.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-file/rename-group-file.ts",
+  "start_line": 277230,
+  "end_line": 280081,
+  "body_lines": 2850,
+  "body_bytes": 91943
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-file/rename-group-folder.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-file/rename-group-folder.ts",
+  "start_line": 280082,
+  "end_line": 281843,
+  "body_lines": 1760,
+  "body_bytes": 57403
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-file/trans-group-file.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-file/trans-group-file.ts",
+  "start_line": 281844,
+  "end_line": 283427,
+  "body_lines": 1582,
+  "body_bytes": 51297
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-file/upload-group-file-request.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-file/upload-group-file-request.ts",
+  "start_line": 283428,
+  "end_line": 286286,
+  "body_lines": 2857,
+  "body_bytes": 92045
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-file/upload-private-file-request.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-file/upload-private-file-request.ts",
+  "start_line": 286287,
+  "end_line": 288349,
+  "body_lines": 2061,
+  "body_bytes": 66269
+ },
+ {
+  "region": "src/bridge/apis/group-file.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/bridge/apis/group-file.ts",
+  "start_line": 288350,
+  "end_line": 289888,
+  "body_lines": 1537,
+  "body_bytes": 49364
+ },
+ {
+  "region": "../protocol/src/oidb-services/interaction/send-like.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/interaction/send-like.ts",
+  "start_line": 289889,
+  "end_line": 290927,
+  "body_lines": 1037,
+  "body_bytes": 33776
+ },
+ {
+  "region": "../protocol/src/oidb-services/interaction/send-poke.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/interaction/send-poke.ts",
+  "start_line": 290928,
+  "end_line": 291991,
+  "body_lines": 1062,
+  "body_bytes": 34409
+ },
+ {
+  "region": "../protocol/src/oidb-services/interaction/set-essence.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/interaction/set-essence.ts",
+  "start_line": 291992,
+  "end_line": 293023,
+  "body_lines": 1030,
+  "body_bytes": 33499
+ },
+ {
+  "region": "../protocol/src/oidb-services/reaction/fetch-reaction-summary.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/reaction/fetch-reaction-summary.ts",
+  "start_line": 293024,
+  "end_line": 294358,
+  "body_lines": 1333,
+  "body_bytes": 43082
+ },
+ {
+  "region": "../protocol/src/oidb-services/reaction/get-emoji-likes.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/reaction/get-emoji-likes.ts",
+  "start_line": 294359,
+  "end_line": 295711,
+  "body_lines": 1351,
+  "body_bytes": 43936
+ },
+ {
+  "region": "../protocol/src/oidb-services/reaction/set-reaction.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/reaction/set-reaction.ts",
+  "start_line": 295712,
+  "end_line": 296794,
+  "body_lines": 1081,
+  "body_bytes": 35117
+ },
+ {
+  "region": "src/bridge/apis/interaction.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/bridge/apis/interaction.ts",
+  "start_line": 296795,
+  "end_line": 296859,
+  "body_lines": 63,
+  "body_bytes": 1168
+ },
+ {
+  "region": "../protocol/src/oidb-services/group-file/finalize-offline-file.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/group-file/finalize-offline-file.ts",
+  "start_line": 296860,
+  "end_line": 298504,
+  "body_lines": 1643,
+  "body_bytes": 52970
+ },
+ {
+  "region": "src/bridge/apis/history-request-gate.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/bridge/apis/history-request-gate.ts",
+  "start_line": 298505,
+  "end_line": 298576,
+  "body_lines": 70,
+  "body_bytes": 2683
+ },
+ {
+  "region": "src/bridge/apis/message.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/bridge/apis/message.ts",
+  "start_line": 298577,
+  "end_line": 309658,
+  "body_lines": 11080,
+  "body_bytes": 359953
+ },
+ {
+  "region": "../protocol/src/oidb-services/misc/click-inline-keyboard-button.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/misc/click-inline-keyboard-button.ts",
+  "start_line": 309659,
+  "end_line": 310840,
+  "body_lines": 1180,
+  "body_bytes": 38653
+ },
+ {
+  "region": "../protocol/src/oidb-services/misc/send-group-sign.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/misc/send-group-sign.ts",
+  "start_line": 310841,
+  "end_line": 311924,
+  "body_lines": 1082,
+  "body_bytes": 35544
+ },
+ {
+  "region": "../protocol/src/oidb-services/misc/translate-en-to-zh.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/misc/translate-en-to-zh.ts",
+  "start_line": 311925,
+  "end_line": 313293,
+  "body_lines": 1367,
+  "body_bytes": 44791
+ },
+ {
+  "region": "../protocol/src/oidb-services/misc/request-decrypt-key.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/misc/request-decrypt-key.ts",
+  "start_line": 313294,
+  "end_line": 314467,
+  "body_lines": 1172,
+  "body_bytes": 38352
+ },
+ {
+  "region": "../protocol/src/oidb-services/misc/image-ocr.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/misc/image-ocr.ts",
+  "start_line": 314468,
+  "end_line": 316396,
+  "body_lines": 1927,
+  "body_bytes": 62667
+ },
+ {
+  "region": "src/bridge/apis/misc.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/bridge/apis/misc.ts",
+  "start_line": 316397,
+  "end_line": 317185,
+  "body_lines": 787,
+  "body_bytes": 26636
+ },
+ {
+  "region": "../protocol/src/oidb-services/custom-face/add-custom-face.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/custom-face/add-custom-face.ts",
+  "start_line": 317186,
+  "end_line": 319191,
+  "body_lines": 2004,
+  "body_bytes": 62096
+ },
+ {
+  "region": "../protocol/src/oidb-services/custom-face/shared.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/custom-face/shared.ts",
+  "start_line": 319192,
+  "end_line": 319211,
+  "body_lines": 18,
+  "body_bytes": 601
+ },
+ {
+  "region": "../protocol/src/oidb-services/custom-face/delete-custom-face.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/custom-face/delete-custom-face.ts",
+  "start_line": 319212,
+  "end_line": 319656,
+  "body_lines": 443,
+  "body_bytes": 13829
+ },
+ {
+  "region": "../protocol/src/oidb-services/custom-face/fetch-custom-face-detail.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/custom-face/fetch-custom-face-detail.ts",
+  "start_line": 319657,
+  "end_line": 321144,
+  "body_lines": 1486,
+  "body_bytes": 48995
+ },
+ {
+  "region": "../protocol/src/oidb-services/custom-face/fetch-custom-face-list.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/custom-face/fetch-custom-face-list.ts",
+  "start_line": 321145,
+  "end_line": 321975,
+  "body_lines": 829,
+  "body_bytes": 27455
+ },
+ {
+  "region": "../protocol/src/oidb-services/custom-face/modify-custom-face.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/custom-face/modify-custom-face.ts",
+  "start_line": 321976,
+  "end_line": 323562,
+  "body_lines": 1585,
+  "body_bytes": 51707
+ },
+ {
+  "region": "../protocol/src/oidb-services/custom-face/move-custom-face.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/custom-face/move-custom-face.ts",
+  "start_line": 323563,
+  "end_line": 325039,
+  "body_lines": 1475,
+  "body_bytes": 48314
+ },
+ {
+  "region": "../protocol/src/oidb-services/custom-face/order-custom-face.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/custom-face/order-custom-face.ts",
+  "start_line": 325040,
+  "end_line": 326517,
+  "body_lines": 1476,
+  "body_bytes": 48258
+ },
+ {
+  "region": "../protocol/src/oidb-services/profile/get-like.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/profile/get-like.ts",
+  "start_line": 326518,
+  "end_line": 328647,
+  "body_lines": 2128,
+  "body_bytes": 66994
+ },
+ {
+  "region": "../protocol/src/oidb-services/profile/get-unidirectional-friend-list.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/profile/get-unidirectional-friend-list.ts",
+  "start_line": 328648,
+  "end_line": 329103,
+  "body_lines": 454,
+  "body_bytes": 16033
+ },
+ {
+  "region": "../protocol/src/oidb-services/profile/set-input-status.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/profile/set-input-status.ts",
+  "start_line": 329104,
+  "end_line": 330184,
+  "body_lines": 1079,
+  "body_bytes": 35083
+ },
+ {
+  "region": "../protocol/src/oidb-services/profile/set-profile.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/profile/set-profile.ts",
+  "start_line": 330185,
+  "end_line": 331352,
+  "body_lines": 1166,
+  "body_bytes": 38043
+ },
+ {
+  "region": "../protocol/src/oidb-services/profile/set-self-long-nick.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/profile/set-self-long-nick.ts",
+  "start_line": 331353,
+  "end_line": 332423,
+  "body_lines": 1069,
+  "body_bytes": 34780
+ },
+ {
+  "region": "src/bridge/apis/profile.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/bridge/apis/profile.ts",
+  "start_line": 332424,
+  "end_line": 333409,
+  "body_lines": 984,
+  "body_bytes": 31901
+ },
+ {
+  "region": "../../node_modules/.pnpm/entities@6.0.1/node_modules/entities/dist/esm/generated/decode-data-html.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/entities@6.0.1/node_modules/entities/dist/esm/generated/decode-data-html.js",
+  "start_line": 333410,
+  "end_line": 333412,
+  "body_lines": 1,
+  "body_bytes": 15415
+ },
+ {
+  "region": "../../node_modules/.pnpm/entities@6.0.1/node_modules/entities/dist/esm/generated/decode-data-xml.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/entities@6.0.1/node_modules/entities/dist/esm/generated/decode-data-xml.js",
+  "start_line": 333413,
+  "end_line": 333415,
+  "body_lines": 1,
+  "body_bytes": 148
+ },
+ {
+  "region": "../../node_modules/.pnpm/entities@6.0.1/node_modules/entities/dist/esm/decode-codepoint.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/entities@6.0.1/node_modules/entities/dist/esm/decode-codepoint.js",
+  "start_line": 333416,
+  "end_line": 333471,
+  "body_lines": 54,
+  "body_bytes": 1269
+ },
+ {
+  "region": "../../node_modules/.pnpm/entities@6.0.1/node_modules/entities/dist/esm/decode.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/entities@6.0.1/node_modules/entities/dist/esm/decode.js",
+  "start_line": 333472,
+  "end_line": 333798,
+  "body_lines": 325,
+  "body_bytes": 13207
+ },
+ {
+  "region": "../../node_modules/.pnpm/htmlparser2@10.0.0/node_modules/htmlparser2/dist/esm/Tokenizer.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/htmlparser2@10.0.0/node_modules/htmlparser2/dist/esm/Tokenizer.js",
+  "start_line": 333799,
+  "end_line": 334448,
+  "body_lines": 648,
+  "body_bytes": 21909
+ },
+ {
+  "region": "../../node_modules/.pnpm/htmlparser2@10.0.0/node_modules/htmlparser2/dist/esm/Parser.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/htmlparser2@10.0.0/node_modules/htmlparser2/dist/esm/Parser.js",
+  "start_line": 334449,
+  "end_line": 334886,
+  "body_lines": 436,
+  "body_bytes": 13181
+ },
+ {
+  "region": "../../node_modules/.pnpm/domelementtype@2.3.0/node_modules/domelementtype/lib/esm/index.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/domelementtype@2.3.0/node_modules/domelementtype/lib/esm/index.js",
+  "start_line": 334887,
+  "end_line": 334927,
+  "body_lines": 39,
+  "body_bytes": 1116
+ },
+ {
+  "region": "../../node_modules/.pnpm/domhandler@5.0.3/node_modules/domhandler/lib/esm/node.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/domhandler@5.0.3/node_modules/domhandler/lib/esm/node.js",
+  "start_line": 334928,
+  "end_line": 335237,
+  "body_lines": 308,
+  "body_bytes": 7755
+ },
+ {
+  "region": "../../node_modules/.pnpm/domhandler@5.0.3/node_modules/domhandler/lib/esm/index.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/domhandler@5.0.3/node_modules/domhandler/lib/esm/index.js",
+  "start_line": 335238,
+  "end_line": 335361,
+  "body_lines": 122,
+  "body_bytes": 3434
+ },
+ {
+  "region": "../../node_modules/.pnpm/domutils@3.2.2/node_modules/domutils/lib/esm/querying.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/domutils@3.2.2/node_modules/domutils/lib/esm/querying.js",
+  "start_line": 335362,
+  "end_line": 335392,
+  "body_lines": 29,
+  "body_bytes": 860
+ },
+ {
+  "region": "../../node_modules/.pnpm/htmlparser2@10.0.0/node_modules/htmlparser2/dist/esm/index.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/htmlparser2@10.0.0/node_modules/htmlparser2/dist/esm/index.js",
+  "start_line": 335393,
+  "end_line": 335405,
+  "body_lines": 11,
+  "body_bytes": 327
+ },
+ {
+  "region": "../protocol/src/web/qzone-feed-content.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/web/qzone-feed-content.ts",
+  "start_line": 335406,
+  "end_line": 335499,
+  "body_lines": 92,
+  "body_bytes": 3946
+ },
+ {
+  "region": "../protocol/src/web/qzone-feed-cursor.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/web/qzone-feed-cursor.ts",
+  "start_line": 335500,
+  "end_line": 335587,
+  "body_lines": 86,
+  "body_bytes": 3035
+ },
+ {
+  "region": "../protocol/src/web/qzone.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/web/qzone.ts",
+  "start_line": 335588,
+  "end_line": 336659,
+  "body_lines": 1070,
+  "body_bytes": 46009
+ },
+ {
+  "region": "../protocol/src/web/qzone-public.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/web/qzone-public.ts",
+  "start_line": 336660,
+  "end_line": 337296,
+  "body_lines": 635,
+  "body_bytes": 23613
+ },
+ {
+  "region": "src/bridge/apis/qzone.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/bridge/apis/qzone.ts",
+  "start_line": 337297,
+  "end_line": 337454,
+  "body_lines": 156,
+  "body_bytes": 6927
+ },
+ {
+  "region": "../protocol/src/oidb-services/web/force-fetch-client-key.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/oidb-services/web/force-fetch-client-key.ts",
+  "start_line": 337455,
+  "end_line": 338455,
+  "body_lines": 999,
+  "body_bytes": 32500
+ },
+ {
+  "region": "../protocol/src/web/group-essence.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/web/group-essence.ts",
+  "start_line": 338456,
+  "end_line": 338511,
+  "body_lines": 54,
+  "body_bytes": 1875
+ },
+ {
+  "region": "../protocol/src/web/group-signin.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/web/group-signin.ts",
+  "start_line": 338512,
+  "end_line": 338568,
+  "body_lines": 55,
+  "body_bytes": 2283
+ },
+ {
+  "region": "../protocol/src/web/group-notice.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/web/group-notice.ts",
+  "start_line": 338569,
+  "end_line": 338772,
+  "body_lines": 202,
+  "body_bytes": 8422
+ },
+ {
+  "region": "src/bridge/apis/web.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/bridge/apis/web.ts",
+  "start_line": 338773,
+  "end_line": 339004,
+  "body_lines": 230,
+  "body_bytes": 10065
+ },
+ {
+  "region": "src/bridge/apis/system-face.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/bridge/apis/system-face.ts",
+  "start_line": 339005,
+  "end_line": 339032,
+  "body_lines": 26,
+  "body_bytes": 773
+ },
+ {
+  "region": "src/bridge/apis/index.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/bridge/apis/index.ts",
+  "start_line": 339033,
+  "end_line": 339062,
+  "body_lines": 28,
+  "body_bytes": 955
+ },
+ {
+  "region": "../onebot/src/history-sync.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/history-sync.ts",
+  "start_line": 339063,
+  "end_line": 339309,
+  "body_lines": 245,
+  "body_bytes": 11620
+ },
+ {
+  "region": "../onebot/src/event-filter.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/event-filter.ts",
+  "start_line": 339310,
+  "end_line": 339349,
+  "body_lines": 38,
+  "body_bytes": 1277
+ },
+ {
+  "region": "../onebot/src/network/adapter.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/network/adapter.ts",
+  "start_line": 339350,
+  "end_line": 339466,
+  "body_lines": 115,
+  "body_bytes": 3598
+ },
+ {
+  "region": "../onebot/src/network/http-post-adapter.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/network/http-post-adapter.ts",
+  "start_line": 339467,
+  "end_line": 339597,
+  "body_lines": 129,
+  "body_bytes": 4018
+ },
+ {
+  "region": "../websocket/src/native.ts",
+  "kind": "workspace",
+  "out": "packages/websocket/src/native.ts",
+  "start_line": 339598,
+  "end_line": 339668,
+  "body_lines": 69,
+  "body_bytes": 1941
+ },
+ {
+  "region": "../websocket/src/extensions.ts",
+  "kind": "workspace",
+  "out": "packages/websocket/src/extensions.ts",
+  "start_line": 339669,
+  "end_line": 340317,
+  "body_lines": 647,
+  "body_bytes": 21734
+ },
+ {
+  "region": "../websocket/src/server.ts",
+  "kind": "workspace",
+  "out": "packages/websocket/src/server.ts",
+  "start_line": 340318,
+  "end_line": 340532,
+  "body_lines": 213,
+  "body_bytes": 7043
+ },
+ {
+  "region": "../websocket/src/client.ts",
+  "kind": "workspace",
+  "out": "packages/websocket/src/client.ts",
+  "start_line": 340533,
+  "end_line": 340727,
+  "body_lines": 193,
+  "body_bytes": 7003
+ },
+ {
+  "region": "../websocket/src/index.ts",
+  "kind": "workspace",
+  "out": "packages/websocket/src/index.ts",
+  "start_line": 340728,
+  "end_line": 340731,
+  "body_lines": 2,
+  "body_bytes": 75
+ },
+ {
+  "region": "../onebot/src/network/utils.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/network/utils.ts",
+  "start_line": 340732,
+  "end_line": 340851,
+  "body_lines": 118,
+  "body_bytes": 4528
+ },
+ {
+  "region": "../onebot/src/network/ws-server-connections.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/network/ws-server-connections.ts",
+  "start_line": 340852,
+  "end_line": 341053,
+  "body_lines": 200,
+  "body_bytes": 7106
+ },
+ {
+  "region": "../onebot/src/network/http-trace.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/network/http-trace.ts",
+  "start_line": 341054,
+  "end_line": 341062,
+  "body_lines": 7,
+  "body_bytes": 497
+ },
+ {
+  "region": "../onebot/src/network/http-sse-connections.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/network/http-sse-connections.ts",
+  "start_line": 341063,
+  "end_line": 341234,
+  "body_lines": 170,
+  "body_bytes": 5800
+ },
+ {
+  "region": "../onebot/src/network/http-server-adapter.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/network/http-server-adapter.ts",
+  "start_line": 341235,
+  "end_line": 341741,
+  "body_lines": 505,
+  "body_bytes": 16551
+ },
+ {
+  "region": "../onebot/src/network/network-manager.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/network/network-manager.ts",
+  "start_line": 341742,
+  "end_line": 342078,
+  "body_lines": 335,
+  "body_bytes": 11229
+ },
+ {
+  "region": "../onebot/src/network/ws-client-adapter.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/network/ws-client-adapter.ts",
+  "start_line": 342079,
+  "end_line": 342281,
+  "body_lines": 201,
+  "body_bytes": 6326
+ },
+ {
+  "region": "../onebot/src/network/ws-server-adapter.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/network/ws-server-adapter.ts",
+  "start_line": 342282,
+  "end_line": 342457,
+  "body_lines": 174,
+  "body_bytes": 5351
+ },
+ {
+  "region": "../onebot/src/reaction-store.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/reaction-store.ts",
+  "start_line": 342458,
+  "end_line": 342557,
+  "body_lines": 98,
+  "body_bytes": 3636
+ },
+ {
+  "region": "../onebot/src/instance.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/instance.ts",
+  "start_line": 342558,
+  "end_line": 343045,
+  "body_lines": 486,
+  "body_bytes": 19274
+ },
+ {
+  "region": "../onebot/src/media-store-migration.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/media-store-migration.ts",
+  "start_line": 343046,
+  "end_line": 343111,
+  "body_lines": 64,
+  "body_bytes": 3428
+ },
+ {
+  "region": "../onebot/src/message-store-migration-worker.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/message-store-migration-worker.ts",
+  "start_line": 343112,
+  "end_line": 343173,
+  "body_lines": 60,
+  "body_bytes": 1991
+ },
+ {
+  "region": "../onebot/src/message-store-migration-task.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/message-store-migration-task.ts",
+  "start_line": 343174,
+  "end_line": 343241,
+  "body_lines": 66,
+  "body_bytes": 2652
+ },
+ {
+  "region": "../onebot/src/manager.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/manager.ts",
+  "start_line": 343242,
+  "end_line": 343656,
+  "body_lines": 413,
+  "body_bytes": 16307
+ },
+ {
+  "region": "../protocol/src/identity-service.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/identity-service.ts",
+  "start_line": 343657,
+  "end_line": 344730,
+  "body_lines": 1072,
+  "body_bytes": 41899
+ },
+ {
+  "region": "../protocol/src/event-bus.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/event-bus.ts",
+  "start_line": 344731,
+  "end_line": 344808,
+  "body_lines": 76,
+  "body_bytes": 2438
+ },
+ {
+  "region": "../protocol/src/kick-nt.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/kick-nt.ts",
+  "start_line": 344809,
+  "end_line": 345056,
+  "body_lines": 246,
+  "body_bytes": 8986
+ },
+ {
+  "region": "../protocol/src/packet-pipeline.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/packet-pipeline.ts",
+  "start_line": 345057,
+  "end_line": 345591,
+  "body_lines": 533,
+  "body_bytes": 18347
+ },
+ {
+  "region": "src/bridge/bridge.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/bridge/bridge.ts",
+  "start_line": 345592,
+  "end_line": 345962,
+  "body_lines": 369,
+  "body_bytes": 13225
+ },
+ {
+  "region": "src/bridge/manager.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/bridge/manager.ts",
+  "start_line": 345963,
+  "end_line": 346211,
+  "body_lines": 247,
+  "body_bytes": 10155
+ },
+ {
+  "region": "../common/src/notification-templates.ts",
+  "kind": "workspace",
+  "out": "packages/common/src/notification-templates.ts",
+  "start_line": 346212,
+  "end_line": 346224,
+  "body_lines": 11,
+  "body_bytes": 283
+ },
+ {
+  "region": "src/notifications/smtp.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/notifications/smtp.ts",
+  "start_line": 346225,
+  "end_line": 346514,
+  "body_lines": 288,
+  "body_bytes": 9226
+ },
+ {
+  "region": "src/notifications/config.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/notifications/config.ts",
+  "start_line": 346515,
+  "end_line": 346769,
+  "body_lines": 253,
+  "body_bytes": 8824
+ },
+ {
+  "region": "src/notifications/debounce.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/notifications/debounce.ts",
+  "start_line": 346770,
+  "end_line": 346811,
+  "body_lines": 40,
+  "body_bytes": 1080
+ },
+ {
+  "region": "src/notifications/manager.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/notifications/manager.ts",
+  "start_line": 346812,
+  "end_line": 347091,
+  "body_lines": 278,
+  "body_bytes": 8185
+ },
+ {
+  "region": "src/webui/state-bus.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/webui/state-bus.ts",
+  "start_line": 347092,
+  "end_line": 347129,
+  "body_lines": 36,
+  "body_bytes": 1197
+ },
+ {
+  "region": "src/webui/state-wiring.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/webui/state-wiring.ts",
+  "start_line": 347130,
+  "end_line": 347150,
+  "body_lines": 19,
+  "body_bytes": 425
+ },
+ {
+  "region": "../../node_modules/.pnpm/@hono+node-server@2.1.5_hono@4.13.13/node_modules/@hono/node-server/dist/index.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@hono+node-server@2.1.5_hono@4.13.13/node_modules/@hono/node-server/dist/index.mjs",
+  "start_line": 347151,
+  "end_line": 348336,
+  "body_lines": 1184,
+  "body_bytes": 41557
+ },
+ {
+  "region": "../common/src/webui-target.ts",
+  "kind": "workspace",
+  "out": "packages/common/src/webui-target.ts",
+  "start_line": 348337,
+  "end_line": 348367,
+  "body_lines": 29,
+  "body_bytes": 1305
+ },
+ {
+  "region": "../../node_modules/.pnpm/@hono+node-server@2.1.5_hono@4.13.13/node_modules/@hono/node-server/dist/utils/stream.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@hono+node-server@2.1.5_hono@4.13.13/node_modules/@hono/node-server/dist/utils/stream.mjs",
+  "start_line": 348368,
+  "end_line": 348426,
+  "body_lines": 57,
+  "body_bytes": 1505
+ },
+ {
+  "region": "../../node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/utils/mime.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/utils/mime.js",
+  "start_line": 348427,
+  "end_line": 348495,
+  "body_lines": 67,
+  "body_bytes": 1686
+ },
+ {
+  "region": "../../node_modules/.pnpm/@hono+node-server@2.1.5_hono@4.13.13/node_modules/@hono/node-server/dist/serve-static.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@hono+node-server@2.1.5_hono@4.13.13/node_modules/@hono/node-server/dist/serve-static.mjs",
+  "start_line": 348496,
+  "end_line": 348640,
+  "body_lines": 143,
+  "body_bytes": 4913
+ },
+ {
+  "region": "src/webui/static-frontend.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/webui/static-frontend.ts",
+  "start_line": 348641,
+  "end_line": 348662,
+  "body_lines": 20,
+  "body_bytes": 785
+ },
+ {
+  "region": "../../node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/http-exception.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/http-exception.js",
+  "start_line": 348663,
+  "end_line": 348716,
+  "body_lines": 52,
+  "body_bytes": 1638
+ },
+ {
+  "region": "../../node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/request/constants.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/request/constants.js",
+  "start_line": 348717,
+  "end_line": 348719,
+  "body_lines": 1,
+  "body_bytes": 33
+ },
+ {
+  "region": "../../node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/utils/buffer.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/utils/buffer.js",
+  "start_line": 348720,
+  "end_line": 348724,
+  "body_lines": 3,
+  "body_bytes": 208
+ },
+ {
+  "region": "../../node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/utils/body.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/utils/body.js",
+  "start_line": 348725,
+  "end_line": 348816,
+  "body_lines": 90,
+  "body_bytes": 3558
+ },
+ {
+  "region": "../../node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/utils/url.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/utils/url.js",
+  "start_line": 348817,
+  "end_line": 349001,
+  "body_lines": 183,
+  "body_bytes": 6317
+ },
+ {
+  "region": "../../node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/request.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/request.js",
+  "start_line": 349002,
+  "end_line": 349271,
+  "body_lines": 268,
+  "body_bytes": 6305
+ },
+ {
+  "region": "../../node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/utils/html.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/utils/html.js",
+  "start_line": 349272,
+  "end_line": 349305,
+  "body_lines": 32,
+  "body_bytes": 984
+ },
+ {
+  "region": "../../node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/context.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/context.js",
+  "start_line": 349306,
+  "end_line": 349682,
+  "body_lines": 375,
+  "body_bytes": 9914
+ },
+ {
+  "region": "../../node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/compose.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/compose.js",
+  "start_line": 349683,
+  "end_line": 349731,
+  "body_lines": 47,
+  "body_bytes": 1627
+ },
+ {
+  "region": "../../node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/router.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/router.js",
+  "start_line": 349732,
+  "end_line": 349753,
+  "body_lines": 20,
+  "body_bytes": 439
+ },
+ {
+  "region": "../../node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/utils/constants.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/utils/constants.js",
+  "start_line": 349754,
+  "end_line": 349759,
+  "body_lines": 4,
+  "body_bytes": 96
+ },
+ {
+  "region": "../../node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/hono-base.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/hono-base.js",
+  "start_line": 349760,
+  "end_line": 350101,
+  "body_lines": 340,
+  "body_bytes": 9908
+ },
+ {
+  "region": "../../node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/router/utils.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/router/utils.js",
+  "start_line": 350102,
+  "end_line": 350104,
+  "body_lines": 1,
+  "body_bytes": 50
+ },
+ {
+  "region": "../../node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/router/reg-exp-router/matcher.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/router/reg-exp-router/matcher.js",
+  "start_line": 350105,
+  "end_line": 350121,
+  "body_lines": 15,
+  "body_bytes": 476
+ },
+ {
+  "region": "../../node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/router/reg-exp-router/node.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/router/reg-exp-router/node.js",
+  "start_line": 350122,
+  "end_line": 350209,
+  "body_lines": 86,
+  "body_bytes": 2967
+ },
+ {
+  "region": "../../node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/router/reg-exp-router/trie.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/router/reg-exp-router/trie.js",
+  "start_line": 350210,
+  "end_line": 350279,
+  "body_lines": 68,
+  "body_bytes": 1729
+ },
+ {
+  "region": "../../node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/router/reg-exp-router/router.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/router/reg-exp-router/router.js",
+  "start_line": 350280,
+  "end_line": 350373,
+  "body_lines": 92,
+  "body_bytes": 3530
+ },
+ {
+  "region": "../../node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/router/smart-router/router.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/router/smart-router/router.js",
+  "start_line": 350374,
+  "end_line": 350420,
+  "body_lines": 45,
+  "body_bytes": 1167
+ },
+ {
+  "region": "../../node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/router/trie-router/node.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/router/trie-router/node.js",
+  "start_line": 350421,
+  "end_line": 350550,
+  "body_lines": 128,
+  "body_bytes": 4399
+ },
+ {
+  "region": "../../node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/router/trie-router/router.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/router/trie-router/router.js",
+  "start_line": 350551,
+  "end_line": 350562,
+  "body_lines": 10,
+  "body_bytes": 279
+ },
+ {
+  "region": "../../node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/hono.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/hono.js",
+  "start_line": 350563,
+  "end_line": 350583,
+  "body_lines": 19,
+  "body_bytes": 573
+ },
+ {
+  "region": "../../node_modules/.pnpm/otpauth@9.5.1/node_modules/otpauth/dist/otpauth.node.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/otpauth@9.5.1/node_modules/otpauth/dist/otpauth.node.mjs",
+  "start_line": 350584,
+  "end_line": 351262,
+  "body_lines": 677,
+  "body_bytes": 22957
+ },
+ {
+  "region": "src/webui/totp.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/webui/totp.ts",
+  "start_line": 351263,
+  "end_line": 351504,
+  "body_lines": 240,
+  "body_bytes": 8378
+ },
+ {
+  "region": "src/webui/auth.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/webui/auth.ts",
+  "start_line": 351505,
+  "end_line": 351796,
+  "body_lines": 290,
+  "body_bytes": 9387
+ },
+ {
+  "region": "src/webui/webui-login.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/webui/webui-login.ts",
+  "start_line": 351797,
+  "end_line": 351825,
+  "body_lines": 27,
+  "body_bytes": 1016
+ },
+ {
+  "region": "src/webui/consent.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/webui/consent.ts",
+  "start_line": 351826,
+  "end_line": 351982,
+  "body_lines": 155,
+  "body_bytes": 5634
+ },
+ {
+  "region": "src/webui/tls.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/webui/tls.ts",
+  "start_line": 351983,
+  "end_line": 352047,
+  "body_lines": 63,
+  "body_bytes": 1608
+ },
+ {
+  "region": "src/webui/listener-exposure.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/webui/listener-exposure.ts",
+  "start_line": 352048,
+  "end_line": 352068,
+  "body_lines": 19,
+  "body_bytes": 726
+ },
+ {
+  "region": "src/webui/system-settings.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/webui/system-settings.ts",
+  "start_line": 352069,
+  "end_line": 352134,
+  "body_lines": 64,
+  "body_bytes": 1663
+ },
+ {
+  "region": "src/webui/ui-config.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/webui/ui-config.ts",
+  "start_line": 352135,
+  "end_line": 352755,
+  "body_lines": 619,
+  "body_bytes": 18357
+ },
+ {
+  "region": "src/webui/backup.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/webui/backup.ts",
+  "start_line": 352756,
+  "end_line": 353215,
+  "body_lines": 458,
+  "body_bytes": 16518
+ },
+ {
+  "region": "src/webui/restore.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/webui/restore.ts",
+  "start_line": 353216,
+  "end_line": 353511,
+  "body_lines": 294,
+  "body_bytes": 10397
+ },
+ {
+  "region": "../onebot/src/action-docs.ts",
+  "kind": "workspace",
+  "out": "packages/onebot/src/action-docs.ts",
+  "start_line": 353512,
+  "end_line": 353524,
+  "body_lines": 11,
+  "body_bytes": 394
+ },
+ {
+  "region": "src/webui/debug-stream.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/webui/debug-stream.ts",
+  "start_line": 353525,
+  "end_line": 353546,
+  "body_lines": 20,
+  "body_bytes": 538
+ },
+ {
+  "region": "src/webui/mutation-trace.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/webui/mutation-trace.ts",
+  "start_line": 353547,
+  "end_line": 353728,
+  "body_lines": 180,
+  "body_bytes": 7792
+ },
+ {
+  "region": "src/webui/sse-response.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/webui/sse-response.ts",
+  "start_line": 353729,
+  "end_line": 353799,
+  "body_lines": 69,
+  "body_bytes": 1843
+ },
+ {
+  "region": "src/webui/debug-tools.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/webui/debug-tools.ts",
+  "start_line": 353800,
+  "end_line": 353923,
+  "body_lines": 122,
+  "body_bytes": 4801
+ },
+ {
+  "region": "src/webui/state-stream.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/webui/state-stream.ts",
+  "start_line": 353924,
+  "end_line": 354000,
+  "body_lines": 75,
+  "body_bytes": 1694
+ },
+ {
+  "region": "src/webui/connection-diff-loop.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/webui/connection-diff-loop.ts",
+  "start_line": 354001,
+  "end_line": 354078,
+  "body_lines": 76,
+  "body_bytes": 2586
+ },
+ {
+  "region": "src/webui/connection-snapshot.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/webui/connection-snapshot.ts",
+  "start_line": 354079,
+  "end_line": 354102,
+  "body_lines": 22,
+  "body_bytes": 817
+ },
+ {
+  "region": "../../node_modules/.pnpm/@hono+node-server@2.1.5_hono@4.13.13/node_modules/@hono/node-server/dist/conninfo.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@hono+node-server@2.1.5_hono@4.13.13/node_modules/@hono/node-server/dist/conninfo.mjs",
+  "start_line": 354103,
+  "end_line": 354120,
+  "body_lines": 16,
+  "body_bytes": 449
+ },
+ {
+  "region": "src/webui/client-ip.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/webui/client-ip.ts",
+  "start_line": 354121,
+  "end_line": 354179,
+  "body_lines": 57,
+  "body_bytes": 2157
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/utils/helper.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/utils/helper.mjs",
+  "start_line": 354180,
+  "end_line": 354238,
+  "body_lines": 57,
+  "body_bytes": 1260
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/types.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/types.mjs",
+  "start_line": 354239,
+  "end_line": 354245,
+  "body_lines": 5,
+  "body_bytes": 87
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/date/matching.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/date/matching.mjs",
+  "start_line": 354246,
+  "end_line": 354397,
+  "body_lines": 150,
+  "body_bytes": 4407
+ },
+ {
+  "region": "../../node_modules/.pnpm/fastest-levenshtein@1.0.16/node_modules/fastest-levenshtein/esm/mod.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/fastest-levenshtein@1.0.16/node_modules/fastest-levenshtein/esm/mod.js",
+  "start_line": 354398,
+  "end_line": 354496,
+  "body_lines": 97,
+  "body_bytes": 2498
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/utils/levenshtein.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/utils/levenshtein.mjs",
+  "start_line": 354497,
+  "end_line": 354519,
+  "body_lines": 21,
+  "body_bytes": 919
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/utils/mergeUserInputDictionary.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/utils/mergeUserInputDictionary.mjs",
+  "start_line": 354520,
+  "end_line": 354538,
+  "body_lines": 17,
+  "body_bytes": 764
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/dictionary/matching.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/dictionary/matching.mjs",
+  "start_line": 354539,
+  "end_line": 354601,
+  "body_lines": 61,
+  "body_bytes": 2562
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/dictionary/variants/matching/unmunger/getCleanPasswords.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/dictionary/variants/matching/unmunger/getCleanPasswords.mjs",
+  "start_line": 354602,
+  "end_line": 354706,
+  "body_lines": 103,
+  "body_bytes": 2581
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/dictionary/variants/matching/l33t.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/dictionary/variants/matching/l33t.mjs",
+  "start_line": 354707,
+  "end_line": 354775,
+  "body_lines": 67,
+  "body_bytes": 2254
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/dictionary/variants/matching/reverse.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/dictionary/variants/matching/reverse.mjs",
+  "start_line": 354776,
+  "end_line": 354792,
+  "body_lines": 15,
+  "body_bytes": 445
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/regex/matching.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/regex/matching.mjs",
+  "start_line": 354793,
+  "end_line": 354816,
+  "body_lines": 22,
+  "body_bytes": 531
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/scoring/utils.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/scoring/utils.mjs",
+  "start_line": 354817,
+  "end_line": 354846,
+  "body_lines": 28,
+  "body_bytes": 489
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/bruteforce/scoring.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/bruteforce/scoring.mjs",
+  "start_line": 354847,
+  "end_line": 354856,
+  "body_lines": 8,
+  "body_bytes": 273
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/date/scoring.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/date/scoring.mjs",
+  "start_line": 354857,
+  "end_line": 354863,
+  "body_lines": 5,
+  "body_bytes": 165
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/dictionary/variants/scoring/uppercase.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/dictionary/variants/scoring/uppercase.mjs",
+  "start_line": 354864,
+  "end_line": 354889,
+  "body_lines": 24,
+  "body_bytes": 942
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/dictionary/variants/scoring/l33t.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/dictionary/variants/scoring/l33t.mjs",
+  "start_line": 354890,
+  "end_line": 354925,
+  "body_lines": 34,
+  "body_bytes": 928
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/dictionary/scoring.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/dictionary/scoring.mjs",
+  "start_line": 354926,
+  "end_line": 354946,
+  "body_lines": 19,
+  "body_bytes": 543
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/regex/scoring.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/regex/scoring.mjs",
+  "start_line": 354947,
+  "end_line": 354963,
+  "body_lines": 15,
+  "body_bytes": 409
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/repeat/scoring.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/repeat/scoring.mjs",
+  "start_line": 354964,
+  "end_line": 354966,
+  "body_lines": 1,
+  "body_bytes": 83
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/sequence/scoring.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/sequence/scoring.mjs",
+  "start_line": 354967,
+  "end_line": 354985,
+  "body_lines": 17,
+  "body_bytes": 347
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/spatial/scoring.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/spatial/scoring.mjs",
+  "start_line": 354986,
+  "end_line": 355023,
+  "body_lines": 36,
+  "body_bytes": 1273
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/separator/scoring.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/separator/scoring.mjs",
+  "start_line": 355024,
+  "end_line": 355028,
+  "body_lines": 3,
+  "body_bytes": 66
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/wordSequence/scoring.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/wordSequence/scoring.mjs",
+  "start_line": 355029,
+  "end_line": 355038,
+  "body_lines": 8,
+  "body_bytes": 237
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/scoring/estimate.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/scoring/estimate.mjs",
+  "start_line": 355039,
+  "end_line": 355083,
+  "body_lines": 43,
+  "body_bytes": 1524
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/scoring/index.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/scoring/index.mjs",
+  "start_line": 355084,
+  "end_line": 355207,
+  "body_lines": 122,
+  "body_bytes": 4312
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/repeat/matching.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/repeat/matching.mjs",
+  "start_line": 355208,
+  "end_line": 355290,
+  "body_lines": 81,
+  "body_bytes": 2299
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/sequence/matching.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/sequence/matching.mjs",
+  "start_line": 355291,
+  "end_line": 355366,
+  "body_lines": 74,
+  "body_bytes": 1673
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/spatial/matching.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/spatial/matching.mjs",
+  "start_line": 355367,
+  "end_line": 355439,
+  "body_lines": 71,
+  "body_bytes": 1911
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/separator/matching.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/separator/matching.mjs",
+  "start_line": 355440,
+  "end_line": 355477,
+  "body_lines": 36,
+  "body_bytes": 1281
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/wordSequence/matching.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/wordSequence/matching.mjs",
+  "start_line": 355478,
+  "end_line": 355601,
+  "body_lines": 122,
+  "body_bytes": 4404
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/Matching.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/Matching.mjs",
+  "start_line": 355602,
+  "end_line": 355656,
+  "body_lines": 53,
+  "body_bytes": 1591
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/TimeEstimates.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/TimeEstimates.mjs",
+  "start_line": 355657,
+  "end_line": 355758,
+  "body_lines": 100,
+  "body_bytes": 3030
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/bruteforce/feedback.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/bruteforce/feedback.mjs",
+  "start_line": 355759,
+  "end_line": 355763,
+  "body_lines": 3,
+  "body_bytes": 49
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/date/feedback.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/date/feedback.mjs",
+  "start_line": 355764,
+  "end_line": 355771,
+  "body_lines": 6,
+  "body_bytes": 154
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/dictionary/feedback.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/dictionary/feedback.mjs",
+  "start_line": 355772,
+  "end_line": 355812,
+  "body_lines": 39,
+  "body_bytes": 2128
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/regex/feedback.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/regex/feedback.mjs",
+  "start_line": 355813,
+  "end_line": 355824,
+  "body_lines": 10,
+  "body_bytes": 311
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/repeat/feedback.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/repeat/feedback.mjs",
+  "start_line": 355825,
+  "end_line": 355834,
+  "body_lines": 8,
+  "body_bytes": 279
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/sequence/feedback.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/sequence/feedback.mjs",
+  "start_line": 355835,
+  "end_line": 355842,
+  "body_lines": 6,
+  "body_bytes": 166
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/spatial/feedback.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/spatial/feedback.mjs",
+  "start_line": 355843,
+  "end_line": 355852,
+  "body_lines": 8,
+  "body_bytes": 277
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/separator/feedback.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/separator/feedback.mjs",
+  "start_line": 355853,
+  "end_line": 355857,
+  "body_lines": 3,
+  "body_bytes": 48
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/wordSequence/feedback.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/wordSequence/feedback.mjs",
+  "start_line": 355858,
+  "end_line": 355872,
+  "body_lines": 13,
+  "body_bytes": 507
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/Feedback.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/Feedback.mjs",
+  "start_line": 355873,
+  "end_line": 355931,
+  "body_lines": 57,
+  "body_bytes": 1812
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/data/l33tTable.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/data/l33tTable.mjs",
+  "start_line": 355932,
+  "end_line": 355991,
+  "body_lines": 58,
+  "body_bytes": 512
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/data/translationKeys.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/data/translationKeys.mjs",
+  "start_line": 355992,
+  "end_line": 356045,
+  "body_lines": 52,
+  "body_bytes": 1203
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/dictionary/variants/matching/unmunger/TrieNode.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/dictionary/variants/matching/unmunger/TrieNode.mjs",
+  "start_line": 356046,
+  "end_line": 356077,
+  "body_lines": 30,
+  "body_bytes": 828
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/dictionary/variants/matching/unmunger/l33tTableToTrieNode.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/matcher/dictionary/variants/matching/unmunger/l33tTableToTrieNode.mjs",
+  "start_line": 356078,
+  "end_line": 356087,
+  "body_lines": 8,
+  "body_bytes": 234
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/Options.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/Options.mjs",
+  "start_line": 356088,
+  "end_line": 356215,
+  "body_lines": 126,
+  "body_bytes": 4554
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/index.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+core@4.1.2/node_modules/@zxcvbn-ts/core/dist/index.mjs",
+  "start_line": 356216,
+  "end_line": 356261,
+  "body_lines": 44,
+  "body_bytes": 1782
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+language-common@4.1.3/node_modules/@zxcvbn-ts/language-common/dist/adjacencyGraphs.json.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+language-common@4.1.3/node_modules/@zxcvbn-ts/language-common/dist/adjacencyGraphs.json.mjs",
+  "start_line": 356262,
+  "end_line": 359619,
+  "body_lines": 3356,
+  "body_bytes": 28051
+ },
+ {
+  "region": "../../node_modules/.pnpm/@zxcvbn-ts+dictionary-compression@3.0.1/node_modules/@zxcvbn-ts/dictionary-compression/dist/decompress.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/@zxcvbn-ts+dictionary-compression@3.0.1/node_modules/@zxcvbn-ts/dictionary-compression/dist/decompress.mjs",
+  "start_line": 359620,
+  "end_line": 359731,
+  "body_lines": 110,
+  "body_bytes": 416778
+ },
+ {
+  "region": "src/webui/onebot-token-policy.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/webui/onebot-token-policy.ts",
+  "start_line": 359732,
+  "end_line": 359778,
+  "body_lines": 45,
+  "body_bytes": 2004
+ },
+ {
+  "region": "src/webui/port.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/webui/port.ts",
+  "start_line": 359779,
+  "end_line": 359816,
+  "body_lines": 36,
+  "body_bytes": 997
+ },
+ {
+  "region": "../../node_modules/.pnpm/semver@7.7.4/node_modules/semver/internal/debug.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/semver@7.7.4/node_modules/semver/internal/debug.js",
+  "start_line": 359817,
+  "end_line": 359821,
+  "body_lines": 3,
+  "body_bytes": 272
+ },
+ {
+  "region": "../../node_modules/.pnpm/semver@7.7.4/node_modules/semver/internal/constants.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/semver@7.7.4/node_modules/semver/internal/constants.js",
+  "start_line": 359822,
+  "end_line": 359846,
+  "body_lines": 23,
+  "body_bytes": 533
+ },
+ {
+  "region": "../../node_modules/.pnpm/semver@7.7.4/node_modules/semver/internal/re.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/semver@7.7.4/node_modules/semver/internal/re.js",
+  "start_line": 359847,
+  "end_line": 359925,
+  "body_lines": 77,
+  "body_bytes": 4848
+ },
+ {
+  "region": "../../node_modules/.pnpm/semver@7.7.4/node_modules/semver/internal/parse-options.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/semver@7.7.4/node_modules/semver/internal/parse-options.js",
+  "start_line": 359926,
+  "end_line": 359937,
+  "body_lines": 10,
+  "body_bytes": 352
+ },
+ {
+  "region": "../../node_modules/.pnpm/semver@7.7.4/node_modules/semver/internal/identifiers.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/semver@7.7.4/node_modules/semver/internal/identifiers.js",
+  "start_line": 359938,
+  "end_line": 359957,
+  "body_lines": 18,
+  "body_bytes": 568
+ },
+ {
+  "region": "../../node_modules/.pnpm/semver@7.7.4/node_modules/semver/classes/semver.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/semver@7.7.4/node_modules/semver/classes/semver.js",
+  "start_line": 359958,
+  "end_line": 360135,
+  "body_lines": 176,
+  "body_bytes": 6696
+ },
+ {
+  "region": "../common/src/semver.ts",
+  "kind": "workspace",
+  "out": "packages/common/src/semver.ts",
+  "start_line": 360136,
+  "end_line": 360163,
+  "body_lines": 26,
+  "body_bytes": 941
+ },
+ {
+  "region": "src/update/sources.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/update/sources.ts",
+  "start_line": 360164,
+  "end_line": 360255,
+  "body_lines": 90,
+  "body_bytes": 2861
+ },
+ {
+  "region": "src/update/release.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/update/release.ts",
+  "start_line": 360256,
+  "end_line": 360374,
+  "body_lines": 117,
+  "body_bytes": 4526
+ },
+ {
+  "region": "src/update/check.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/update/check.ts",
+  "start_line": 360375,
+  "end_line": 360470,
+  "body_lines": 94,
+  "body_bytes": 2832
+ },
+ {
+  "region": "../../node_modules/.pnpm/fflate@0.8.3/node_modules/fflate/esm/index.mjs",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/fflate@0.8.3/node_modules/fflate/esm/index.mjs",
+  "start_line": 360471,
+  "end_line": 360907,
+  "body_lines": 435,
+  "body_bytes": 10298
+ },
+ {
+  "region": "../../node_modules/.pnpm/tar@7.5.22/node_modules/tar/dist/esm/index.min.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/tar@7.5.22/node_modules/tar/dist/esm/index.min.js",
+  "start_line": 360908,
+  "end_line": 364205,
+  "body_lines": 3296,
+  "body_bytes": 106689
+ },
+ {
+  "region": "src/update/files.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/update/files.ts",
+  "start_line": 364206,
+  "end_line": 364378,
+  "body_lines": 171,
+  "body_bytes": 5967
+ },
+ {
+  "region": "src/update/download.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/update/download.ts",
+  "start_line": 364379,
+  "end_line": 364490,
+  "body_lines": 110,
+  "body_bytes": 4695
+ },
+ {
+  "region": "src/update/service.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/update/service.ts",
+  "start_line": 364491,
+  "end_line": 364575,
+  "body_lines": 83,
+  "body_bytes": 2305
+ },
+ {
+  "region": "src/webui/update-routes.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/webui/update-routes.ts",
+  "start_line": 364576,
+  "end_line": 364642,
+  "body_lines": 65,
+  "body_bytes": 1872
+ },
+ {
+  "region": "src/webui/log-export.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/webui/log-export.ts",
+  "start_line": 364643,
+  "end_line": 364678,
+  "body_lines": 34,
+  "body_bytes": 1318
+ },
+ {
+  "region": "src/webui/storage-management.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/webui/storage-management.ts",
+  "start_line": 364679,
+  "end_line": 364898,
+  "body_lines": 218,
+  "body_bytes": 6548
+ },
+ {
+  "region": "src/webui/storage-settings.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/webui/storage-settings.ts",
+  "start_line": 364899,
+  "end_line": 365075,
+  "body_lines": 175,
+  "body_bytes": 6784
+ },
+ {
+  "region": "src/webui/storage-routes.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/webui/storage-routes.ts",
+  "start_line": 365076,
+  "end_line": 365303,
+  "body_lines": 226,
+  "body_bytes": 6974
+ },
+ {
+  "region": "../../node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/middleware/body-limit/index.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/middleware/body-limit/index.js",
+  "start_line": 365304,
+  "end_line": 365368,
+  "body_lines": 63,
+  "body_bytes": 1960
+ },
+ {
+  "region": "../../node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/utils/cookie.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/utils/cookie.js",
+  "start_line": 365369,
+  "end_line": 365445,
+  "body_lines": 75,
+  "body_bytes": 3335
+ },
+ {
+  "region": "../../node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/helper/cookie/index.js",
+  "kind": "vendor",
+  "out": "vendor-regions/node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/helper/cookie/index.js",
+  "start_line": 365446,
+  "end_line": 365490,
+  "body_lines": 43,
+  "body_bytes": 1109
+ },
+ {
+  "region": "src/webui/request-security.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/webui/request-security.ts",
+  "start_line": 365491,
+  "end_line": 365548,
+  "body_lines": 56,
+  "body_bytes": 2011
+ },
+ {
+  "region": "src/webui/server.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/webui/server.ts",
+  "start_line": 365549,
+  "end_line": 367139,
+  "body_lines": 1589,
+  "body_bytes": 49940
+ },
+ {
+  "region": "../protocol/src/sys-face-storage.ts",
+  "kind": "workspace",
+  "out": "packages/protocol/src/sys-face-storage.ts",
+  "start_line": 367140,
+  "end_line": 367180,
+  "body_lines": 39,
+  "body_bytes": 1388
+ },
+ {
+  "region": "src/sys-face-catalog.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/sys-face-catalog.ts",
+  "start_line": 367181,
+  "end_line": 367196,
+  "body_lines": 14,
+  "body_bytes": 738
+ },
+ {
+  "region": "src/runtime-integrity-log.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/runtime-integrity-log.ts",
+  "start_line": 367197,
+  "end_line": 367279,
+  "body_lines": 81,
+  "body_bytes": 2639
+ },
+ {
+  "region": "src/index.ts",
+  "kind": "workspace",
+  "out": "packages/core/src/index.ts",
+  "start_line": 367280,
+  "end_line": 367423,
+  "body_lines": 142,
+  "body_bytes": 4786
+ }
+]

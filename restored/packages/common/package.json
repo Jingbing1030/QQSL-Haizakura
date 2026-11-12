@@ -1,0 +1,14 @@
+{
+  "name": "@snowluma/common",
+  "version": "2.4.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "dependencies": {
+    "@snowluma/core": "workspace:*",
+    "semver": "^7.7.4"
+  },
+  "scripts": {
+    "typecheck": "tsc -p ../../tsconfig.json --noEmit"
+  }
+}

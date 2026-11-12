@@ -1,0 +1,26 @@
+{
+  "name": "snowluma-monorepo",
+  "version": "2.4.0",
+  "private": true,
+  "type": "module",
+  "description": "SnowLuma monorepo workspace (pnpm) \u2014 RESTORED from dist/index.mjs",
+  "license": "SEE LICENSE IN LICENSE",
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": "^24.22.1 || >=26.12.1",
+    "pnpm": "11.25.0"
+  },
+  "scripts": {
+    "build": "node scripts/merge.mjs && node --check dist/index.mjs",
+    "build:rolldown": "rolldown -c rolldown.config.ts",
+    "check": "node scripts/check.mjs",
+    "typecheck": "tsc -p tsconfig.json",
+    "start": "node dist/index.mjs",
+    "dev:mode": "cd dist && cross-env SNOWLUMA_DEV_MODE=1 SNOWLUMA_DEV_WEBUI=1 node index.mjs",
+    "test": "node --test scripts/*.test.cjs"
+  },
+  "devDependencies": {
+    "rolldown": "^1.3.2",
+    "typescript": "^5.9.0"
+  }
+}

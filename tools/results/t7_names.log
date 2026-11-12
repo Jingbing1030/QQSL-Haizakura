@@ -1,0 +1,107 @@
+
+===== MSFService  _ZTV sym @0x87173d8  address_point=0x87173e0  slots=1+46
+      vtable[0](offset_to_top) = 
+      v[-1](offset_to_top)=108522403  v[0](typeinfo)=0x0
+  v[  1] slot=0x87173e8 fn=0x138f56c  strs: vector
+  v[  2] slot=0x87173f0 fn=0x138f7e4  strs: vector | perf.task | erf | rf | rf
+  v[  3] slot=0x87173f8 fn=0x137b30c  strs: MSFService | msf_service.cc | online | online session_ is empty. | MSFService | msf_service.cc | getMsfStatus | session is invalid.
+  v[  4] slot=0x8717400 fn=0x137b4c8  strs: MSFService | msf_service.cc | getMsfStatus | session is invalid. | MSFService | msf_service.cc | getMsfStatus | getMsfStatus error status.
+  v[  5] slot=0x8717408 fn=0x137b618 ->0x4064d1c  strs: MSF-NG | net_service.cc | OnNetworkChange | On Network Change new_network:{} | OnNetworkChange | ../../modules/group_pro/modules/msf-ng/msf/net_service/internal/net_service.cc
+  v[  6] slot=0x8717410 fn=0x137b61c  strs: MSFService | msf_service.cc | getMsfStatus | session is invalid. | MSFService | msf_service.cc | getMsfStatus | getMsfStatus error status.
+  v[  7] slot=0x8717418 fn=0x13821c0  strs: getNetworkProxy | ../../wrapper/external/msf/msf_service.cc | setNetworkProxy | ../../wrapper/external/msf/msf_service.cc
+  v[  8] slot=0x8717420 fn=0x1382928  strs: 
+  v[  9] slot=0x8717428 fn=0x138241c  strs: setNetworkProxy | ../../wrapper/external/msf/msf_service.cc | msf
+  v[ 10] slot=0x8717430 fn=0x13827e0  strs: msf
+  v[ 11] slot=0x8717438 fn=0x1382bcc  strs: MSFService | msf_service.cc | DecodeMsfRspInfo | DecodeMsfRspInfo transinfo key:{} size:{}
+  v[ 12] slot=0x8717440 fn=0x1383384  strs: MSFService | msf_service.cc | sendMsfRequest | sendMsfRequest requestId:{} cmd:{} buffer size:{}. | sendMsfRequest | ../../wrapper/external/msf/msf_service.cc
+  v[ 13] slot=0x8717448 fn=0x137eb28  strs: MSFService | msf_service.cc | onMsfPushForTesting | Recv msf push for testing, cmd:{} buffer:{} | onMsfPushForTesting | ../../wrapper/external/msf/msf_service.cc
+  v[ 14] slot=0x8717450 fn=0x137b2dc  strs: MSFService | msf_service.cc | online | online session_ is empty. | MSFService | msf_service.cc | getMsfStatus | session is invalid.
+  v[ 15] slot=0x8717458 fn=0x137b2e8  strs: MSFService | msf_service.cc | online | online session_ is empty. | MSFService | msf_service.cc | getMsfStatus | session is invalid.
+  v[ 16] slot=0x8717460 fn=0x1378618  strs: ResetSessionId | ../../wrapper/external/msf/msf_service.cc
+  v[ 17] slot=0x8717468 fn=0x137877c  strs: msf |  CreateDir msf path failed!!! | msf_service.cc | Initialize
+  v[ 18] slot=0x8717470 fn=0x1378c4c  strs: msf |  CreateDir msf path failed!!! | msf_service.cc | Initialize | MSFService | msf_service.cc | Initialize | init with uin:{} appid:{} machine_id_:{}
+  v[ 19] slot=0x8717478 fn=0x137a48c  strs: msf |  CreateDir msf path failed!!! | msf_service.cc | SessionInit | MSFService | msf_service.cc | SessionInit | init with uin:{}
+  v[ 20] slot=0x8717480 fn=0x137b6b8  strs: MSFService | msf_service.cc | Connect | connect to test env, ip={} port={} envid={} ability={} | MSFService | msf_service.cc | Connect | session is invalid.
+  v[ 21] slot=0x8717488 fn=0x137b938  strs: perf | msf.Disconnect | session | MSFService | msf_service.cc | SetDefaultUin | Set default uin:{} | MSFService
+  v[ 22] slot=0x8717490 fn=0x137fc34  strs: MSFService | msf_service.cc | Login | Login should not call in NTQQ!!! | onKickedOffLine | ../../wrapper/external/msf/msf_service.cc | MSF-Status | msf_service.cc
+  v[ 23] slot=0x8717498 fn=0x137b9bc  strs: MSFService | msf_service.cc | SetDefaultUin | Set default uin:{} | MSFService | msf_service.cc | SetDefaultUin | messenger_ is nullptr, do no-op and return.
+  v[ 24] slot=0x87174a0 fn=0x137bba0  strs: MSFService | msf_service.cc | SetSSOErrorCallback | session_ is nullptr, do no-op and return. | OidbSvcTrpcTcp.0x%x_%d | MSFService | msf_service.cc | SendOidbReqInternal
+  v[ 25] slot=0x87174a8 fn=0x1380c4c  strs: OidbSvcTrpcTcp.0x%x_%d | Request Encode failed | msf_service.cc | RequestEncryptKey | Request Encode failed
+  v[ 26] slot=0x87174b0 fn=0x1381760  strs: OidbSvcTrpcTcp.0x%x_%d | Request Encode failed | msf_service.cc | RequestDecryptKey | Request Encode failed
+  v[ 27] slot=0x87174b8 fn=0x1380204  strs: SetMsfNeedDisconnectFlag | ../../wrapper/external/msf/msf_service.cc | MSFService | msf_service.cc | StartKeepAliveTimer | StartKeepAliveTimer, interval={} | StartKeepAliveTimer | ../../wrapper/external/msf/msf_service.cc
+  v[ 28] slot=0x87174c0 fn=0x1382dc0  strs: MSFService | msf_service.cc | DecodeMsfRspInfo | DecodeMsfRspInfo transinfo key:{} size:{} | MSFService | msf_service.cc | DecodeMsfRspInfo | DecodeMsfRspInfo no transinfo in pb_extra
+  v[ 29] slot=0x87174c8 fn=0x1382de0  strs: MSFService | msf_service.cc | DecodeMsfRspInfo | DecodeMsfRspInfo transinfo key:{} size:{} | MSFService | msf_service.cc | DecodeMsfRspInfo | DecodeMsfRspInfo no transinfo in pb_extra
+  v[ 30] slot=0x87174d0 fn=0x1382df8  strs: MSFService | msf_service.cc | DecodeMsfRspInfo | DecodeMsfRspInfo transinfo key:{} size:{} | MSFService | msf_service.cc | DecodeMsfRspInfo | DecodeMsfRspInfo no transinfo in pb_extra
+  v[ 31] slot=0x87174d8 fn=0x1383cdc  strs: MSFService | msf_service.cc | UpdateSignaureInfo | UpdateSignaureInfo account:{} a2:{} d2:{} d2_key:{} | MSFService | msf_service.cc | UpdateSignaureInfo | UpdateSignaureInfo session is nullptr.
+  v[ 32] slot=0x87174e0 fn=0x1383f14  strs: MSFService | msf_service.cc | operator() | recv msf push, cmd={} | operator() | ../../wrapper/external/msf/msf_service.cc | MSFService | msf_service.cc
+  v[ 33] slot=0x87174e8 fn=0x137821c  strs:  MSFService Destroy here | msf_service.cc | Destroy | Destroy | ../../wrapper/external/msf/msf_service.cc | MSFService | msf_service.cc | StopKeepAliveTimer
+  v[ 34] slot=0x87174f0 fn=0x1378224  strs:  MSFService Destroy here | msf_service.cc | Destroy | Destroy | ../../wrapper/external/msf/msf_service.cc | MSFService | msf_service.cc | StopKeepAliveTimer
+  v[ 35] slot=0x87174f8 fn=0x137bc98  strs: OidbSvcTrpcTcp.0x%x_%d | MSFService | msf_service.cc | SendOidbReqInternal | messenger_ is nullptr, do no-op and return. | cmd={} trace={} | msf_service.cc | SendOidbReqInternal
+  v[ 36] slot=0x8717500 fn=0x137cc80  strs: cmd={} trace={} | msf_service.cc | SendSSORequestInternal | MSFService | msf_service.cc | SendSSORequestInternal | messenger_ is nullptr, do no-op and return.
+  v[ 37] slot=0x8717508 fn=0x137ceb8  strs: cmd={} trace={} | msf_service.cc | SendSSORequestInternal | MSFService | msf_service.cc | SendSSORequestInternal | messenger_ is nullptr, do no-op and return.
+  v[ 38] slot=0x8717510 fn=0x137dbf4  strs: cmd={} trace={} | msf_service.cc | SendMsfRequest
+  v[ 39] slot=0x8717518 fn=0x137dd10  strs: cmd={} trace={} | msf_service.cc | SendMsfRequest
+  v[ 40] slot=0x8717520 fn=0x137ef90  strs: 1.0 | SvcReqRegister
+  v[ 41] slot=0x8717528 fn=0x137fc74  strs: onKickedOffLine | ../../wrapper/external/msf/msf_service.cc | MSF-Status | msf_service.cc | onUserOnlineStatusChanged | user is online. | user is offline, disconnect msf!!! | MSF-Status
+  v[ 42] slot=0x8717530 fn=0x137fe44  strs: MSF-Status | msf_service.cc | onUserOnlineStatusChanged | user is online. | user is offline, disconnect msf!!! | MSF-Status | msf_service.cc | onUserOnlineStatusChanged
+  v[ 43] slot=0x8717538 fn=0x1383ee4  strs: MSFService | msf_service.cc | operator() | recv msf push, cmd={} | operator() | ../../wrapper/external/msf/msf_service.cc | MSFService | msf_service.cc
+  v[ 44] slot=0x8717540 fn=0x137b194  strs: MSFService | msf_service.cc | OnConnectivityChanged | net recovered begin to reconnect. | MSFService | msf_service.cc | OnConnectivityChanged | net recovered begin to reconnect.
+  v[ 45] slot=0x8717548 -> 0xfffffffffffffff8 NOT-TEXT
+
+===== MSFCoreService  _ZTV sym @0x8718f50  address_point=0x8718f58  slots=1+54
+      vtable[0](offset_to_top) = 
+      v[-1](offset_to_top)=23  v[0](typeinfo)=0x0
+  v[  1] slot=0x8718f60 fn=0x13abb00  strs: [{}]->{}
+  v[  2] slot=0x8718f68 fn=0x13abd64  strs: [{}]->{} | [{}]->{}
+  v[  3] slot=0x8718f70 fn=0x139c264  strs: ResetSessionId | ../../wrapper/external/msf/msfcore_service.cc
+  v[  4] slot=0x8718f78 fn=0x139c26c  strs: ResetSessionId | ../../wrapper/external/msf/msfcore_service.cc
+  v[  5] slot=0x8718f80 fn=0x139c274  strs: ResetSessionId | ../../wrapper/external/msf/msfcore_service.cc
+  v[  6] slot=0x8718f88 fn=0x139c2c4  strs: ResetSessionId | ../../wrapper/external/msf/msfcore_service.cc
+  v[  7] slot=0x8718f90 fn=0x13a1fec  strs: getNetworkProxy | ../../wrapper/external/msf/msfcore_service.cc | setNetworkProxy | ../../wrapper/external/msf/msfcore_service.cc
+  v[  8] slot=0x8718f98 fn=0x13a2754  strs: MSFCore_Service_Log | msfcore_service.cc | sendMsfRequest | sendMsfRequest requestId:{} cmd:{} buffer size:{}.
+  v[  9] slot=0x8718fa0 fn=0x13a2248  strs: setNetworkProxy | ../../wrapper/external/msf/msfcore_service.cc | msf
+  v[ 10] slot=0x8718fa8 fn=0x13a260c  strs: msf
+  v[ 11] slot=0x8718fb0 fn=0x13a29f8  strs: MSFCore_Service_Log | msfcore_service.cc | sendMsfRequest | sendMsfRequest requestId:{} cmd:{} buffer size:{}. | MSFCore_Service_Log | msfcore_service.cc | sendMsfRequest | sendMsfRequest cmd:{} need add to cmd list call ulinzeng.
+  v[ 12] slot=0x8718fb8 fn=0x13a2bec  strs: MSFCore_Service_Log | msfcore_service.cc | sendMsfRequest | sendMsfRequest requestId:{} cmd:{} buffer size:{}. | MSFCore_Service_Log | msfcore_service.cc | sendMsfRequest | sendMsfRequest cmd:{} need add to cmd list call ulinzeng.
+  v[ 13] slot=0x8718fc0 fn=0x13a33d0  strs: MSFCore_Service_Log | msfcore_service.cc | onMsfPushForTesting | Recv msf push for testing, cmd:{} buffer:{} | MSFCore_Service_Log | msfcore_service.cc | GetClientAddress | GetClientAddress invalid client_ip literal: {}
+  v[ 14] slot=0x8718fc8 fn=0x139c1bc  strs: MSFCore_Service_Log | msfcore_service.cc | connect | connect() | MSFCore_Service_Log | msfcore_service.cc | disconnect | disconnect()
+  v[ 15] slot=0x8718fd0 fn=0x139c204  strs: MSFCore_Service_Log | msfcore_service.cc | disconnect | disconnect() | ResetSessionId | ../../wrapper/external/msf/msfcore_service.cc
+  v[ 16] slot=0x8718fd8 fn=0x139c2f0  strs: ResetSessionId | ../../wrapper/external/msf/msfcore_service.cc
+  v[ 17] slot=0x8718fe0 fn=0x139c454  strs: msf |  CreateDir msf path failed!!! | msfcore_service.cc | Initialize
+  v[ 18] slot=0x8718fe8 fn=0x139c93c  strs: msf |  CreateDir msf path failed!!! | msfcore_service.cc | Initialize | MSFCore_Service_Log | msfcore_service.cc | Initialize | init with uin:{} appid:{} machine_id_:{}
+  v[ 19] slot=0x8718ff0 fn=0x139d864  strs: MSFCore_Service_Log | msfcore_service.cc | SessionInit | SessionInit with uin:{} | msf |  CreateDir msf path failed!!! | msfcore_service.cc | SessionInit
+  v[ 20] slot=0x8718ff8 fn=0x139e8e4  strs: MSFCore_Service_Log | msfcore_service.cc | Connect | Connect to test env, ip={} port={} envid={} ability={} | MSFCore_Service_Log | msfcore_service.cc | Connect | Connect to prod env.
+  v[ 21] slot=0x8719000 fn=0x139eaa4  strs: MSFCore_Service_Log | msfcore_service.cc | Disconnect | Disconnect, reason={} | MSFCore_Service_Log | msfcore_service.cc | SetDefaultUin | Set default uin:{}
+  v[ 22] slot=0x8719008 fn=0x139eaf0  strs: MSFCore_Service_Log | msfcore_service.cc | SetDefaultUin | Set default uin:{} | SetSSOErrorCallback | MSFCore_Service_Log | msfcore_service.cc | MSFCore_Service_Log
+  v[ 23] slot=0x8719010 fn=0x139eaf8  strs: MSFCore_Service_Log | msfcore_service.cc | SetDefaultUin | Set default uin:{} | SetSSOErrorCallback | MSFCore_Service_Log | msfcore_service.cc | MSFCore_Service_Log
+  v[ 24] slot=0x8719018 fn=0x139eb80  strs: SetSSOErrorCallback | MSFCore_Service_Log | msfcore_service.cc | MSFCore_Service_Log | msfcore_service.cc | SendOidbReqInternal | SendOidbReqInternal command=0x{:x} service_type={} req_size={} account_type={} | OidbSvcTrpcTcp.0x%x_%d
+  v[ 25] slot=0x8719020 fn=0x13a0c0c  strs: OidbSvcTrpcTcp.0x%x_%d | Request Encode failed | MSFCore_Service_Log | msfcore_service.cc | RequestEncryptKey
+  v[ 26] slot=0x8719028 fn=0x13a1508  strs: OidbSvcTrpcTcp.0x%x_%d | Request Encode failed | MSFCore_Service_Log | msfcore_service.cc | RequestDecryptKey
+  v[ 27] slot=0x8719030 fn=0x13a1fe8  strs: getNetworkProxy | ../../wrapper/external/msf/msfcore_service.cc | setNetworkProxy | ../../wrapper/external/msf/msfcore_service.cc
+  v[ 28] slot=0x8719038 fn=0x13a3460  strs: MSFCore_Service_Log | msfcore_service.cc | GetClientAddress | GetClientAddress invalid client_ip literal: {} | MSFCore_Service_Log | msfcore_service.cc | UpdateSignaureInfo | UpdateSignaureInfo account:{} uid:{} a2:{} d2:{} d2_key:{}
+  v[ 29] slot=0x8719040 fn=0x13a35e4  strs: MSFCore_Service_Log | msfcore_service.cc | UpdateSignaureInfo | UpdateSignaureInfo account:{} uid:{} a2:{} d2:{} d2_key:{} | MSFCore_Service_Log | msfcore_service.cc | onMSFError | onMSFError error={} uin={} title={} content={} ext={}
+  v[ 30] slot=0x8719048 fn=0x13a3600  strs: MSFCore_Service_Log | msfcore_service.cc | UpdateSignaureInfo | UpdateSignaureInfo account:{} uid:{} a2:{} d2:{} d2_key:{} | MSFCore_Service_Log | msfcore_service.cc | onMSFError | onMSFError error={} uin={} title={} content={} ext={}
+  v[ 31] slot=0x8719050 fn=0x13a3668  strs: MSFCore_Service_Log | msfcore_service.cc | UpdateSignaureInfo | UpdateSignaureInfo account:{} uid:{} a2:{} d2:{} d2_key:{} | MSFCore_Service_Log | msfcore_service.cc | onMSFError | onMSFError error={} uin={} title={} content={} ext={}
+  v[ 32] slot=0x8719058 fn=0x13a584c  strs: MSFSDK | msfcore_service.cc | operator() | IMPB_MSF|{}:{}|{}|{} | # |  | 3 | MSFCore_Service_Log
+  v[ 33] slot=0x8719060 fn=0x139be48  strs: Init | MSFCore_Service_Log | msfcore_service.cc | Init | MSFCore_Service_Log | msfcore_service.cc | Destroy | MSFCore_Service_Log
+  v[ 34] slot=0x8719068 fn=0x139be98  strs: Destroy | MSFCore_Service_Log | msfcore_service.cc | Destroy | ../../wrapper/external/msf/msfcore_service.cc | MSFCore_Service_Log | msfcore_service.cc | connect
+  v[ 35] slot=0x8719070 fn=0x139ec10  strs: MSFCore_Service_Log | msfcore_service.cc | SendOidbReqInternal | SendOidbReqInternal command=0x{:x} service_type={} req_size={} account_type={} | OidbSvcTrpcTcp.0x%x_%d | MSFCore_Service_Log | msfcore_service.cc | SendOidbReqInternal
+  v[ 36] slot=0x8719078 fn=0x139f488  strs: MSFCore_Service_Log | msfcore_service.cc | SendSSORequest | SendSSORequest cmd={} req_size={}
+  v[ 37] slot=0x8719080 fn=0x139f69c  strs: MSFCore_Service_Log | msfcore_service.cc | SendSSORequest | SendSSORequest cmd={} req_size={} | MSFCore_Service_Log | msfcore_service.cc | SendSSORequestNoResponse | SendSSORequestNoResponse cmd={} req_size={}
+  v[ 38] slot=0x8719088 fn=0x139fb08  strs: MSFCore_Service_Log | msfcore_service.cc | SendSSORequestNoResponse | SendSSORequestNoResponse cmd={} req_size={} | MSFCore_Service_Log | msfcore_service.cc | SendMsfRequestInternal | SendMsfRequestInternal seq={} cmd={} req_size={} need_response={}
+  v[ 39] slot=0x8719090 fn=0x13a03c0  strs: MSFCore_Service_Log | msfcore_service.cc | SendMsfRequest | SendMsfRequest seq={} cmd={} req_size={} | MSFCore_Service_Log | msfcore_service.cc | RegisterMSFPush | RegisterMSFPush append cmd={} callbacks={}
+  v[ 40] slot=0x8719098 fn=0x13a0894  strs: MSFCore_Service_Log | msfcore_service.cc | RegisterMSFPush | RegisterMSFPush append cmd={} callbacks={} | MSFCore_Service_Log | msfcore_service.cc | RegisterMSFPush | RegisterMSFPush new cmd={}
+  v[ 41] slot=0x87190a0 fn=0x13a1b7c  strs: MSFCore-Status | msfcore_service.cc | onKickedOffLine | onKickedOffLine, schedule disconnect after 5s | onKickedOffLine | ../../wrapper/external/msf/msfcore_service.cc | MSFCore-Status | msfcore_service.cc
+  v[ 42] slot=0x87190a8 fn=0x13a1d98  strs: MSFCore-Status | msfcore_service.cc | onUserOnlineStatusChanged | user is online. | user is offline, disconnect msf!!! | onUserOnlineStatusChanged | ../../wrapper/external/msf/msfcore_service.cc | getNetworkProxy
+  v[ 43] slot=0x87190b0 fn=0x13a3ac0  strs: MSFCore_Service_Log | msfcore_service.cc | onMSFError | onMSFError error={} uin={} title={} content={} ext={} | MSFCore_Service_Log | msfcore_service.cc | onSSORetError | onSSORetError error={} uin={} uid={} err={}
+  v[ 44] slot=0x87190b8 fn=0x13a3ad0  strs: MSFCore_Service_Log | msfcore_service.cc | onMSFError | onMSFError error={} uin={} title={} content={} ext={} | MSFCore_Service_Log | msfcore_service.cc | onSSORetError | onSSORetError error={} uin={} uid={} err={}
+  v[ 45] slot=0x87190c0 fn=0x13a3c7c  strs: MSFCore_Service_Log | msfcore_service.cc | onSSORetError | onSSORetError error={} uin={} uid={} err={} | MSFCore_Service_Log | msfcore_service.cc | onMSFServerTimeUpdated | onMSFServerTimeUpdated timeDiff={}
+  v[ 46] slot=0x87190c8 fn=0x13a3dd0  strs: MSFCore_Service_Log | msfcore_service.cc | onMSFServerTimeUpdated | onMSFServerTimeUpdated timeDiff={} | MSFCore_Service_Log | msfcore_service.cc | onMSFServerTimeUpdated | onMSFServerTimeUpdated timeDiff={}
+  v[ 47] slot=0x87190d0 fn=0x13a3e80  strs: onMSFPacketState | ../../wrapper/external/msf/msfcore_service.cc | ../../wrapper/external/msf/msfcore_service.cc | onMSFNetworkState | MSFCore-Status | onMSFNetworkState state={} reason={} | MSFCore_Service_Log | msfcore_service.cc
+  v[ 48] slot=0x87190d8 fn=0x13a4048  strs: ../../wrapper/external/msf/msfcore_service.cc | onMSFNetworkState | MSFCore-Status | onMSFNetworkState state={} reason={} | MSFCore_Service_Log | msfcore_service.cc | onSSORetError | onSSORetError(uinInfo) error={} errMsg={}
+  v[ 49] slot=0x87190e0 fn=0x13a41f0  strs: MSFCore_Service_Log | msfcore_service.cc | onSSORetError | onSSORetError(uinInfo) error={} errMsg={} | onSSORetError | ../../wrapper/external/msf/msfcore_service.cc | MSFCore_Service_Log | msfcore_service.cc
+  v[ 50] slot=0x87190e8 fn=0x13a41f8  strs: MSFCore_Service_Log | msfcore_service.cc | onSSORetError | onSSORetError(uinInfo) error={} errMsg={} | onSSORetError | ../../wrapper/external/msf/msfcore_service.cc | MSFCore_Service_Log | msfcore_service.cc
+  v[ 51] slot=0x87190f0 fn=0x13a4200  strs: MSFCore_Service_Log | msfcore_service.cc | onSSORetError | onSSORetError(uinInfo) error={} errMsg={} | onSSORetError | ../../wrapper/external/msf/msfcore_service.cc | MSFCore_Service_Log | msfcore_service.cc
+  v[ 52] slot=0x87190f8 fn=0x13a46c4  strs: MSFCore_Service_Log | msfcore_service.cc | OnConnectivityChanged | OnConnectivityChanged, IsAnynetwork={}
+  v[ 53] slot=0x8719100 -> 0xfffffffffffffff8 NOT-TEXT
+DONE

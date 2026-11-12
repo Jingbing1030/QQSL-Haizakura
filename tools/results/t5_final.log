@@ -1,0 +1,596 @@
+RELATIVE relocs = 346539 (keyed by VADDR)
+
+===== [A] locate typeinfo by EXACT mangled RTTI name =====
+  N2nt10MSFServiceE                   __type_name field @0x87177e8  str @0x677ecaa  ==> typeinfo VADDR = 0x87177e0
+  N2nt7wrapper17IKernelMSFServiceE    __type_name field @0x8717f88  str @0x67811e5  ==> typeinfo VADDR = 0x8717f80
+  N3msf11IMSFServiceE                 __type_name field @0x8717f98  str @0x6781221  ==> typeinfo VADDR = 0x8717f90
+  N2nt13IMSFInterfaceE                __type_name field @0x8717ff8  str @0x67811d0  ==> typeinfo VADDR = 0x8717ff0
+  N2nt14MSFCoreServiceE               __type_name field @0x8719400  str @0x67818e1  ==> typeinfo VADDR = 0x87193f8
+
+===== [B] typeinfo ABI vtable (= RTTI class kind) =====
+  N2nt10MSFServiceE @0x87177e0: __vptr=0x871e698 RTTIclass=None
+      abi_sig_words=['0x84cd58', '0x84cde8', '0x84cd5c', '0x84cd60']
+  N2nt7wrapper17IKernelMSFServiceE @0x8717f80: __vptr=0x871e5e0 RTTIclass=None
+      abi_sig_words=['0x84cd58', '0x84cd90', '0x84cd5c', '0x84cd60']
+  N3msf11IMSFServiceE @0x8717f90: __vptr=0x871e5e0 RTTIclass=None
+      abi_sig_words=['0x84cd58', '0x84cd90', '0x84cd5c', '0x84cd60']
+  N2nt13IMSFInterfaceE @0x8717ff0: __vptr=0x871e698 RTTIclass=None
+      abi_sig_words=['0x84cd58', '0x84cde8', '0x84cd5c', '0x84cd60']
+  N2nt14MSFCoreServiceE @0x87193f8: __vptr=0x871e698 RTTIclass=None
+      abi_sig_words=['0x84cd58', '0x84cde8', '0x84cd5c', '0x84cd60']
+
+===== [C] vtables (address_point: word==typeinfo) =====
+  N2nt10MSFServiceE ti=0x87177e0: 5 address_point(s)
+      address_point=0x87173e0  offset_to_top([ap-8])=0x0  header=0x87173d0
+      address_point=0x8717550  offset_to_top([ap-8])=0xfffffffffffffff8  header=0x8717540
+      address_point=0x8717748  offset_to_top([ap-8])=0xfffffffffffffff0  header=0x8717738
+      address_point=0x87177a0  offset_to_top([ap-8])=0xffffffffffffffe8  header=0x8717790
+      address_point=0x87177b8  offset_to_top([ap-8])=0xffffffffffffffe0  header=0x87177a8
+  N2nt7wrapper17IKernelMSFServiceE ti=0x8717f80: 1 address_point(s)
+      address_point=0x8718008  offset_to_top([ap-8])=0x500000000  header=0x8717ff8
+  N3msf11IMSFServiceE ti=0x8717f90: 1 address_point(s)
+      address_point=0x8717fb0  offset_to_top([ap-8])=0x6781206  header=0x8717fa0
+  N2nt13IMSFInterfaceE ti=0x8717ff0: 2 address_point(s)
+      address_point=0x87177f8  offset_to_top([ap-8])=0x200000000  header=0x87177e8
+      address_point=0x8719410  offset_to_top([ap-8])=0x300000000  header=0x8719400
+  N2nt14MSFCoreServiceE ti=0x87193f8: 6 address_point(s)
+      address_point=0x8718f58  offset_to_top([ap-8])=0x0  header=0x8718f48
+      address_point=0x8719108  offset_to_top([ap-8])=0xfffffffffffffff8  header=0x87190f8
+      address_point=0x8719300  offset_to_top([ap-8])=0xfffffffffffffff0  header=0x87192f0
+      address_point=0x8719358  offset_to_top([ap-8])=0xffffffffffffffe8  header=0x8719348
+      address_point=0x8719370  offset_to_top([ap-8])=0xffffffffffffffe0  header=0x8719360
+      address_point=0x87193a0  offset_to_top([ap-8])=0xffffffffffffffc0  header=0x8719390
+
+===== [D] vtable slot dump =====
+  --- N2nt10MSFServiceE vtable @0x87173e0 (offset_to_top=0x0) ---
+      [  0] 0x87177e0 ??
+      [  1] 0x138f56c TEXT
+      [  2] 0x138f7e4 TEXT
+      [  3] 0x137b30c TEXT
+      [  4] 0x137b4c8 TEXT
+      [  5] 0x137b618 TEXT
+      [  6] 0x137b61c TEXT
+      [  7] 0x13821c0 TEXT
+      [  8] 0x1382928 TEXT
+      [  9] 0x138241c TEXT
+      [ 10] 0x13827e0 TEXT
+      [ 11] 0x1382bcc TEXT
+      [ 12] 0x1383384 TEXT
+      [ 13] 0x137eb28 TEXT
+      [ 14] 0x137b2dc TEXT
+      [ 15] 0x137b2e8 TEXT
+      [ 16] 0x1378618 TEXT
+      [ 17] 0x137877c TEXT
+      [ 18] 0x1378c4c TEXT
+      [ 19] 0x137a48c TEXT
+      [ 20] 0x137b6b8 TEXT
+      [ 21] 0x137b938 TEXT
+      [ 22] 0x137fc34 TEXT
+      [ 23] 0x137b9bc TEXT
+      [ 24] 0x137bba0 TEXT
+      [ 25] 0x1380c4c TEXT
+      [ 26] 0x1381760 TEXT
+      [ 27] 0x1380204 TEXT
+      [ 28] 0x1382dc0 TEXT
+      [ 29] 0x1382de0 TEXT
+      [ 30] 0x1382df8 TEXT
+      [ 31] 0x1383cdc TEXT
+      [ 32] 0x1383f14 TEXT
+      [ 33] 0x137821c TEXT
+      [ 34] 0x1378224 TEXT
+      [ 35] 0x137bc98 TEXT
+      [ 36] 0x137cc80 TEXT
+      [ 37] 0x137ceb8 TEXT
+      [ 38] 0x137dbf4 TEXT
+      [ 39] 0x137dd10 TEXT
+  --- N2nt10MSFServiceE vtable @0x8717550 (offset_to_top=0xfffffffffffffff8) ---
+      [  0] 0x87177e0 ??
+      [  1] 0x138f808 TEXT
+      [  2] 0x138f810 TEXT
+      [  3] 0x99a2fc TEXT
+      [  4] 0x99a300 TEXT
+      [  5] 0x99a304 TEXT
+      [  6] 0x99a308 TEXT
+      [  7] 0xc3f5ec TEXT
+      [  8] 0xc3f5f0 TEXT
+      [  9] 0x99a30c TEXT
+      [ 10] 0x99a310 TEXT
+      [ 11] 0x137fe3c TEXT
+      [ 12] 0x99a318 TEXT
+      [ 13] 0x99a31c TEXT
+      [ 14] 0x99a320 TEXT
+      [ 15] 0x99a324 TEXT
+      [ 16] 0x99a328 TEXT
+      [ 17] 0x99a32c TEXT
+      [ 18] 0x99a330 TEXT
+      [ 19] 0x99a334 TEXT
+      [ 20] 0x99a338 TEXT
+      [ 21] 0x99a33c TEXT
+      [ 22] 0x99a340 TEXT
+      [ 23] 0x99a344 TEXT
+      [ 24] 0x99a348 TEXT
+      [ 25] 0x99a34c TEXT
+      [ 26] 0x99a350 TEXT
+      [ 27] 0x99a354 TEXT
+      [ 28] 0x99a358 TEXT
+      [ 29] 0x99a35c TEXT
+      [ 30] 0x99a360 TEXT
+      [ 31] 0x99a364 TEXT
+      [ 32] 0x99a368 TEXT
+      [ 33] 0x99a36c TEXT
+      [ 34] 0x99a370 TEXT
+      [ 35] 0x99a374 TEXT
+      [ 36] 0x99a378 TEXT
+      [ 37] 0x99a37c TEXT
+      [ 38] 0x99a380 TEXT
+      [ 39] 0x99a384 TEXT
+  --- N2nt10MSFServiceE vtable @0x8717748 (offset_to_top=0xfffffffffffffff0) ---
+      [  0] 0x87177e0 ??
+      [  1] 0x138f838 TEXT
+      [  2] 0x138f840 TEXT
+      [  3] 0x137cb90 TEXT
+      [  4] 0x137cd54 TEXT
+      [  5] 0x137db0c TEXT
+      [  6] 0x137dc70 TEXT
+      [  7] 0x137eb20 TEXT
+      [  8] 0x137f22c TEXT
+      [  9] 0x1383efc TEXT
+      [ 10] 0xffffffffffffffe8 (not a reloc)
+      [ 11] 0x87177e0 ??
+      [ 12] 0x137b238 TEXT
+      [ 13] 0xffffffffffffffe0 (not a reloc)
+      [ 14] 0x87177e0 ??
+      [ 15] 0x138f868 TEXT
+      [ 16] 0x138f870 TEXT
+      [ 17] 0x1378220 TEXT
+      [ 18] 0x1378610 TEXT
+      [ 19] 0x871e698 ??
+      [ 20] 0x677ecaa ??
+      [ 21] 0x200000000 (not a reloc)
+      [ 22] 0x8717ff0 ??
+      [ 23] 0x2 (not a reloc)
+      [ 24] 0x8718058 ??
+      [ 25] 0x4002 (not a reloc)
+      [ 26] 0x8abc54 TEXT
+      [ 27] 0x8abc58 TEXT
+      [ 28] 0x8abc5c TEXT
+      [ 29] 0x8abc60 TEXT
+      [ 30] 0x8abc64 TEXT
+      [ 31] 0x8abc68 TEXT
+      [ 32] 0x8abc6c TEXT
+      [ 33] 0x8abc70 TEXT
+      [ 34] 0x8abc74 TEXT
+      [ 35] 0x8abc78 TEXT
+      [ 36] 0x8abc7c TEXT
+      [ 37] 0x8abc80 TEXT
+      [ 38] 0x8abc84 TEXT
+      [ 39] 0x8abc98 TEXT
+  --- N2nt10MSFServiceE vtable @0x87177a0 (offset_to_top=0xffffffffffffffe8) ---
+      [  0] 0x87177e0 ??
+      [  1] 0x137b238 TEXT
+      [  2] 0xffffffffffffffe0 (not a reloc)
+      [  3] 0x87177e0 ??
+      [  4] 0x138f868 TEXT
+      [  5] 0x138f870 TEXT
+      [  6] 0x1378220 TEXT
+      [  7] 0x1378610 TEXT
+      [  8] 0x871e698 ??
+      [  9] 0x677ecaa ??
+      [ 10] 0x200000000 (not a reloc)
+      [ 11] 0x8717ff0 ??
+      [ 12] 0x2 (not a reloc)
+      [ 13] 0x8718058 ??
+      [ 14] 0x4002 (not a reloc)
+      [ 15] 0x8abc54 TEXT
+      [ 16] 0x8abc58 TEXT
+      [ 17] 0x8abc5c TEXT
+      [ 18] 0x8abc60 TEXT
+      [ 19] 0x8abc64 TEXT
+      [ 20] 0x8abc68 TEXT
+      [ 21] 0x8abc6c TEXT
+      [ 22] 0x8abc70 TEXT
+      [ 23] 0x8abc74 TEXT
+      [ 24] 0x8abc78 TEXT
+      [ 25] 0x8abc7c TEXT
+      [ 26] 0x8abc80 TEXT
+      [ 27] 0x8abc84 TEXT
+      [ 28] 0x8abc98 TEXT
+      [ 29] 0x8abcac TEXT
+      [ 30] 0x6780434 ??
+      [ 31] 0x15 (not a reloc)
+      [ 32] 0x678044a ??
+      [ 33] 0x18 (not a reloc)
+      [ 34] 0x6780463 ??
+      [ 35] 0x2c (not a reloc)
+      [ 36] 0x6780490 ??
+      [ 37] 0x32 (not a reloc)
+      [ 38] 0x67804c3 ??
+      [ 39] 0x30 (not a reloc)
+  --- N2nt10MSFServiceE vtable @0x87177b8 (offset_to_top=0xffffffffffffffe0) ---
+      [  0] 0x87177e0 ??
+      [  1] 0x138f868 TEXT
+      [  2] 0x138f870 TEXT
+      [  3] 0x1378220 TEXT
+      [  4] 0x1378610 TEXT
+      [  5] 0x871e698 ??
+      [  6] 0x677ecaa ??
+      [  7] 0x200000000 (not a reloc)
+      [  8] 0x8717ff0 ??
+      [  9] 0x2 (not a reloc)
+      [ 10] 0x8718058 ??
+      [ 11] 0x4002 (not a reloc)
+      [ 12] 0x8abc54 TEXT
+      [ 13] 0x8abc58 TEXT
+      [ 14] 0x8abc5c TEXT
+      [ 15] 0x8abc60 TEXT
+      [ 16] 0x8abc64 TEXT
+      [ 17] 0x8abc68 TEXT
+      [ 18] 0x8abc6c TEXT
+      [ 19] 0x8abc70 TEXT
+      [ 20] 0x8abc74 TEXT
+      [ 21] 0x8abc78 TEXT
+      [ 22] 0x8abc7c TEXT
+      [ 23] 0x8abc80 TEXT
+      [ 24] 0x8abc84 TEXT
+      [ 25] 0x8abc98 TEXT
+      [ 26] 0x8abcac TEXT
+      [ 27] 0x6780434 ??
+      [ 28] 0x15 (not a reloc)
+      [ 29] 0x678044a ??
+      [ 30] 0x18 (not a reloc)
+      [ 31] 0x6780463 ??
+      [ 32] 0x2c (not a reloc)
+      [ 33] 0x6780490 ??
+      [ 34] 0x32 (not a reloc)
+      [ 35] 0x67804c3 ??
+      [ 36] 0x30 (not a reloc)
+      [ 37] 0x67804f4 ??
+      [ 38] 0x36 (not a reloc)
+      [ 39] 0x678052b ??
+  --- N2nt7wrapper17IKernelMSFServiceE vtable @0x8718008 (offset_to_top=0x500000000) ---
+      [  0] 0x8717f80 ??
+      [  1] 0x2 (not a reloc)
+      [  2] 0x86b7920 ??
+      [  3] 0x802 (not a reloc)
+      [  4] 0x8717fa0 ??
+      [  5] 0x1002 (not a reloc)
+      [  6] 0x8717fb8 ??
+      [  7] 0x1802 (not a reloc)
+      [  8] 0x8717fd8 ??
+      [  9] 0x2002 (not a reloc)
+      [ 10] 0x871e5e0 ??
+      [ 11] 0x6781289 ??
+      [ 12] 0  <END>
+  --- N3msf11IMSFServiceE vtable @0x8717fb0 (offset_to_top=0x6781206) ---
+      [  0] 0x8717f90 ??
+      [  1] 0x871e5e0 ??
+      [  2] 0x6781235 ??
+      [  3] 0x871e5e0 ??
+      [  4] 0x6781271 ??
+      [  5] 0x871e630 ??
+      [  6] 0x6781259 ??
+      [  7] 0x8717fc8 ??
+      [  8] 0x871e698 ??
+      [  9] 0x67811d0 ??
+      [ 10] 0x500000000 (not a reloc)
+      [ 11] 0x8717f80 ??
+      [ 12] 0x2 (not a reloc)
+      [ 13] 0x86b7920 ??
+      [ 14] 0x802 (not a reloc)
+      [ 15] 0x8717fa0 ??
+      [ 16] 0x1002 (not a reloc)
+      [ 17] 0x8717fb8 ??
+      [ 18] 0x1802 (not a reloc)
+      [ 19] 0x8717fd8 ??
+      [ 20] 0x2002 (not a reloc)
+      [ 21] 0x871e5e0 ??
+      [ 22] 0x6781289 ??
+      [ 23] 0  <END>
+  --- N2nt13IMSFInterfaceE vtable @0x87177f8 (offset_to_top=0x200000000) ---
+      [  0] 0x8717ff0 ??
+      [  1] 0x2 (not a reloc)
+      [  2] 0x8718058 ??
+      [  3] 0x4002 (not a reloc)
+      [  4] 0x8abc54 TEXT
+      [  5] 0x8abc58 TEXT
+      [  6] 0x8abc5c TEXT
+      [  7] 0x8abc60 TEXT
+      [  8] 0x8abc64 TEXT
+      [  9] 0x8abc68 TEXT
+      [ 10] 0x8abc6c TEXT
+      [ 11] 0x8abc70 TEXT
+      [ 12] 0x8abc74 TEXT
+      [ 13] 0x8abc78 TEXT
+      [ 14] 0x8abc7c TEXT
+      [ 15] 0x8abc80 TEXT
+      [ 16] 0x8abc84 TEXT
+      [ 17] 0x8abc98 TEXT
+      [ 18] 0x8abcac TEXT
+      [ 19] 0x6780434 ??
+      [ 20] 0x15 (not a reloc)
+      [ 21] 0x678044a ??
+      [ 22] 0x18 (not a reloc)
+      [ 23] 0x6780463 ??
+      [ 24] 0x2c (not a reloc)
+      [ 25] 0x6780490 ??
+      [ 26] 0x32 (not a reloc)
+      [ 27] 0x67804c3 ??
+      [ 28] 0x30 (not a reloc)
+      [ 29] 0x67804f4 ??
+      [ 30] 0x36 (not a reloc)
+      [ 31] 0x678052b ??
+      [ 32] 0x2d (not a reloc)
+      [ 33] 0x6780559 ??
+      [ 34] 0x2d (not a reloc)
+      [ 35] 0x6780587 ??
+      [ 36] 0x30 (not a reloc)
+      [ 37] 0x67805b8 ??
+      [ 38] 0x3c (not a reloc)
+      [ 39] 0x67805f5 ??
+  --- N2nt13IMSFInterfaceE vtable @0x8719410 (offset_to_top=0x300000000) ---
+      [  0] 0x8717ff0 ??
+      [  1] 0x2 (not a reloc)
+      [  2] 0x87197b8 ??
+      [  3] 0x4002 (not a reloc)
+      [  4] 0x87197c8 ??
+      [  5] 0x4802 (not a reloc)
+      [  6] 0x8abc54 TEXT
+      [  7] 0x8abc58 TEXT
+      [  8] 0x8abc5c TEXT
+      [  9] 0x8abc60 TEXT
+      [ 10] 0x8abc64 TEXT
+      [ 11] 0x8abc68 TEXT
+      [ 12] 0x8abc6c TEXT
+      [ 13] 0x8abc70 TEXT
+      [ 14] 0x8abc74 TEXT
+      [ 15] 0x8abc78 TEXT
+      [ 16] 0x8abc7c TEXT
+      [ 17] 0x8abc80 TEXT
+      [ 18] 0x8abc84 TEXT
+      [ 19] 0x8abc98 TEXT
+      [ 20] 0x8abcac TEXT
+      [ 21] 0  <END>
+  --- N2nt14MSFCoreServiceE vtable @0x8718f58 (offset_to_top=0x0) ---
+      [  0] 0x87193f8 ??
+      [  1] 0x13abb00 TEXT
+      [  2] 0x13abd64 TEXT
+      [  3] 0x139c264 TEXT
+      [  4] 0x139c26c TEXT
+      [  5] 0x139c274 TEXT
+      [  6] 0x139c2c4 TEXT
+      [  7] 0x13a1fec TEXT
+      [  8] 0x13a2754 TEXT
+      [  9] 0x13a2248 TEXT
+      [ 10] 0x13a260c TEXT
+      [ 11] 0x13a29f8 TEXT
+      [ 12] 0x13a2bec TEXT
+      [ 13] 0x13a33d0 TEXT
+      [ 14] 0x139c1bc TEXT
+      [ 15] 0x139c204 TEXT
+      [ 16] 0x139c2f0 TEXT
+      [ 17] 0x139c454 TEXT
+      [ 18] 0x139c93c TEXT
+      [ 19] 0x139d864 TEXT
+      [ 20] 0x139e8e4 TEXT
+      [ 21] 0x139eaa4 TEXT
+      [ 22] 0x139eaf0 TEXT
+      [ 23] 0x139eaf8 TEXT
+      [ 24] 0x139eb80 TEXT
+      [ 25] 0x13a0c0c TEXT
+      [ 26] 0x13a1508 TEXT
+      [ 27] 0x13a1fe8 TEXT
+      [ 28] 0x13a3460 TEXT
+      [ 29] 0x13a35e4 TEXT
+      [ 30] 0x13a3600 TEXT
+      [ 31] 0x13a3668 TEXT
+      [ 32] 0x13a584c TEXT
+      [ 33] 0x139be48 TEXT
+      [ 34] 0x139be98 TEXT
+      [ 35] 0x139ec10 TEXT
+      [ 36] 0x139f488 TEXT
+      [ 37] 0x139f69c TEXT
+      [ 38] 0x139fb08 TEXT
+      [ 39] 0x13a03c0 TEXT
+  --- N2nt14MSFCoreServiceE vtable @0x8719108 (offset_to_top=0xfffffffffffffff8) ---
+      [  0] 0x87193f8 ??
+      [  1] 0x13abd88 TEXT
+      [  2] 0x13abd90 TEXT
+      [  3] 0x99a2fc TEXT
+      [  4] 0x99a300 TEXT
+      [  5] 0x99a304 TEXT
+      [  6] 0x99a308 TEXT
+      [  7] 0xc3f5ec TEXT
+      [  8] 0xc3f5f0 TEXT
+      [  9] 0x99a30c TEXT
+      [ 10] 0x99a310 TEXT
+      [ 11] 0x13a1d90 TEXT
+      [ 12] 0x99a318 TEXT
+      [ 13] 0x99a31c TEXT
+      [ 14] 0x99a320 TEXT
+      [ 15] 0x99a324 TEXT
+      [ 16] 0x99a328 TEXT
+      [ 17] 0x99a32c TEXT
+      [ 18] 0x99a330 TEXT
+      [ 19] 0x99a334 TEXT
+      [ 20] 0x99a338 TEXT
+      [ 21] 0x99a33c TEXT
+      [ 22] 0x99a340 TEXT
+      [ 23] 0x99a344 TEXT
+      [ 24] 0x99a348 TEXT
+      [ 25] 0x99a34c TEXT
+      [ 26] 0x99a350 TEXT
+      [ 27] 0x99a354 TEXT
+      [ 28] 0x99a358 TEXT
+      [ 29] 0x99a35c TEXT
+      [ 30] 0x99a360 TEXT
+      [ 31] 0x99a364 TEXT
+      [ 32] 0x99a368 TEXT
+      [ 33] 0x99a36c TEXT
+      [ 34] 0x99a370 TEXT
+      [ 35] 0x99a374 TEXT
+      [ 36] 0x99a378 TEXT
+      [ 37] 0x99a37c TEXT
+      [ 38] 0x99a380 TEXT
+      [ 39] 0x99a384 TEXT
+  --- N2nt14MSFCoreServiceE vtable @0x8719300 (offset_to_top=0xfffffffffffffff0) ---
+      [  0] 0x87193f8 ??
+      [  1] 0x13abdb8 TEXT
+      [  2] 0x13abdc0 TEXT
+      [  3] 0x139f398 TEXT
+      [  4] 0x139f55c TEXT
+      [  5] 0x139fb00 TEXT
+      [  6] 0x13a03b8 TEXT
+      [  7] 0x13a07e8 TEXT
+      [  8] 0x13a0c04 TEXT
+      [  9] 0x13a3ac8 TEXT
+      [ 10] 0xffffffffffffffe8 (not a reloc)
+      [ 11] 0x87193f8 ??
+      [ 12] 0x13a48a0 TEXT
+      [ 13] 0xffffffffffffffe0 (not a reloc)
+      [ 14] 0x87193f8 ??
+      [ 15] 0x13abde8 TEXT
+      [ 16] 0x13abdf0 TEXT
+      [ 17] 0x139be70 TEXT
+      [ 18] 0x139c1b4 TEXT
+      [ 19] 0xffffffffffffffc0 (not a reloc)
+      [ 20] 0x87193f8 ??
+      [ 21] 0x13abe18 TEXT
+      [ 22] 0x13abe20 TEXT
+      [ 23] 0x13a3c78 TEXT
+      [ 24] 0x13a3dcc TEXT
+      [ 25] 0x13a3e28 TEXT
+      [ 26] 0x13a4040 TEXT
+      [ 27] 0x13a41e8 TEXT
+      [ 28] 0x13a41f4 TEXT
+      [ 29] 0x13a41fc TEXT
+      [ 30] 0x13a46bc TEXT
+      [ 31] 0x871e698 ??
+      [ 32] 0x67818e1 ??
+      [ 33] 0x300000000 (not a reloc)
+      [ 34] 0x8717ff0 ??
+      [ 35] 0x2 (not a reloc)
+      [ 36] 0x87197b8 ??
+      [ 37] 0x4002 (not a reloc)
+      [ 38] 0x87197c8 ??
+      [ 39] 0x4802 (not a reloc)
+  --- N2nt14MSFCoreServiceE vtable @0x8719358 (offset_to_top=0xffffffffffffffe8) ---
+      [  0] 0x87193f8 ??
+      [  1] 0x13a48a0 TEXT
+      [  2] 0xffffffffffffffe0 (not a reloc)
+      [  3] 0x87193f8 ??
+      [  4] 0x13abde8 TEXT
+      [  5] 0x13abdf0 TEXT
+      [  6] 0x139be70 TEXT
+      [  7] 0x139c1b4 TEXT
+      [  8] 0xffffffffffffffc0 (not a reloc)
+      [  9] 0x87193f8 ??
+      [ 10] 0x13abe18 TEXT
+      [ 11] 0x13abe20 TEXT
+      [ 12] 0x13a3c78 TEXT
+      [ 13] 0x13a3dcc TEXT
+      [ 14] 0x13a3e28 TEXT
+      [ 15] 0x13a4040 TEXT
+      [ 16] 0x13a41e8 TEXT
+      [ 17] 0x13a41f4 TEXT
+      [ 18] 0x13a41fc TEXT
+      [ 19] 0x13a46bc TEXT
+      [ 20] 0x871e698 ??
+      [ 21] 0x67818e1 ??
+      [ 22] 0x300000000 (not a reloc)
+      [ 23] 0x8717ff0 ??
+      [ 24] 0x2 (not a reloc)
+      [ 25] 0x87197b8 ??
+      [ 26] 0x4002 (not a reloc)
+      [ 27] 0x87197c8 ??
+      [ 28] 0x4802 (not a reloc)
+      [ 29] 0x8abc54 TEXT
+      [ 30] 0x8abc58 TEXT
+      [ 31] 0x8abc5c TEXT
+      [ 32] 0x8abc60 TEXT
+      [ 33] 0x8abc64 TEXT
+      [ 34] 0x8abc68 TEXT
+      [ 35] 0x8abc6c TEXT
+      [ 36] 0x8abc70 TEXT
+      [ 37] 0x8abc74 TEXT
+      [ 38] 0x8abc78 TEXT
+      [ 39] 0x8abc7c TEXT
+  --- N2nt14MSFCoreServiceE vtable @0x8719370 (offset_to_top=0xffffffffffffffe0) ---
+      [  0] 0x87193f8 ??
+      [  1] 0x13abde8 TEXT
+      [  2] 0x13abdf0 TEXT
+      [  3] 0x139be70 TEXT
+      [  4] 0x139c1b4 TEXT
+      [  5] 0xffffffffffffffc0 (not a reloc)
+      [  6] 0x87193f8 ??
+      [  7] 0x13abe18 TEXT
+      [  8] 0x13abe20 TEXT
+      [  9] 0x13a3c78 TEXT
+      [ 10] 0x13a3dcc TEXT
+      [ 11] 0x13a3e28 TEXT
+      [ 12] 0x13a4040 TEXT
+      [ 13] 0x13a41e8 TEXT
+      [ 14] 0x13a41f4 TEXT
+      [ 15] 0x13a41fc TEXT
+      [ 16] 0x13a46bc TEXT
+      [ 17] 0x871e698 ??
+      [ 18] 0x67818e1 ??
+      [ 19] 0x300000000 (not a reloc)
+      [ 20] 0x8717ff0 ??
+      [ 21] 0x2 (not a reloc)
+      [ 22] 0x87197b8 ??
+      [ 23] 0x4002 (not a reloc)
+      [ 24] 0x87197c8 ??
+      [ 25] 0x4802 (not a reloc)
+      [ 26] 0x8abc54 TEXT
+      [ 27] 0x8abc58 TEXT
+      [ 28] 0x8abc5c TEXT
+      [ 29] 0x8abc60 TEXT
+      [ 30] 0x8abc64 TEXT
+      [ 31] 0x8abc68 TEXT
+      [ 32] 0x8abc6c TEXT
+      [ 33] 0x8abc70 TEXT
+      [ 34] 0x8abc74 TEXT
+      [ 35] 0x8abc78 TEXT
+      [ 36] 0x8abc7c TEXT
+      [ 37] 0x8abc80 TEXT
+      [ 38] 0x8abc84 TEXT
+      [ 39] 0x8abc98 TEXT
+  --- N2nt14MSFCoreServiceE vtable @0x87193a0 (offset_to_top=0xffffffffffffffc0) ---
+      [  0] 0x87193f8 ??
+      [  1] 0x13abe18 TEXT
+      [  2] 0x13abe20 TEXT
+      [  3] 0x13a3c78 TEXT
+      [  4] 0x13a3dcc TEXT
+      [  5] 0x13a3e28 TEXT
+      [  6] 0x13a4040 TEXT
+      [  7] 0x13a41e8 TEXT
+      [  8] 0x13a41f4 TEXT
+      [  9] 0x13a41fc TEXT
+      [ 10] 0x13a46bc TEXT
+      [ 11] 0x871e698 ??
+      [ 12] 0x67818e1 ??
+      [ 13] 0x300000000 (not a reloc)
+      [ 14] 0x8717ff0 ??
+      [ 15] 0x2 (not a reloc)
+      [ 16] 0x87197b8 ??
+      [ 17] 0x4002 (not a reloc)
+      [ 18] 0x87197c8 ??
+      [ 19] 0x4802 (not a reloc)
+      [ 20] 0x8abc54 TEXT
+      [ 21] 0x8abc58 TEXT
+      [ 22] 0x8abc5c TEXT
+      [ 23] 0x8abc60 TEXT
+      [ 24] 0x8abc64 TEXT
+      [ 25] 0x8abc68 TEXT
+      [ 26] 0x8abc6c TEXT
+      [ 27] 0x8abc70 TEXT
+      [ 28] 0x8abc74 TEXT
+      [ 29] 0x8abc78 TEXT
+      [ 30] 0x8abc7c TEXT
+      [ 31] 0x8abc80 TEXT
+      [ 32] 0x8abc84 TEXT
+      [ 33] 0x8abc98 TEXT
+      [ 34] 0x8abcac TEXT
+      [ 35] 0  <END>
+
+DONE

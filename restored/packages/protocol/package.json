@@ -1,0 +1,16 @@
+{
+  "name": "@snowluma/protocol",
+  "version": "2.4.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "dependencies": {
+    "@snowluma/core": "workspace:*",
+    "hono": "^4.13.13",
+    "htmlparser2": "^10.0.0",
+    "entities": "^6.0.1"
+  },
+  "scripts": {
+    "typecheck": "tsc -p ../../tsconfig.json --noEmit"
+  }
+}
