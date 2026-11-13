@@ -33,8 +33,10 @@ var SATORI_MOUNT_FLAG = "__haizakuraSatoriMounted";
 /** 判断一个 wsServers 条目是否是 Satori 服务器 */
 function satoriMountIsSatoriServer(config) {
 	if (!config || typeof config !== "object") return false;
+	// Explicit declaration wins: `protocol: "satori"` is the documented way.
+	if (config.protocol === "satori") return true;
 	var p = typeof config.path === "string" ? config.path : "/";
-	// 容忍尾部斜杠与查询串
+	// Tolerate trailing slashes and query strings (legacy sentinel form).
 	var normalized = p.split("?")[0].replace(/\/+$/, "") || "/";
 	return normalized === SATORI_MOUNT_EVENT_PATH;
 }

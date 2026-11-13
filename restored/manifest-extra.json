@@ -11,6 +11,8 @@
     "     satoriParseChannelId 等），同时 inline 会 SyntaxError",
     "  3. 它们保留在源码树里作为独立实现，供对照/未来参考",
     "",
+    "WebUI 内置离线文档（docs-corpus + docs-mount）见文件末尾。",
+    "",
     "构建：node scripts/build.mjs      校验：node scripts/build.mjs --verify-base"
   ],
   "modules": [
@@ -27,6 +29,20 @@
       "insert": "after:../onebot/src/instance.ts",
       "mode": "inline",
       "label": "src/network/satori-mount.ts"
+    },
+    {
+      "id": "docs-corpus",
+      "file": "packages/core/src/webui/docs-corpus.ts",
+      "insert": "after:src/webui/static-frontend.ts",
+      "mode": "inline",
+      "label": "src/webui/docs-corpus.ts"
+    },
+    {
+      "id": "docs-mount",
+      "file": "packages/core/src/webui/docs-mount.ts",
+      "insert": "after:src/webui/request-security.ts",
+      "mode": "inline",
+      "label": "src/webui/docs-mount.ts"
     }
   ]
 }

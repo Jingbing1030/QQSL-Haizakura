@@ -5296,7 +5296,7 @@ var RESTORE_BASE_ADAPTER_KEYS = [
 	"name",
 	"enabled",
 	"accessToken",
-	"messageFormat",
+	"messageFormat", "protocol",
 	"reportSelfMessage"
 ];
 function validateOneBotRestoreSource(value) {
@@ -5658,7 +5658,7 @@ function wsServerToJson(n) {
 	out.host = n.host ?? "0.0.0.0";
 	out.port = n.port;
 	out.path = n.path ?? "/";
-	out.role = n.role ?? "Universal";
+	out.role = n.role ?? "Universal"; if (n.protocol === "satori") out.protocol = "satori";
 	return out;
 }
 function wsClientToJson(n) {
@@ -5794,7 +5794,7 @@ function parseBase(value, defaults) {
 		name: asString$1(value.name),
 		enabled: typeof value.enabled === "boolean" ? value.enabled : void 0,
 		accessToken: asString$1(value.accessToken) || void 0,
-		messageFormat: parseMessageFormat(value.messageFormat) ?? defaults.messageFormat,
+		protocol: value.protocol === "satori" ? "satori" : void 0, messageFormat: parseMessageFormat(value.messageFormat) ?? defaults.messageFormat,
 		reportSelfMessage: typeof value.reportSelfMessage === "boolean" ? value.reportSelfMessage : defaults.reportSelfMessage
 	};
 }
@@ -5834,7 +5834,7 @@ function parseWsServer(value, defaults) {
 		...parseBase(value, defaults),
 		host: asString$1(value.host, "0.0.0.0"),
 		port,
-		path: asString$1(value.path, "/"),
+		path: asString$1(value.path, value.protocol === "satori" ? "/v1/events" : "/"),
 		role: asRole(value.role, "Universal"),
 		maxPayloadBytes
 	});
