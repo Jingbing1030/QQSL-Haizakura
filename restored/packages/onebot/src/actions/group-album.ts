@@ -329,7 +329,7 @@ var actions$5 = [
 				album_name: "活动照片",
 				file: "file:///path/to/photo.png"
 			},
-			notes: "album_id 来自 get_group_album_list；lloc 或视频 id、batch_id 来自 get_group_album_media_list。替换群号及对应资源标识。 示例路径位于 SnowLuma 服务端，须替换为该服务可读取的实际文件。"
+			notes: "album_id 来自 get_group_album_list；lloc 或视频 id、batch_id 来自 get_group_album_media_list。替换群号及对应资源标识。 示例路径位于 Haizakura 服务端，须替换为该服务可读取的实际文件。"
 		}],
 		returnsSchema: {
 			type: "null",
@@ -355,7 +355,7 @@ var actions$5 = [
 				album_name: "活动视频",
 				file: "file:///path/to/video.mp4"
 			},
-			notes: "album_id 来自 get_group_album_list；lloc 或视频 id、batch_id 来自 get_group_album_media_list。替换群号及对应资源标识。 示例路径位于 SnowLuma 服务端，须替换为该服务可读取的实际文件。"
+			notes: "album_id 来自 get_group_album_list；lloc 或视频 id、batch_id 来自 get_group_album_media_list。替换群号及对应资源标识。 示例路径位于 Haizakura 服务端，须替换为该服务可读取的实际文件。"
 		}],
 		summary: "上传视频到群相册",
 		returns: "{ id: string }",

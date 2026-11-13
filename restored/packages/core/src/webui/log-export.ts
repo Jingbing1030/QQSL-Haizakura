@@ -12,9 +12,9 @@ function buildFullTraceDownload(entries, metadata) {
 }
 function formatFullTraceExport(entries, metadata) {
 	const lines = [
-		"SnowLuma full TRACE export",
+		"Haizakura full TRACE export",
 		"==========================",
-		`SnowLuma version: ${metadata.version}`,
+		`Haizakura version: ${metadata.version}`,
 		`Operating system: ${metadata.operatingSystem}`,
 		`Architecture: ${metadata.architecture}`,
 		`Node.js version: ${metadata.nodeVersion}`,

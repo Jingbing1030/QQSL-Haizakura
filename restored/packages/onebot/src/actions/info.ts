@@ -49,7 +49,7 @@ var actions$13 = [
 			params: {}
 		}],
 		readOnly: true,
-		returns: "运行状态。`online` 表示账号在线；`good` 表示已确认的收发链路健康状态；`time` 为当前账号服务实例运行秒数，与 #sl 同源。",
+		returns: "运行状态。`online` 表示账号在线；`good` 表示已确认的收发链路健康状态；`time` 为当前账号服务实例运行秒数，与 #Haizakura 同源。",
 		returnsSchema: {
 			type: "object",
 			properties: {
@@ -63,7 +63,7 @@ var actions$13 = [
 				},
 				time: {
 					type: "integer",
-					description: "当前账号服务实例运行秒数，与 #sl 同源；实例重建后重新计时"
+					description: "当前账号服务实例运行秒数，与 #Haizakura 同源；实例重建后重新计时"
 				}
 			},
 			required: [
@@ -95,7 +95,7 @@ var actions$13 = [
 			properties: {
 				app_name: {
 					type: "string",
-					description: "实现名称（SnowLuma）"
+					description: "实现名称（Haizakura）"
 				},
 				app_version: {
 					type: "string",
@@ -115,7 +115,7 @@ var actions$13 = [
 		params: {},
 		run: () => {
 			return okResponse({
-				app_name: "SnowLuma",
+				app_name: "Haizakura",
 				app_version: `${APP_VERSION}-node`,
 				protocol_version: "v11"
 			});

@@ -24,7 +24,7 @@ var actions$8 = [
 				file: "file:///path/to/report.pdf",
 				name: "报告.pdf"
 			},
-			notes: "示例路径位于 SnowLuma 服务端，须替换为该服务可读取的实际文件。"
+			notes: "示例路径位于 Haizakura 服务端，须替换为该服务可读取的实际文件。"
 		}],
 		returnsSchema: {
 			type: "object",
@@ -54,7 +54,7 @@ var actions$8 = [
 				file: "file:///path/to/report.pdf",
 				name: "报告.pdf"
 			},
-			notes: "示例路径位于 SnowLuma 服务端，须替换为该服务可读取的实际文件。 默认上传并发送给该好友。"
+			notes: "示例路径位于 Haizakura 服务端，须替换为该服务可读取的实际文件。 默认上传并发送给该好友。"
 		}],
 		returnsSchema: {
 			type: "object",

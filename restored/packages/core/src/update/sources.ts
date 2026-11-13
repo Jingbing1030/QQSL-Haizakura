@@ -39,7 +39,7 @@ async function testUpdateSources(value) {
 	])];
 	const target = process.platform === "win32" ? "win-x64" : `linux-${process.arch}`;
 	const extension = process.platform === "win32" ? "zip" : "tar.gz";
-	const probeUrl = `${RELEASE_ROOT}/download/v${APP_VERSION}/SnowLuma-v${APP_VERSION}-${target}-lite.${extension}`;
+	const probeUrl = `${RELEASE_ROOT}/download/v${APP_VERSION}/Haizakura-v${APP_VERSION}-${target}-lite.${extension}`;
 	return (await Promise.all(mirrors.map(async (mirror) => {
 		const start = performance.now();
 		try {

@@ -10,7 +10,7 @@ var LOGIN_MAX_ATTEMPTS = 5;
 var LOGIN_LOCKOUT_MS = 900 * 1e3;
 var TOKEN_TTL_MS = 1440 * 60 * 1e3;
 var TOTP_ENROLL_TTL_MS = 600 * 1e3;
-var DEFAULT_TOTP_ISSUER = "SnowLuma";
+var DEFAULT_TOTP_ISSUER = "Haizakura";
 var AVATAR_CACHE_TTL_MS = 720 * 60 * 60 * 1e3;
 var AVATAR_BROWSER_CACHE_SECONDS = 720 * 60 * 60;
 /** Translate transaction facts into an operator-facing HTTP failure. */
@@ -100,7 +100,7 @@ function defaultTotpAccountName() {
 }
 async function fetchQqAvatar(uin) {
 	const response = await fetch(`https://q1.qlogo.cn/g?b=qq&nk=${encodeURIComponent(uin)}&s=100`, { headers: {
-		"User-Agent": "SnowLuma WebUI",
+		"User-Agent": "Haizakura WebUI",
 		Accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8"
 	} });
 	if (!response.ok) throw new Error(`avatar upstream responded with ${response.status}`);

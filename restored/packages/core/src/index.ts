@@ -18,7 +18,7 @@ async function main() {
 		retainDays: runtimeConfig.logRetainDays ?? 7,
 		perUinEnabled: runtimeConfig.logPerUin ?? false
 	});
-	log.info("SnowLuma starting");
+	log.info("Haizakura starting");
 	logRuntimeIntegrity(await getRuntimeIntegrity());
 	migrateGlobalSettings();
 	cleanupInvalidPerUinConfigs();

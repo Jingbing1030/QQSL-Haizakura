@@ -1,0 +1,28 @@
+{
+  "$comment": [
+    "EXAMPLE ONLY - copy an entry into manifest-extra.json to activate it.",
+    "Nothing here can change the 467 original regions, so merge.mjs/check.mjs keep passing.",
+    "Run `node scripts/build.mjs --suggest-insert <file>` first to get the right `insert` value."
+  ],
+  "modules": [
+    {
+      "out": "examples/build-demo-probe.ts",
+      "region": "src/build-demo-probe.ts",
+      "insert": "after:../common/src/logger.ts",
+      "after_inits": ["logger"],
+      "mode": "run"
+    },
+    {
+      "out": "examples/dev-authored-example.ts",
+      "region": "src/dev-authored-example.ts",
+      "insert": "before:src/index.ts",
+      "mode": "run"
+    },
+    {
+      "out": "examples/dev-lib-example.ts",
+      "region": "src/dev-lib-example.ts",
+      "insert": "after:../common/src/logger.ts",
+      "mode": "lazy"
+    }
+  ]
+}

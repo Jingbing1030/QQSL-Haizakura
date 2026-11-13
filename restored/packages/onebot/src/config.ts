@@ -27,7 +27,7 @@ var DEFAULT_STATUS_COMMAND = {
 	enabled: true,
 	swallow: false,
 	cooldownSeconds: 5,
-	trigger: "#sl"
+	trigger: "#Haizakura"
 };
 /** Upper bound on the status-command reply cooldown — a year is effectively "off but sane". */
 var STATUS_COMMAND_COOLDOWN_MAX = 31536e3;

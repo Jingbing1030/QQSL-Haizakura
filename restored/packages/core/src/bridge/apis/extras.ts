@@ -1272,7 +1272,7 @@ var ExtrasApi = class {
 	*
 	* The returned node plugs directly into
 	* `apis.groupFile.getPttUrl`, which already handles every other
-	* download-URL fetch in SnowLuma. The synthesis response does not contain a
+	* download-URL fetch in Haizakura. The synthesis response does not contain a
 	* reliable message sequence; callers that need one must use `sendAiVoice`,
 	* which correlates the subsequent self-message receipt.
 	*/

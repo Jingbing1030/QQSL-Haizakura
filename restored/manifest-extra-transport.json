@@ -1,0 +1,8 @@
+{
+  "$comment": ["验证脚手架（非生产代码）。字段名/单位检查（snake_case + 毫秒）。"],
+  "modules": [
+    { "id": "satori-server-adapter", "file": "packages/onebot/src/network/satori-server-adapter.ts", "insert": "after:../onebot/src/instance.ts", "mode": "inline", "label": "src/network/satori-server-adapter.ts" },
+    { "id": "satori-mount", "file": "packages/onebot/src/network/satori-mount.ts", "insert": "after:../onebot/src/instance.ts", "mode": "inline", "label": "src/network/satori-mount.ts" },
+    { "id": "probe-keys", "file": "examples/satori-keyprobe.ts", "insert": "end", "mode": "run" }
+  ]
+}

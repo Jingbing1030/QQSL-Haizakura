@@ -84,7 +84,7 @@ async function getFriendMsgHistory(messageStore, userId, messageId, count, rever
 }
 /**
 * Group history, fetched from the server (`SsoGetGroupMsg`) instead of only the
-* local observed-message store — so it can return messages SnowLuma never saw
+* local observed-message store — so it can return messages Haizakura never saw
 * live, and (because each fetched message is persisted) reply / get_msg on old
 * messages start working too. Resolves the anchor sequence from the requested
 * message_id (or the latest observed message), then asks the bridge for the

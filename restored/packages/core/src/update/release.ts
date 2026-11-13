@@ -1,5 +1,5 @@
 function assetName(version, target) {
-	return `SnowLuma-v${version}-${target.replace("win32", "win")}-lite.${target.startsWith("win32") ? "zip" : "tar.gz"}`;
+	return `Haizakura-v${version}-${target.replace("win32", "win")}-lite.${target.startsWith("win32") ? "zip" : "tar.gz"}`;
 }
 async function readText(response, limit) {
 	if (!response.body) throw new Error("发布信息为空");
@@ -30,10 +30,10 @@ function parseLatestReleasePage(html) {
 	const canonical = meta && attribute(meta, "content");
 	if (!canonical) throw new Error("发布页面缺少版本信息");
 	const url = new URL(canonical, "https://github.com");
-	const tag = /^\/SnowLuma\/SnowLuma\/releases\/tag\/([^/]+)$/.exec(url.pathname)?.[1];
+	const tag = /^\/Haizakura\/Haizakura\/releases\/tag\/([^/]+)$/.exec(url.pathname)?.[1];
 	const decoded = tag && decodeURIComponent(tag);
 	const parsed = parseVersion(decoded?.startsWith("v") ? decoded.slice(1) : void 0);
-	if (url.origin !== "https://github.com" || !parsed || parsed.prerelease.length) throw new Error("发布页面不是 SnowLuma 正式版本");
+	if (url.origin !== "https://github.com" || !parsed || parsed.prerelease.length) throw new Error("发布页面不是 Haizakura 正式版本");
 	return {
 		tag_name: `v${parsed.raw}`,
 		html_url: `${RELEASE_ROOT}/tag/v${parsed.raw}`
@@ -68,7 +68,7 @@ function parseReleaseAssetsPage(html, version) {
 		assets
 	};
 }
-async function fetchRelease(version, source, userAgent = "SnowLuma", timeoutMs = 8e3) {
+async function fetchRelease(version, source, userAgent = "Haizakura", timeoutMs = 8e3) {
 	const apiUrl = `https://api.github.com/repos/SnowLuma/SnowLuma/releases/${version ? `tags/v${version}` : "latest"}`;
 	let primaryError;
 	try {

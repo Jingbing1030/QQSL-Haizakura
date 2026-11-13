@@ -372,14 +372,14 @@ var QqHookClient = class QqHookClient extends EventEmitter {
 	}
 	/**
 	* Lightweight liveness check for the control pipe. Used to detect whether an
-	* existing SnowLuma hook is still hosted inside the QQ.exe process without
+	* existing Haizakura hook is still hosted inside the QQ.exe process without
 	* opening the pipe, so probing cannot disturb the first real client connect.
 	*/
 	static async probePipe(pid) {
 		return (await QqHookClient.listLivePipes([pid])).has(pid);
 	}
 	/**
-	* Enumerate every PID currently hosting a SnowLuma `mojo.<pid>.control` pipe
+	* Enumerate every PID currently hosting a Haizakura `mojo.<pid>.control` pipe
 	* in a single filesystem listing. The HookManager's pipe-watcher uses this
 	* to drive connect/reconnect decisions without per-PID stat calls.
 	*/

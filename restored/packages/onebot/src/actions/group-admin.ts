@@ -670,7 +670,7 @@ var actions$9 = [
 				group_id: 20001,
 				file: "file:///path/to/avatar.png"
 			},
-			notes: "示例路径位于 SnowLuma 服务端，须替换为该服务可读取的实际文件。"
+			notes: "示例路径位于 Haizakura 服务端，须替换为该服务可读取的实际文件。"
 		}],
 		returnsSchema: {
 			type: "null",

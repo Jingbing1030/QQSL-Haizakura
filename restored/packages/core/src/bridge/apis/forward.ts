@@ -17230,7 +17230,7 @@ var ForwardApi = class {
 	async downloadSourceFromCachedFile(cached) {
 		if (cached.scope === "group" && cached.groupId !== void 0) return this.ctx.apis.groupFile.getUrl(cached.groupId, cached.fileId);
 		if (cached.scope === "private" && cached.userId !== void 0 && cached.fileHash) return this.ctx.apis.groupFile.getPrivateUrl(cached.userId, cached.fileId, cached.fileHash);
-		throw new Error("forward file_id belongs to another scope; pass file/base64/url so SnowLuma can re-upload it");
+		throw new Error("forward file_id belongs to another scope; pass file/base64/url so Haizakura can re-upload it");
 	}
 	async uploadForwardFileSource(source, name, groupId, userId) {
 		if (groupId !== void 0) {

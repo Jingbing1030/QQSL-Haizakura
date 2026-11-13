@@ -29,7 +29,7 @@ async function fetchLatest(current, source) {
 		checkedAt: Date.now()
 	};
 	try {
-		const { data: rel } = await fetchRelease(void 0, source, `SnowLuma/${current}`, FETCH_TIMEOUT_MS);
+		const { data: rel } = await fetchRelease(void 0, source, `Haizakura/${current}`, FETCH_TIMEOUT_MS);
 		if (!rel || typeof rel !== "object" || Array.isArray(rel)) return {
 			...base,
 			error: "invalid release info"

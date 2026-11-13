@@ -1,0 +1,15 @@
+{
+  "$comment": [
+    "Owned by the satori-elements.ts implementation task.",
+    "Isolated from manifest-extra.json so parallel workers do not collide."
+  ],
+  "modules": [
+    {
+      "out": "packages/onebot/src/network/satori-elements.ts",
+      "region": "src/satori-elements.ts",
+      "insert": "after:../common/src/logger.ts",
+      "after_inits": ["logger"],
+      "mode": "run"
+    }
+  ]
+}

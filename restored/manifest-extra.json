@@ -1,0 +1,32 @@
+{
+  "$comment": [
+    "Satori 协议支持（2 个新 region，均用 mode:inline 以进入扁平作用域）。",
+    "",
+    "为什么必须 inline：mode:run 会用 __esmMin(fn) 把声明关进闭包，",
+    "  跨 region 引用会得到 undefined（实测确认）。inline 才真正放进扁平作用域。",
+    "",
+    "为什么只注册传输层、不注册 satori-elements.ts / satori-events.ts：",
+    "  1. 传输层是自包含的（36 个顶层函数：24 API + 事件转换 + 元素编解码）",
+    "  2. 那两份与传输层有 4 处重名（satoriEscapeText / satoriEscapeAttr /",
+    "     satoriParseChannelId 等），同时 inline 会 SyntaxError",
+    "  3. 它们保留在源码树里作为独立实现，供对照/未来参考",
+    "",
+    "构建：node scripts/build.mjs      校验：node scripts/build.mjs --verify-base"
+  ],
+  "modules": [
+    {
+      "id": "satori-server-adapter",
+      "file": "packages/onebot/src/network/satori-server-adapter.ts",
+      "insert": "after:../onebot/src/instance.ts",
+      "mode": "inline",
+      "label": "src/network/satori-server-adapter.ts"
+    },
+    {
+      "id": "satori-mount",
+      "file": "packages/onebot/src/network/satori-mount.ts",
+      "insert": "after:../onebot/src/instance.ts",
+      "mode": "inline",
+      "label": "src/network/satori-mount.ts"
+    }
+  ]
+}

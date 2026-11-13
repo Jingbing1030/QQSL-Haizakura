@@ -25,9 +25,9 @@ var OneBotInstance = class OneBotInstance {
 	lifecycleTail;
 	rkeyCache;
 	ctx;
-	/** Account-session uptime shared by the status action and `#sl`. */
+	/** Account-session uptime shared by the status action and `#Haizakura`. */
 	startedAt = Date.now();
-	/** Per-conversation last-reply timestamp for the `#sl` cooldown. */
+	/** Per-conversation last-reply timestamp for the `#Haizakura` cooldown. */
 	statusCommandCooldown = /* @__PURE__ */ new Map();
 	/** Reported self sends retained while matching subsequent QQ echoes. */
 	recentSelfSentEvents = /* @__PURE__ */ new Map();
@@ -310,7 +310,7 @@ var OneBotInstance = class OneBotInstance {
 		for (const [key, pending] of this.recentSelfSentEvents) if (pending.expiresAt <= now) this.recentSelfSentEvents.delete(key);
 	}
 	/**
-	* Built-in `#sl` status command. Returns `true` when the event matched AND
+	* Built-in `#Haizakura` status command. Returns `true` when the event matched AND
 	* `swallow` is configured — the caller then skips `emitEvent` so downstream
 	* adapters never see it. The reply itself is fired async and rate-limited
 	* per conversation; matching and replying are independent of swallowing.

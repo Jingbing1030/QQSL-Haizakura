@@ -14,7 +14,7 @@
 * True iff `message` matches the given trigger using exact match.
 *
 * Only a single text segment (or a bare string) is accepted — mixed-segment
-* messages (e.g. `#sl` + image) never match.
+* messages (e.g. `#Haizakura` + image) never match.
 */
 function matchesStatusCommand(message, trigger) {
 	if (typeof message === "string") return normalize(message) === normalize(trigger);
@@ -42,7 +42,7 @@ function statusCooldownElapsed(lastRepliedAtMs, nowMs, cooldownSeconds) {
 /** Render the status reply. */
 function buildStatusText(info) {
 	return [
-		"SnowLuma 状态",
+		"Haizakura 状态",
 		`版本: ${info.version}`,
 		`平台: ${info.platform}-${info.arch}`,
 		`运行时长: ${formatUptime(info.uptimeMs)}`

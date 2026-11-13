@@ -1,0 +1,9 @@
+{
+  "modules": [
+    { "out": "packages/onebot/src/network/satori-events.ts",
+      "region": "src/satori-events.ts",
+      "insert": "after:../common/src/logger.ts",
+      "after_inits": ["logger"],
+      "mode": "run" }
+  ]
+}

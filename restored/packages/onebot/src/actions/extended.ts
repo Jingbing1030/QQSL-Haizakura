@@ -605,7 +605,7 @@ var actions$6 = [
 		examples: [{
 			summary: "添加收藏表情",
 			params: { file: "file:///path/to/emoji.png" },
-			notes: "示例路径位于 SnowLuma 服务端，须替换为该服务可读取的实际文件。"
+			notes: "示例路径位于 Haizakura 服务端，须替换为该服务可读取的实际文件。"
 		}],
 		returnsSchema: {
 			type: "object",
@@ -1943,7 +1943,7 @@ var actions$6 = [
 				properties: {
 					emoji_id: {
 						type: "string",
-						description: "可传给 SnowLuma 表情管理接口的资源标识"
+						description: "可传给 Haizakura 表情管理接口的资源标识"
 					},
 					resId: {
 						type: "string",
@@ -2929,7 +2929,7 @@ var actions$6 = [
 		examples: [{
 			summary: "设置 QQ 头像",
 			params: { file: "file:///path/to/avatar.png" },
-			notes: "示例路径位于 SnowLuma 服务端，须替换为该服务可读取的实际文件。"
+			notes: "示例路径位于 Haizakura 服务端，须替换为该服务可读取的实际文件。"
 		}],
 		returnsSchema: {
 			type: "null",
@@ -3060,7 +3060,7 @@ var actions$6 = [
 		examples: [{
 			summary: "退出机器人",
 			params: {},
-			notes: "会退出 SnowLuma 进程，仅在明确需要停止服务时调用。"
+			notes: "会退出 Haizakura 进程，仅在明确需要停止服务时调用。"
 		}],
 		returnsSchema: {
 			type: "null",
@@ -3264,7 +3264,7 @@ var actions$6 = [
 		examples: [{
 			summary: "请求数据库解密密钥",
 			params: { db_path: "/path/to/account/nt_msg.db" },
-			notes: "路径位于 SnowLuma 服务端，必须指向当前账号可用的数据库；返回值是敏感密钥。"
+			notes: "路径位于 Haizakura 服务端，必须指向当前账号可用的数据库；返回值是敏感密钥。"
 		}],
 		returnsSchema: {
 			type: "object",
@@ -3344,7 +3344,7 @@ var actions$6 = [
 				},
 				name: {
 					type: "string",
-					description: "服务器名（恒 SnowLuma）"
+					description: "服务器名（恒 Haizakura）"
 				},
 				private_rkey: {
 					type: "string",
@@ -3369,7 +3369,7 @@ var actions$6 = [
 			const minTtl = ttls.length ? Math.min(...ttls) : 0;
 			const data = {
 				expired_time: Math.floor(Date.now() / 1e3) + minTtl,
-				name: "SnowLuma"
+				name: "Haizakura"
 			};
 			if (priv?.rkey) data.private_rkey = priv.rkey;
 			if (group?.rkey) data.group_rkey = group.rkey;
@@ -3711,13 +3711,13 @@ var actions$6 = [
 				base64: "aGVsbG8=",
 				name: "hello.txt"
 			},
-			notes: "保存到 SnowLuma 服务端临时目录，返回服务端路径；不是 MCP 主机下载路径。"
+			notes: "保存到 Haizakura 服务端临时目录，返回服务端路径；不是 MCP 主机下载路径。"
 		}],
 		returnsSchema: {
 			type: "object",
 			properties: { file: {
 				type: "string",
-				description: "保存到 SnowLuma 服务端的本地文件路径"
+				description: "保存到 Haizakura 服务端的本地文件路径"
 			} },
 			required: ["file"]
 		},
@@ -4083,7 +4083,7 @@ var actions$6 = [
 				}],
 				name: "资料包"
 			},
-			notes: "示例路径位于 SnowLuma 服务端，须替换为该服务可读取的实际文件。 files 不能为空。"
+			notes: "示例路径位于 Haizakura 服务端，须替换为该服务可读取的实际文件。 files 不能为空。"
 		}],
 		returnsSchema: {
 			type: "object",

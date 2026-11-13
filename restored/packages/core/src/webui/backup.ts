@@ -104,7 +104,7 @@ function validateBackupEntries(parsed, skipEntryValidation) {
 	const b = parsed;
 	if (b.app !== "snowluma") return {
 		ok: false,
-		error: "not a SnowLuma backup"
+		error: "not a Haizakura backup"
 	};
 	if (b.version !== 1) return {
 		ok: false,

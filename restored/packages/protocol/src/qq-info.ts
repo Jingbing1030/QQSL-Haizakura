@@ -15,7 +15,7 @@
 function isSelfGroupInvitation(request) {
 	return request.eventType === 2 || request.eventType === 10;
 }
-/** Canonical SnowLuma group-request flag (version 1). */
+/** Canonical Haizakura group-request flag (version 1). */
 function formatGroupRequestFlag(handle) {
 	return [
 		"slreq",

@@ -37,7 +37,7 @@ function deriveSysMsgDedupIdentity(ctx) {
 	};
 }
 /**
-* Mirrors QQ NT's system-message dedup so SnowLuma stops double-reporting raw
+* Mirrors QQ NT's system-message dedup so Haizakura stops double-reporting raw
 * OlPush system events that the QQ kernel would discard before notifying its
 * listeners.
 *

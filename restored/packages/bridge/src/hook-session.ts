@@ -148,7 +148,7 @@ var HookSession = class extends EventEmitter {
 	refresh() {
 		return this.traceCommand("refresh", () => this.refreshInternal());
 	}
-	/** Pipe came up (or stayed up across a SnowLuma restart). Drives connect
+	/** Pipe came up (or stayed up across a Haizakura restart). Drives connect
 	* attempts and adopts pre-existing hooks. Idempotent; safe to call on
 	* every watcher tick where the pipe is live. */
 	onPipeUp() {
@@ -278,7 +278,7 @@ var HookSession = class extends EventEmitter {
 				this.injected = true;
 				this._method = this._method || "reconnect";
 				this.log.trace("hook_session_branch pid=%d operation=load branch=existing_pipe method=%j", this.pid, this._method);
-				this.log.info("PID=%d already has SnowLuma pipe; will reconnect", this.pid);
+				this.log.info("PID=%d already has Haizakura pipe; will reconnect", this.pid);
 			} else {
 				this.log.trace("hook_session_branch pid=%d operation=load branch=inject_begin", this.pid);
 				this.injectResult = await this.injector.inject(this.pid);
@@ -314,7 +314,7 @@ var HookSession = class extends EventEmitter {
 			const handle = this.injectResult?.handle;
 			if (this.injected && handle) {
 				await this.injector.unload(this.pid, handle);
-				this.log.info("SnowLuma unloaded from PID=%d", this.pid);
+				this.log.info("Haizakura unloaded from PID=%d", this.pid);
 			}
 			this.injected = false;
 			this.injectResult = null;
@@ -364,7 +364,7 @@ var HookSession = class extends EventEmitter {
 			wasLoggedIn
 		}), error);
 	}
-	/** Pipe is up: adopt a DLL that survived a SnowLuma restart, drop a
+	/** Pipe is up: adopt a DLL that survived a Haizakura restart, drop a
 	* stale client, then (re)connect if needed or just settle the status.
 	* Shared by onPipeUp and refresh's pipe-up branch. */
 	async reconcilePipeUp() {
