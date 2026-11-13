@@ -1,0 +1,149 @@
+/* ==========================================================================
+   Haizakura 内置文档样式（独立文件，删除即可回滚）
+   ========================================================================== */
+
+/* ---------------- 页面骨架 ---------------- */
+.hz-doc-page{display:flex;flex-direction:column;gap:.9rem}
+.hz-doc-head{display:flex;flex-direction:column;gap:.3rem}
+.hz-doc-crumb{font-size:.7rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  color:color-mix(in oklab,var(--primary) 75%,var(--muted-foreground))}
+.hz-doc-title{margin:0;font-size:1.45rem;font-weight:700;letter-spacing:-.02em;line-height:1.25}
+.hz-doc-cols{display:flex;gap:1.6rem;align-items:flex-start}
+.hz-doc-main{min-width:0;flex:1 1 auto}
+.hz-doc-aside{display:none}
+@media (min-width:1180px){
+  .hz-doc-aside{display:block;flex:0 0 14.5rem;width:14.5rem;position:sticky;top:1rem;
+    max-height:calc(100vh - 7rem);overflow-y:auto}
+}
+.hz-doc-loading,.hz-doc-err{font-size:.875rem;color:var(--muted-foreground);margin:0}
+.hz-doc-err{color:var(--destructive,var(--primary))}
+
+/* ---------------- 移动端目录面板 ---------------- */
+.hz-doc-mobile{display:flex;flex-direction:column;gap:.5rem}
+@media (min-width:1024px){.hz-doc-mobile{display:none}}
+.hz-doc-mobile-btn{align-self:flex-start;display:inline-flex;align-items:center;gap:.4rem;
+  border:1px solid var(--border);border-radius:.55rem;padding:.4rem .75rem;font-size:.8125rem;
+  background:color-mix(in oklab,var(--card) 60%,transparent);cursor:pointer}
+.hz-doc-mobile-btn:hover{background:var(--sidebar-accent)}
+.hz-doc-mobile-panel{border:1px solid var(--border);border-radius:.7rem;padding:.5rem;
+  background:color-mix(in oklab,var(--card) 70%,transparent);max-height:60vh;overflow-y:auto}
+
+/* ---------------- 文章排版 ---------------- */
+.hz-doc-article{font-size:.9375rem;line-height:1.72;color:var(--foreground);word-wrap:break-word}
+.hz-doc-article>*:first-child{margin-top:0}
+.hz-doc-article>*:last-child{margin-bottom:0}
+
+.hz-doc-article h1{font-size:1.6rem;font-weight:700;letter-spacing:-.02em;line-height:1.3;
+  margin:1.75rem 0 .85rem;padding-bottom:.5rem;border-bottom:1px solid var(--border)}
+.hz-doc-article h2{font-size:1.2rem;font-weight:650;letter-spacing:-.01em;line-height:1.35;
+  margin:1.9rem 0 .7rem;padding-bottom:.35rem;border-bottom:1px solid var(--border);scroll-margin-top:1.25rem}
+.hz-doc-article h3{font-size:1.03rem;font-weight:600;margin:1.45rem 0 .5rem;scroll-margin-top:1.25rem}
+.hz-doc-article h4{font-size:.94rem;font-weight:600;margin:1.2rem 0 .4rem;scroll-margin-top:1.25rem}
+.hz-doc-article h5,.hz-doc-article h6{font-size:.9rem;font-weight:600;margin:1rem 0 .35rem}
+
+.hz-doc-article p{margin:.72rem 0}
+.hz-doc-article strong{font-weight:650}
+.hz-doc-article em{font-style:italic}
+
+.hz-doc-article ul,.hz-doc-article ol{margin:.72rem 0;padding-left:1.45rem}
+.hz-doc-article ul{list-style:disc}
+.hz-doc-article ol{list-style:decimal}
+.hz-doc-article li{margin:.28rem 0}
+.hz-doc-article li>ul,.hz-doc-article li>ol{margin:.28rem 0}
+.hz-doc-article li::marker{color:color-mix(in oklab,var(--primary) 65%,var(--muted-foreground))}
+
+.hz-doc-article a{color:var(--primary);text-decoration:none;
+  border-bottom:1px solid color-mix(in oklab,var(--primary) 35%,transparent);
+  transition:border-color .15s ease}
+.hz-doc-article a:hover{border-bottom-color:var(--primary)}
+.hz-doc-article a[href^="#"]{border-bottom-style:dotted}
+
+.hz-doc-article code{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  font-size:.855em;padding:.12em .38em;border-radius:.32rem;
+  background:color-mix(in oklab,var(--muted-foreground) 15%,transparent);
+  border:1px solid color-mix(in oklab,var(--border) 60%,transparent);
+  white-space:break-spaces;word-break:break-word}
+.hz-doc-article pre{margin:.9rem 0;padding:.85rem 1rem;overflow-x:auto;border-radius:.65rem;
+  border:1px solid var(--border);
+  background:color-mix(in oklab,var(--muted-foreground) 9%,var(--card));
+  font-size:.8125rem;line-height:1.62;tab-size:2}
+.hz-doc-article pre code{padding:0;border:0;background:transparent;font-size:inherit;white-space:pre}
+
+.hz-doc-article blockquote{margin:.9rem 0;padding:.6rem 1rem;border-radius:0 .6rem .6rem 0;
+  border-left:3px solid color-mix(in oklab,var(--primary) 45%,var(--border));
+  background:color-mix(in oklab,var(--primary) 6%,transparent);
+  color:color-mix(in oklab,var(--foreground) 82%,var(--muted-foreground))}
+.hz-doc-article blockquote p{margin:.35rem 0}
+.hz-doc-article blockquote blockquote{margin:.5rem 0}
+
+/* AI 生成警告（页面渲染时加了 .hz-warn 类） */
+.hz-doc-article .hz-warn{border-left-color:#f59e0b;
+  background:color-mix(in oklab,#f59e0b 12%,transparent)}
+.hz-doc-article .hz-warn strong{color:#b45309}
+.dark .hz-doc-article .hz-warn strong{color:#fbbf24}
+
+/* 表格：渲染时包了一层 .hz-table-wrap 提供横向滚动 */
+.hz-doc-article .hz-table-wrap,.hz-doc-article .tw{margin:.9rem 0;overflow-x:auto;
+  border:1px solid var(--border);border-radius:.65rem}
+.hz-doc-article table{width:100%;border-collapse:collapse;font-size:.8625rem;margin:0}
+.hz-doc-article th,.hz-doc-article td{padding:.45rem .7rem;text-align:left;vertical-align:top;
+  border-bottom:1px solid var(--border)}
+.hz-doc-article thead th{font-weight:600;white-space:nowrap;
+  background:color-mix(in oklab,var(--muted-foreground) 9%,transparent)}
+.hz-doc-article tbody tr:last-child td{border-bottom:0}
+.hz-doc-article tbody tr:hover{background:color-mix(in oklab,var(--muted-foreground) 5%,transparent)}
+.hz-doc-article td code{white-space:nowrap}
+
+.hz-doc-article hr{margin:1.8rem 0;border:0;border-top:1px solid var(--border)}
+.hz-doc-article img{max-width:100%;height:auto;border-radius:.55rem}
+.hz-doc-article details{margin:.85rem 0;padding:.55rem .85rem;border:1px solid var(--border);border-radius:.6rem}
+.hz-doc-article summary{cursor:pointer;font-weight:600}
+.hz-doc-article kbd{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8em;
+  padding:.08em .35em;border:1px solid var(--border);border-bottom-width:2px;border-radius:.3rem;
+  background:color-mix(in oklab,var(--muted-foreground) 10%,transparent)}
+.hz-doc-article br{line-height:1}
+
+/* ---------------- 右侧「本页目录」 ---------------- */
+.hz-toc{font-size:.8125rem;border:1px solid var(--border);border-radius:.7rem;padding:.7rem .35rem .7rem .7rem;
+  background:color-mix(in oklab,var(--card) 60%,transparent)}
+.hz-toc-title{font-weight:600;font-size:.75rem;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--muted-foreground);margin:0 .35rem .45rem}
+.hz-toc-link{display:block;padding:.2rem .4rem;color:var(--muted-foreground);text-decoration:none;
+  border-left:2px solid transparent;border-radius:0 .35rem .35rem 0;line-height:1.45;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hz-toc-link:hover{color:var(--foreground);background:color-mix(in oklab,var(--sidebar-accent) 45%,transparent)}
+.hz-toc-link.lv3{padding-left:1.15rem;font-size:.95em;opacity:.88}
+
+/* ---------------- 侧栏目录树 ---------------- */
+.hz-nav-tree{margin:.1rem 0 .4rem;padding-left:.35rem}
+.hz-nav-tree-btn{display:flex;width:100%;align-items:center;gap:.4rem;padding:.32rem .5rem;
+  border:0;border-radius:.45rem;background:transparent;cursor:pointer;text-align:left;
+  font-size:.7rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--muted-foreground)}
+.hz-nav-tree-btn:hover{color:var(--foreground);background:color-mix(in oklab,var(--sidebar-accent) 45%,transparent)}
+.hz-nav-caret{flex:0 0 auto;transition:transform .16s ease}
+.hz-nav-caret.open{transform:rotate(90deg)}
+.hz-nav-groups{display:flex;flex-direction:column;gap:.05rem;margin-top:.1rem}
+.hz-nav-group{display:flex;flex-direction:column}
+.hz-nav-group-btn{display:flex;width:100%;align-items:center;gap:.4rem;padding:.3rem .5rem .3rem .55rem;
+  border:0;border-radius:.45rem;background:transparent;cursor:pointer;text-align:left;
+  font-size:.7rem;font-weight:600;letter-spacing:.04em;color:var(--muted-foreground)}
+.hz-nav-group-btn:hover{color:var(--foreground);background:color-mix(in oklab,var(--sidebar-accent) 40%,transparent)}
+.hz-nav-docs{display:flex;flex-direction:column;padding-bottom:.15rem}
+.hz-nav-doc-row{position:relative}
+.hz-nav-doc{display:block;padding:.28rem 1.4rem .28rem 1.3rem;border-radius:.42rem;
+  font-size:.8125rem;line-height:1.45;color:var(--muted-foreground);text-decoration:none;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:background .13s ease,color .13s ease}
+.hz-nav-doc:hover{color:var(--foreground);background:color-mix(in oklab,var(--sidebar-accent) 45%,transparent)}
+.hz-nav-doc.active{background:var(--sidebar-accent);color:var(--sidebar-accent-foreground);font-weight:550}
+.hz-nav-headtoggle{position:absolute;right:.15rem;top:.32rem;display:inline-flex;align-items:center;
+  justify-content:center;width:1.05rem;height:1.05rem;padding:0;border:0;border-radius:.3rem;
+  background:transparent;cursor:pointer;color:var(--muted-foreground)}
+.hz-nav-headtoggle:hover{background:color-mix(in oklab,var(--sidebar-accent) 55%,transparent);color:var(--foreground)}
+.hz-nav-heads{display:flex;flex-direction:column;margin:.1rem 0 .3rem .95rem;padding-left:.5rem;
+  border-left:1px solid color-mix(in oklab,var(--border) 80%,transparent)}
+.hz-nav-head{display:block;padding:.16rem .3rem;font-size:.75rem;line-height:1.4;
+  color:var(--muted-foreground);text-decoration:none;border-radius:.3rem;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hz-nav-head:hover{color:var(--primary);background:color-mix(in oklab,var(--sidebar-accent) 40%,transparent)}
+.hz-nav-head.lv3{padding-left:.85rem;opacity:.85;font-size:.72rem}

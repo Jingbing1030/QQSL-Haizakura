@@ -368903,7 +368903,20 @@ function hzDocsJsonNav(c) {
 		var group = groups[i];
 		var docs = [];
 		for (var d = 0; d < group.docs.length; d++) {
-			docs.push({ key: group.docs[d].key, title: group.docs[d].title });
+			var entry = group.docs[d];
+			// 每篇文档的内嵌标题层级，便于前端渲染可折叠的三级目录；
+			// 只保留 h2/h3，h1 是文章标题本身。
+			var headings = [];
+			try {
+				var rendered = hzDocsGetDoc(entry.key);
+				var all = rendered.headings || [];
+				for (var k = 0; k < all.length; k++) {
+					if (all[k].level === 2 || all[k].level === 3) headings.push(all[k]);
+				}
+			} catch (error) {
+				headings = [];
+			}
+			docs.push({ key: entry.key, title: entry.title, headings: headings });
 		}
 		payload.push({ label: group.label, docs: docs });
 	}

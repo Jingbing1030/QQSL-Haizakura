@@ -1,143 +1,132 @@
 import{a as e}from"./rolldown-runtime-CNC7AqOf.js";import{dt as a,lt as o}from"./api-CBg-YqKK.js";
+import{hzUseSel,hzUseNav,hzDoc,hzSetSel,hzScrollTo,DocsNavTree}from"./docs-nav-hz.js";
+var E=e(a(),1),D=o();
 
-/* ---------------------------------------------------------------------------
- * 内置文档浏览器（SPA 页面）
+/* ===========================================================================
+ * 文档正文页
  *
- * 数据来源：/api/docs/nav 与 /api/docs/doc（由 docs-mount.ts 提供，
- * 与服务端 /docs 页面共用同一份内嵌语料和同一套鉴权）。
+ * 目录树在侧栏（docs-nav-hz.js 的 DocsNavTree），本页只负责正文：
+ *   · 面包屑 + 标题
+ *   · 服务端渲染好的 HTML（dangerouslySetInnerHTML）
+ *   · 移动端目录折叠面板
+ *   · 宽屏右侧「本页目录」
  *
- * 依赖约定与其它页面 chunk 一致：
- *   e(a(), 1)  → React 命名空间
- *   o()        → jsx runtime
- *
- * ⚠️ 自动 JSX runtime 的签名是 jsx(type, props, key) / jsxs(type, props, key)，
- *    children 必须放在 props.children 里，第三个参数是 key 而不是 children。
- * ------------------------------------------------------------------------- */
+ * 排版全部来自 docs-hz.css（.hz-doc-* 前缀），删除该文件即可回退。
+ * =========================================================================== */
 
-var E = e(a(), 1);
-var D = o();
-
-function hzDocsToken() {
-	try { return localStorage.getItem("snowluma_token") || ""; } catch (err) { return ""; }
+/** 渲染后处理：
+ *  ① AI 警告块加醒目样式
+ *  ② 宽表格包一层容器以支持横向滚动（服务端已对部分表格加了 .tw）
+ */
+function hzDecorate(html){
+	var out=html;
+	out=out.replace(
+		/<blockquote><p>\[!WARNING\]([\s\S]*?)<\/p><\/blockquote>/g,
+		'<blockquote class="hz-warn"><p><strong>\u26A0 \u63D0\u9192</strong>$1</p></blockquote>'
+	);
+	out=out.replace(
+		/<blockquote><p>\[!NOTE\]([\s\S]*?)<\/p><\/blockquote>/g,
+		'<blockquote><p><strong>\u2139 \u8BF4\u660E</strong>$1</p></blockquote>'
+	);
+	out=out.replace(/<table>/g,'<div class="hz-table-wrap"><table>');
+	out=out.replace(/<\/table>/g,'</table></div>');
+	return out;
 }
 
-function hzDocsFetch(url) {
-	var headers = {};
-	var t = hzDocsToken();
-	if (t) headers.Authorization = "Bearer " + t;
-	return fetch(url, { headers: headers }).then(function (r) {
-		return r.ok ? r.json() : null;
-	}).catch(function () { return null; });
+function hzMobileNav(){
+	var st=E.useState(false),open=st[0],setOpen=st[1];
+	var content=open?D.jsx("div",{className:"hz-doc-mobile-panel",children:D.jsx(DocsNavTree,{onItemClick:function(){setOpen(false)}})}):null;
+	return D.jsxs("div",{className:"hz-doc-mobile",children:[
+		D.jsxs("button",{
+			type:"button",
+			className:"hz-doc-mobile-btn",
+			onClick:function(){setOpen(!open)},
+			children:[D.jsx("span",{className:"hz-nav-caret"+(open?" open":""),children:"\u25B8"}),open?"\u9690\u85CF\u76EE\u5F55":"\u6253\u5F00\u76EE\u5F55"]
+		}),
+		content
+	]});
 }
 
-export function DocsPage() {
-	var navState = E.useState(null);
-	var nav = navState[0], setNav = navState[1];
-	var docState = E.useState(null);
-	var doc = docState[0], setDoc = docState[1];
-	var selState = E.useState("");
-	var sel = selState[0], setSel = selState[1];
-	var errState = E.useState("");
-	var err = errState[0], setErr = errState[1];
-	var openState = E.useState(false);
-	var open = openState[0], setOpen = openState[1];
+function hzToc(headings,curHash){
+	if(!headings||!headings.length)return null;
+	return D.jsxs("nav",{className:"hz-toc",children:[
+		D.jsx("p",{className:"hz-toc-title",children:"\u672C\u9875\u76EE\u5F55"}),
+		headings.map(function(h){
+			return D.jsx("a",{
+				href:"#"+h.slug,
+				className:"hz-toc-link"+(h.level===3?" lv3":""),
+				title:h.text,
+				onClick:function(ev){
+					ev.preventDefault();
+					hzSetSel({hash:h.slug});
+					hzScrollTo(h.slug);
+				},
+				children:h.text
+			},h.slug);
+		})
+	]});
+}
 
-	E.useEffect(function () {
-		hzDocsFetch("/api/docs/nav").then(function (data) {
-			if (!data) { setErr("无法加载文档索引，请确认已在 WebUI 登录。"); return; }
-			var groups = data.groups || [];
-			setNav(groups);
-			var first = groups[0] && groups[0].docs[0] ? groups[0].docs[0].key : "";
-			if (first) setSel(first);
-		});
-	}, []);
+export function DocsPage(){
+	var sel=hzUseSel();
+	var nav=hzUseNav();
+	var st=E.useState(null),doc=st[0],setDoc=st[1];
+	var es=E.useState(""),err=es[0],setErr=es[1];
 
-	E.useEffect(function () {
-		if (!sel) return;
-		setDoc(null);
+	// 首次进入若没有选中项，取第一篇
+	E.useEffect(function(){
+		if(sel.key||!nav||!nav.length)return;
+		for(var i=0;i<nav.length;i++){
+			var list=nav[i].docs||[];
+			if(list.length){hzSetSel({key:list[0].key,hash:""});return}
+		}
+	},[nav,sel.key]);
+
+	E.useEffect(function(){
+		if(!sel.key){setDoc(null);return}
+		var alive=true;
 		setErr("");
-		hzDocsFetch("/api/docs/doc?key=" + encodeURIComponent(sel)).then(function (data) {
-			if (!data) { setErr("无法加载该文档。"); return; }
-			setDoc(data);
+		hzDoc(sel.key).then(function(d){
+			if(!alive)return;
+			if(!d){setErr("\u65E0\u6CD5\u52A0\u8F7D\u8BE5\u6587\u6863\u3002");setDoc(null);return}
+			setDoc(d);
+			hzScrollTo(sel.hash);
 		});
-	}, [sel]);
+		return function(){alive=false};
+	},[sel.key]);
 
-	var groups = nav || [];
+	// 锚点变化时滚动
+	E.useEffect(function(){
+		if(sel.hash&&doc)hzScrollTo(sel.hash);
+	},[sel.hash,doc]);
 
-	var sidebar = groups.map(function (group) {
-		return D.jsxs("div", {
-			key: group.label,
-			className: "mb-3",
-			children: [
-				D.jsx("div", {
-					key: "label",
-					className: "px-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground",
-					children: group.label
-				}),
-				D.jsx("div", {
-					key: "docs",
-					className: "flex flex-col",
-					children: group.docs.map(function (item) {
-						var active = item.key === sel;
-						return D.jsx("button", {
-							key: item.key,
-							type: "button",
-							onClick: function () { setSel(item.key); setOpen(false); },
-							className: "truncate rounded-md px-2 py-1.5 text-left text-sm transition-colors " +
-								(active
-									? "bg-sidebar-accent text-sidebar-accent-foreground"
-									: "text-muted-foreground hover:bg-sidebar-accent/40 hover:text-foreground"),
-							children: item.title
-						});
-					})
-				})
-			]
-		});
-	});
-
-	var body;
-	if (err) {
-		body = D.jsx("p", { className: "text-sm text-destructive", children: err });
-	} else if (!doc) {
-		body = D.jsx("p", { className: "text-sm text-muted-foreground", children: "加载中…" });
-	} else {
-		body = D.jsx("article", {
-			className: "hz-docs-article",
-			dangerouslySetInnerHTML: { __html: doc.html }
-		});
+	var groupLabel="";
+	if(nav&&sel.key){
+		for(var i=0;i<nav.length;i++){
+			var list=nav[i].docs||[];
+			for(var j=0;j<list.length;j++){
+				if(list[j].key===sel.key){groupLabel=nav[i].label;break}
+			}
+			if(groupLabel)break;
+		}
 	}
 
-	return D.jsxs("div", {
-		className: "flex flex-col gap-4 lg:flex-row lg:items-start",
-		children: [
-			D.jsx("div", {
-				key: "toggle",
-				className: "lg:hidden",
-				children: D.jsx("button", {
-					type: "button",
-					onClick: function () { setOpen(!open); },
-					className: "inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm",
-					children: open ? "隐藏目录" : "显示目录"
-				})
-			}),
-			D.jsx("aside", {
-				key: "nav",
-				className: (open ? "block" : "hidden") +
-					" w-full shrink-0 rounded-xl border bg-card/50 p-2 lg:sticky lg:top-4 lg:block lg:max-h-[calc(100vh-8rem)] lg:w-72 lg:overflow-y-auto",
-				children: sidebar
-			}),
-			D.jsxs("section", {
-				key: "content",
-				className: "min-w-0 flex-1 rounded-xl border bg-card/50 p-4 sm:p-6",
-				children: [
-					doc ? D.jsx("h1", {
-						key: "title",
-						className: "mb-4 text-xl font-semibold tracking-tight",
-						children: doc.title
-					}) : null,
-					D.jsx("div", { key: "body", children: body })
-				]
-			})
-		]
-	});
+	var body;
+	if(err)body=D.jsx("p",{className:"hz-doc-err",children:err});
+	else if(!doc)body=D.jsx("p",{className:"hz-doc-loading",children:"\u52A0\u8F7D\u4E2D\u2026"});
+	else body=D.jsx("div",{className:"hz-doc-article",dangerouslySetInnerHTML:{__html:hzDecorate(doc.html)}});
+
+	return D.jsxs("div",{className:"hz-doc-page",children:[
+		hzMobileNav(),
+		D.jsxs("div",{className:"hz-doc-head",children:[
+			groupLabel?D.jsx("span",{className:"hz-doc-crumb",children:groupLabel}):null,
+			D.jsx("h1",{className:"hz-doc-title",children:doc?doc.title:sel.key||"\u6587\u6863"})
+		]}),
+		D.jsxs("div",{className:"hz-doc-cols",children:[
+			D.jsx("div",{className:"hz-doc-main",children:body}),
+			doc&&doc.headings&&doc.headings.length
+				?D.jsx("aside",{className:"hz-doc-aside",children:hzToc(doc.headings,sel.hash)})
+				:null
+		]})
+	]});
 }
