@@ -8,7 +8,8 @@ and for re-deploying into a container.
 
 | File | Change |
 | --- | --- |
-| `assets/router-DihNZCdp.js` | sidebar gets a **文档 (Docs)** entry after 调试, opening `/docs` as a plain `<a>` because that route is served by the backend, not the SPA router |
+| `assets/router-DihNZCdp.js` | sidebar gets a **文档 (Docs)** entry after 调试, wired to a normal SPA route (`/docs`) that lazy-loads `docs-page-hz.js` |
+| `assets/docs-page-hz.js` | **new** in-SPA documentation browser: fetches `/api/docs/nav` and `/api/docs/doc`, renders the Markdown the backend already converted to HTML |
 | `assets/config-page-B0emcOKR.js` | product name `SnowLuma` → `Haizakura`; stale trigger literal `#sl` → `#hz` |
 | `assets/LayoutContext-D4-NFqCh.js`, `index-CbgqmStD.js`, `maibot-*.js`, `overview-page-*.js`, `processes-page-*.js`, `settings-page-*.js` | product name rebrand |
 | `logo.png` (512²), `favicon.png` (64²), `apple-touch-icon.png` (180²) | replaced icons |

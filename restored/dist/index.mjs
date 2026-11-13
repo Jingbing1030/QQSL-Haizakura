@@ -368880,11 +368880,46 @@ function hzDocsRegisterRoutes(app) {
 	app.get(HZ_DOCS_BASE, hzDocsHandleIndex);
 	app.get(HZ_DOCS_BASE + "/", hzDocsHandleIndex);
 	app.get(HZ_DOCS_BASE + "/*", hzDocsHandleDoc);
+	app.get("/api/docs/nav", hzDocsJsonNav);
+	app.get("/api/docs/doc", hzDocsJsonDoc);
 	return true;
 }
 
 // 保存原始实现（函数声明可重新赋值；注意不能用 var 重新声明同名变量，
 // 那会被构建工具的顶层重名检查拦下）。
+/**
+ * JSON API for the in-SPA documentation viewer.
+ *
+ * The SPA cannot use the server-rendered /docs pages, so these endpoints expose
+ * the same corpus as data. Both live under /api/docs/* and reuse hzDocsGate, so
+ * they obey the same auth policy as the HTML pages.
+ */
+function hzDocsJsonNav(c) {
+	var gate = hzDocsGate(c);
+	if (gate) return gate;
+	var groups = hzDocsNavGroups();
+	var payload = [];
+	for (var i = 0; i < groups.length; i++) {
+		var group = groups[i];
+		var docs = [];
+		for (var d = 0; d < group.docs.length; d++) {
+			docs.push({ key: group.docs[d].key, title: group.docs[d].title });
+		}
+		payload.push({ label: group.label, docs: docs });
+	}
+	return c.json({ groups: payload }, 200, hzDocsNoStore);
+}
+
+function hzDocsJsonDoc(c) {
+	var gate = hzDocsGate(c);
+	if (gate) return gate;
+	var key = c.req.query("key") || "";
+	var corpus = hzDocsDecodeCorpus();
+	if (corpus[key] === void 0) return c.json({ error: "not found" }, 404, hzDocsNoStore);
+	var doc = hzDocsGetDoc(key);
+	return c.json({ key: doc.key, title: doc.title, html: doc.html, headings: doc.headings }, 200, hzDocsNoStore);
+}
+
 var hzDocsOrigRegisterStaticFrontend = registerStaticFrontend;
 
 /**
