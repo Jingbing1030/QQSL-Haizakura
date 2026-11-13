@@ -12,6 +12,7 @@ and for re-deploying into a container.
 | `assets/config-page-B0emcOKR.js` | product name `SnowLuma` → `Haizakura`; stale trigger literal `#sl` → `#hz` |
 | `assets/LayoutContext-D4-NFqCh.js`, `index-CbgqmStD.js`, `maibot-*.js`, `overview-page-*.js`, `processes-page-*.js`, `settings-page-*.js` | product name rebrand |
 | `logo.png` (512²), `favicon.png` (64²), `apple-touch-icon.png` (180²) | replaced icons |
+| `assets/LayoutContext-D4-NFqCh.js` (background layer) | background image is pinned to the **bottom-right** and stops growing past 1600 px, so it scales down on small screens but stays anchored and unscaled on large ones |
 
 ## Deployment
 
