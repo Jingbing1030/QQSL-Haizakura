@@ -1,5 +1,8 @@
 # SnowLuma 的 RTTI 解析机制 —— 逆向分析与「适配新 QQ 版本」指南
 
+> [!WARNING]
+> 本内容完全由 AI 编写，请谨慎查看。
+
 > 目标文件：`/tmp/wrapper.node`（QQ 的 Linux arm64 共享库）、`/tmp/sl/snowluma-linux-arm64.so`（注入负载）、`/tmp/sl2/snowluma-linux-arm64.node`（注入器）
 > 分析机器：甲骨文 aarch64（`example.host`），所有命令 `nice -n 19 ionice -c3`
 > 证据等级：【确证】= 有命令+输出；【强推断】= 多证据交叉；【待深入】= 未查清

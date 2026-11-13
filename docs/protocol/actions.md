@@ -1,5 +1,8 @@
 # OneBot v11 动作参考（actions）
 
+> [!WARNING]
+> 本内容完全由 AI 编写，请谨慎查看。
+
 > **数据来源**：运行实例的 `GET /api/debug/actions` 与源码
 > `packages/onebot/src/actions/*.ts` **双向核对**，动作名 222/222 完全一致。
 > 参数表全部由源码 `params` / `inputSchema` 提取，非人工转述。

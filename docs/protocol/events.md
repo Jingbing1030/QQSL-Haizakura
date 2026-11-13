@@ -1,5 +1,8 @@
 # OneBot v11 事件参考（events）
 
+> [!WARNING]
+> 本内容完全由 AI 编写，请谨慎查看。
+
 > 本文描述 Haizakura（原 SnowLuma）向客户端推送的 **OneBot v11 事件格式**：
 > 信封结构、四类事件（meta / message / notice / request）的完整字段，
 > 以及消息段（segment）的收发格式。

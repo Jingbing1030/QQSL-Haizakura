@@ -1,5 +1,8 @@
 # WebUI 后端 API 参考
 
+> [!WARNING]
+> 本内容完全由 AI 编写，请谨慎查看。
+
 > 本文列出 Haizakura（原 SnowLuma）WebUI 后端的**全部 HTTP 端点**、
 > 鉴权要求与敏感面标注。
 >

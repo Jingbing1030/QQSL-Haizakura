@@ -1,5 +1,8 @@
 # SnowLuma 内部结构与接手文档
 
+> [!WARNING]
+> 本内容完全由 AI 编写，请谨慎查看。
+
 > **分析对象**：`@snowluma/runtime` v2.4.0（`linux-arm64`），容器 `snowluma`（镜像 `motricseven7/snowluma:latest`）
 > **分析时间**：2026-11-12
 > **分析方式**：纯静态逆向（objdump / readelf / strings）+ 运行中容器的只读取证

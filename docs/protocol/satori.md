@@ -1,5 +1,8 @@
 # Satori 协议接入指南
 
+> [!WARNING]
+> 本内容完全由 AI 编写，请谨慎查看。
+
 > 本文描述 Haizakura（原 SnowLuma）对 **Satori 协议**（`satori.chat`）的实现：
 > 如何用 **path 哨兵**启用服务器、24 个 API、事件与资源映射、消息元素收发，
 > 以及与 LLBot 的差异。

@@ -1,5 +1,8 @@
 # Haizakura（原名 SnowLuma）文档
 
+> [!WARNING]
+> 本内容完全由 AI 编写，请谨慎查看。
+
 > **第三方 QQ 客户端运行时** —— 寄生在官方 QQ 进程内的 MSF 会话上，
 > 把 QQ 的能力通过 **OneBot v11** 协议暴露出来。
 >

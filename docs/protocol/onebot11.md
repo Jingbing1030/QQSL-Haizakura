@@ -1,5 +1,8 @@
 # OneBot v11 接入指南
 
+> [!WARNING]
+> 本内容完全由 AI 编写，请谨慎查看。
+
 > 本文描述 Haizakura（原 SnowLuma）对 **OneBot v11** 协议的实现：
 > 4 种网络接入方式、鉴权、消息格式与事件推送。
 >

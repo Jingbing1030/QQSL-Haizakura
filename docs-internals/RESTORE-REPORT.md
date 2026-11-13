@@ -1,5 +1,8 @@
 # SnowLuma 源码还原报告
 
+> [!WARNING]
+> 本内容完全由 AI 编写，请谨慎查看。
+
 > 目标产物：`dist/index.mjs`（12,338,350 字节，单文件 ESM bundle）
 > 还原结果：`/tmp/restored/`（本地副本 `/sdcard/snowluma-restore/restored/`）
 > 结论：**467 个 region 全部切分成功，重建产物与原文件逐字节完全一致（MD5 相同），并且能真实启动运行。**
