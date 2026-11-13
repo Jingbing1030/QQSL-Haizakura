@@ -847,12 +847,12 @@ function hzDocsDirPage(key, docs) {
 }
 
 // ---------------------------------------------------------------------------
-// 8. 可选鉴权（默认关闭；SNOWLUMA_DOCS_REQUIRE_AUTH=1 打开）
+// 8. 鉴权（默认开启；设 SNOWLUMA_DOCS_REQUIRE_AUTH=0 关闭）
 // ---------------------------------------------------------------------------
 
 function hzDocsAuthRequired() {
 	var raw = process.env.SNOWLUMA_DOCS_REQUIRE_AUTH;
-	if (typeof raw !== "string" || !raw.trim()) return false;
+	if (typeof raw !== "string" || !raw.trim()) return true;
 	var v = raw.trim().toLowerCase();
 	return v === "1" || v === "true" || v === "yes" || v === "on";
 }
