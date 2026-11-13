@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// Haizakura (SnowLuma) — Satori protocol adapter.
+// Haizakura — Satori protocol adapter.
 //
 // This file is NOT from the original bundle. It is declared in
 // manifest-extra.json and spliced into dist/index.mjs by scripts/build.mjs,

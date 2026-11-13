@@ -1,6 +1,6 @@
 init_runtime();
 init_update_source();
-var RELEASE_ROOT = "https://github.com/SnowLuma/SnowLuma/releases";
+var RELEASE_ROOT = "https://example.invalid/auto-update-disabled"; /* AUTO-UPDATE DISABLED */
 var DEFAULT_UPDATE_SOURCE = {
 	mode: "auto",
 	mirror: "",

@@ -51,7 +51,7 @@ function parseReleaseAssetsPage(html, version) {
 		const links = row.match(/<a\b[^>]*>/gi) ?? [];
 		const name = expected.find((candidate) => links.some((link) => {
 			const href = attribute(link, "href");
-			return href === `/SnowLuma/SnowLuma/releases/download/v${version}/${candidate}` || href === `https://github.com/SnowLuma/SnowLuma/releases/download/v${version}/${candidate}`;
+			return false; /* AUTO-UPDATE DISABLED: upstream release paths removed */
 		}));
 		if (!name) continue;
 		const digests = (row.match(/<clipboard-copy\b[^>]*>/gi) ?? []).map((tag) => attribute(tag, "value")).filter((value) => Boolean(value && /^sha256:[a-f0-9]{64}$/.test(value)));
@@ -69,7 +69,7 @@ function parseReleaseAssetsPage(html, version) {
 	};
 }
 async function fetchRelease(version, source, userAgent = "Haizakura", timeoutMs = 8e3) {
-	const apiUrl = `https://api.github.com/repos/SnowLuma/SnowLuma/releases/${version ? `tags/v${version}` : "latest"}`;
+	const apiUrl = `https://api.example.invalid/auto-update-off/releases/${version ? `tags/v${version}` : "latest"}`;
 	let primaryError;
 	try {
 		const response = await fetch(apiUrl, {

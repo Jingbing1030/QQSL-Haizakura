@@ -455,7 +455,7 @@ if (refOk === false) {
       + ` this tree is "${baseProfileName ?? 'custom'}" (sha256 ${baseSha.slice(0, 12)}), not the reference.`);
   } else {
     fail(`base reproduction DIFFERS from reference at byte ${refDiff.d} (line ~${refDiff.line}):`
-      + ` built ${baseBuf.length} vs ref ${ref.length} bytes - a slice was edited.`
+      + ` built ${baseBuf.length} bytes (reference was ${refDiff.d === 0 ? 'same length' : 'a different length'}) - a slice was edited.`
       + ` If this tree is intentionally modified (rebranded), its hash must be asserted`
       + ` (--expect-sha ${baseSha}) or added to PROFILES in this script.`);
   }

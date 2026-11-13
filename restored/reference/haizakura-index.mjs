@@ -6085,7 +6085,7 @@ function scanLegacyMusicSignUrl() {
 var APP_VERSION = {
 	license: "SEE LICENSE IN LICENSE",
 	name: "snowluma-monorepo",
-	version: "2.4.0",
+	version: "0.2.4.1",
 	description: "Haizakura monorepo workspace (pnpm)",
 	"private": true,
 	type: "module",
@@ -359689,7 +359689,7 @@ var checker = new ZxcvbnFactory({
 	}
 });
 function normalizeUserInputs(values) {
-	const unique = /* @__PURE__ */ new Set(["SnowLuma", "OneBot"]);
+	const unique = /* @__PURE__ */ new Set(["Haizakura", "OneBot"]);
 	for (const value of values) {
 		if (typeof value === "number") {
 			if (Number.isFinite(value)) unique.add(value);
@@ -360164,7 +360164,7 @@ function compareVersions(a, b) {
 //#region src/update/sources.ts
 init_runtime();
 init_update_source();
-var RELEASE_ROOT = "https://github.com/SnowLuma/SnowLuma/releases";
+var RELEASE_ROOT = "https://example.invalid/auto-update-disabled"; /* AUTO-UPDATE DISABLED */
 var DEFAULT_UPDATE_SOURCE = {
 	mode: "auto",
 	mirror: "",
@@ -360307,7 +360307,7 @@ function parseReleaseAssetsPage(html, version) {
 		const links = row.match(/<a\b[^>]*>/gi) ?? [];
 		const name = expected.find((candidate) => links.some((link) => {
 			const href = attribute(link, "href");
-			return href === `/SnowLuma/SnowLuma/releases/download/v${version}/${candidate}` || href === `https://github.com/SnowLuma/SnowLuma/releases/download/v${version}/${candidate}`;
+			return false; /* AUTO-UPDATE DISABLED: upstream release paths removed */
 		}));
 		if (!name) continue;
 		const digests = (row.match(/<clipboard-copy\b[^>]*>/gi) ?? []).map((tag) => attribute(tag, "value")).filter((value) => Boolean(value && /^sha256:[a-f0-9]{64}$/.test(value)));
@@ -360325,7 +360325,7 @@ function parseReleaseAssetsPage(html, version) {
 	};
 }
 async function fetchRelease(version, source, userAgent = "Haizakura", timeoutMs = 8e3) {
-	const apiUrl = `https://api.github.com/repos/SnowLuma/SnowLuma/releases/${version ? `tags/v${version}` : "latest"}`;
+	const apiUrl = `https://api.example.invalid/auto-update-off/releases/${version ? `tags/v${version}` : "latest"}`;
 	let primaryError;
 	try {
 		const response = await fetch(apiUrl, {
@@ -360380,7 +360380,7 @@ var FETCH_TIMEOUT_MS = 8e3;
 var NOTES_MAX = 4e3;
 function isEnabled() {
 	const v = (process.env.SNOWLUMA_UPDATE_CHECK ?? "").trim().toLowerCase();
-	return v !== "0" && v !== "false" && v !== "off" && v !== "no";
+	/* AUTO-UPDATE DISABLED by Haizakura: upstream repo deleted */ return false;
 }
 var updateCache = createSingleFlightCache({
 	ttlMs: CACHE_TTL_MS,
@@ -364382,7 +364382,7 @@ async function releaseAsset(version, target, source) {
 	const { data: release, fromPage } = await fetchRelease(version, source);
 	if (!release || typeof release !== "object" || !("assets" in release) || !Array.isArray(release.assets)) throw new Error("发布信息无效");
 	const asset = release.assets.find((item) => item !== null && typeof item === "object" && "name" in item && item.name === name);
-	const url = `https://github.com/SnowLuma/SnowLuma/releases/download/v${version}/${name}`;
+	const url = `https://example.invalid/auto-update-off/download/v${version}/${name}`;
 	if (!asset || typeof asset !== "object" || !("size" in asset) || !(fromPage && asset.size === null || typeof asset.size === "number" && Number.isSafeInteger(asset.size) && asset.size > 0) || !("digest" in asset) || typeof asset.digest !== "string" || !/^sha256:[a-f0-9]{64}$/.test(asset.digest)) throw new Error("更新包不存在或缺少校验信息");
 	return {
 		url,

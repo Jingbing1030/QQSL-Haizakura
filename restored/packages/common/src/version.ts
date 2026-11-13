@@ -13,7 +13,7 @@
 var APP_VERSION = {
 	license: "SEE LICENSE IN LICENSE",
 	name: "snowluma-monorepo",
-	version: "2.4.0",
+	version: "0.2.4.1",
 	description: "Haizakura monorepo workspace (pnpm)",
 	"private": true,
 	type: "module",

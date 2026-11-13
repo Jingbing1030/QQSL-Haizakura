@@ -3,7 +3,7 @@ async function releaseAsset(version, target, source) {
 	const { data: release, fromPage } = await fetchRelease(version, source);
 	if (!release || typeof release !== "object" || !("assets" in release) || !Array.isArray(release.assets)) throw new Error("发布信息无效");
 	const asset = release.assets.find((item) => item !== null && typeof item === "object" && "name" in item && item.name === name);
-	const url = `https://github.com/SnowLuma/SnowLuma/releases/download/v${version}/${name}`;
+	const url = `https://example.invalid/auto-update-off/download/v${version}/${name}`;
 	if (!asset || typeof asset !== "object" || !("size" in asset) || !(fromPage && asset.size === null || typeof asset.size === "number" && Number.isSafeInteger(asset.size) && asset.size > 0) || !("digest" in asset) || typeof asset.digest !== "string" || !/^sha256:[a-f0-9]{64}$/.test(asset.digest)) throw new Error("更新包不存在或缺少校验信息");
 	return {
 		url,

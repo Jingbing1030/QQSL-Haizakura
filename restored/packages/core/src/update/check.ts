@@ -5,7 +5,7 @@ var FETCH_TIMEOUT_MS = 8e3;
 var NOTES_MAX = 4e3;
 function isEnabled() {
 	const v = (process.env.SNOWLUMA_UPDATE_CHECK ?? "").trim().toLowerCase();
-	return v !== "0" && v !== "false" && v !== "off" && v !== "no";
+	/* AUTO-UPDATE DISABLED by Haizakura: upstream repo deleted */ return false;
 }
 var updateCache = createSingleFlightCache({
 	ttlMs: CACHE_TTL_MS,
