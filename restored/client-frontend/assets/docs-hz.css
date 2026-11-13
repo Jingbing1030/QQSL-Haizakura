@@ -104,46 +104,147 @@
 .hz-doc-article br{line-height:1}
 
 /* ---------------- 右侧「本页目录」 ---------------- */
-.hz-toc{font-size:.8125rem;border:1px solid var(--border);border-radius:.7rem;padding:.7rem .35rem .7rem .7rem;
-  background:color-mix(in oklab,var(--card) 60%,transparent)}
-.hz-toc-title{font-weight:600;font-size:.75rem;letter-spacing:.04em;text-transform:uppercase;
-  color:var(--muted-foreground);margin:0 .35rem .45rem}
-.hz-toc-link{display:block;padding:.2rem .4rem;color:var(--muted-foreground);text-decoration:none;
-  border-left:2px solid transparent;border-radius:0 .35rem .35rem 0;line-height:1.45;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hz-toc{
+  font-size:.8125rem;border:1px solid var(--border);border-radius:.7rem;
+  padding:.7rem .45rem .7rem .6rem;
+  background:color-mix(in oklab,var(--card) 60%,transparent);
+}
+.hz-toc-title{
+  font-weight:600;font-size:.75rem;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--muted-foreground);margin:0 .35rem .5rem;
+}
+.hz-toc-link{
+  display:flex;align-items:baseline;gap:.4rem;
+  padding:.2rem .4rem;border-radius:.35rem;
+  color:var(--muted-foreground);text-decoration:none;line-height:1.45;
+  transition:color .14s ease,background-color .14s ease;
+}
 .hz-toc-link:hover{color:var(--foreground);background:color-mix(in oklab,var(--sidebar-accent) 45%,transparent)}
-.hz-toc-link.lv3{padding-left:1.15rem;font-size:.95em;opacity:.88}
+.hz-toc-link.active{color:var(--primary);font-weight:550}
+.hz-toc-dot{
+  flex:0 0 auto;width:.32rem;height:.32rem;border-radius:9999px;
+  background:currentColor;transform-origin:center;
+}
+.hz-toc-text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hz-toc-link.lv3{padding-left:1.05rem;font-size:.95em}
 
-/* ---------------- 侧栏目录树 ---------------- */
-.hz-nav-tree{margin:.1rem 0 .4rem;padding-left:.35rem}
-.hz-nav-tree-btn{display:flex;width:100%;align-items:center;gap:.4rem;padding:.32rem .5rem;
-  border:0;border-radius:.45rem;background:transparent;cursor:pointer;text-align:left;
-  font-size:.7rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
-  color:var(--muted-foreground)}
-.hz-nav-tree-btn:hover{color:var(--foreground);background:color-mix(in oklab,var(--sidebar-accent) 45%,transparent)}
-.hz-nav-caret{flex:0 0 auto;transition:transform .16s ease}
-.hz-nav-caret.open{transform:rotate(90deg)}
-.hz-nav-groups{display:flex;flex-direction:column;gap:.05rem;margin-top:.1rem}
-.hz-nav-group{display:flex;flex-direction:column}
-.hz-nav-group-btn{display:flex;width:100%;align-items:center;gap:.4rem;padding:.3rem .5rem .3rem .55rem;
-  border:0;border-radius:.45rem;background:transparent;cursor:pointer;text-align:left;
-  font-size:.7rem;font-weight:600;letter-spacing:.04em;color:var(--muted-foreground)}
-.hz-nav-group-btn:hover{color:var(--foreground);background:color-mix(in oklab,var(--sidebar-accent) 40%,transparent)}
-.hz-nav-docs{display:flex;flex-direction:column;padding-bottom:.15rem}
-.hz-nav-doc-row{position:relative}
-.hz-nav-doc{display:block;padding:.28rem 1.4rem .28rem 1.3rem;border-radius:.42rem;
-  font-size:.8125rem;line-height:1.45;color:var(--muted-foreground);text-decoration:none;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:background .13s ease,color .13s ease}
-.hz-nav-doc:hover{color:var(--foreground);background:color-mix(in oklab,var(--sidebar-accent) 45%,transparent)}
-.hz-nav-doc.active{background:var(--sidebar-accent);color:var(--sidebar-accent-foreground);font-weight:550}
-.hz-nav-headtoggle{position:absolute;right:.15rem;top:.32rem;display:inline-flex;align-items:center;
-  justify-content:center;width:1.05rem;height:1.05rem;padding:0;border:0;border-radius:.3rem;
-  background:transparent;cursor:pointer;color:var(--muted-foreground)}
-.hz-nav-headtoggle:hover{background:color-mix(in oklab,var(--sidebar-accent) 55%,transparent);color:var(--foreground)}
-.hz-nav-heads{display:flex;flex-direction:column;margin:.1rem 0 .3rem .95rem;padding-left:.5rem;
-  border-left:1px solid color-mix(in oklab,var(--border) 80%,transparent)}
-.hz-nav-head{display:block;padding:.16rem .3rem;font-size:.75rem;line-height:1.4;
-  color:var(--muted-foreground);text-decoration:none;border-radius:.3rem;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.hz-nav-head:hover{color:var(--primary);background:color-mix(in oklab,var(--sidebar-accent) 40%,transparent)}
-.hz-nav-head.lv3{padding-left:.85rem;opacity:.85;font-size:.72rem}
+/* ==========================================================================
+   Haizakura 文档样式 —— 侧栏目录树
+   设计：用【缩进 + 树状导线 + 圆点】表达层级，而不是靠字号大小区分
+   ========================================================================== */
+
+.hz-nav-tree{margin:.15rem 0 .5rem;padding:0 .35rem}
+
+/* 统一的「行」：所有层级共用同一字号，靠缩进区分 */
+.hz-nav-row{
+  display:flex;align-items:center;gap:.4rem;width:100%;
+  padding:.3rem .45rem;border:0;border-radius:.42rem;background:transparent;
+  font-size:.8125rem;line-height:1.45;color:var(--muted-foreground);
+  text-align:left;cursor:pointer;text-decoration:none;
+  transition:background-color .14s ease,color .14s ease;
+}
+.hz-nav-row:hover{color:var(--foreground);background:color-mix(in oklab,var(--sidebar-accent) 45%,transparent)}
+.hz-nav-row:focus-visible{outline:2px solid var(--ring);outline-offset:1px}
+
+.hz-nav-label{min-width:0;flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* 计数徽标：比正文小一号，弱化处理 */
+.hz-nav-count{
+  flex:0 0 auto;font-size:.6875rem;line-height:1;padding:.14rem .34rem;border-radius:.35rem;
+  background:color-mix(in oklab,var(--muted-foreground) 14%,transparent);
+  color:var(--muted-foreground);font-variant-numeric:tabular-nums;
+}
+
+/* 箭头：由 framer-motion 旋转，这里只定尺寸与颜色 */
+.hz-nav-caret{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
+  width:.9rem;font-size:.7rem;color:currentColor;opacity:.75}
+
+/* ---------------- 第 1 层：整棵树 ---------------- */
+.hz-nav-tree-btn{font-weight:600;letter-spacing:.04em;color:var(--muted-foreground)}
+.hz-nav-tree-btn:hover{color:var(--foreground)}
+
+/* ---------------- 第 2 层：分组 ---------------- */
+.hz-nav-groups{display:flex;flex-direction:column;gap:.02rem;padding-left:.62rem}
+
+.hz-nav-group-btn{color:var(--muted-foreground)}
+/* 分组前挂一条缩进导线 */
+.hz-nav-group{position:relative;display:flex;flex-direction:column}
+.hz-nav-group::before{
+  content:"";position:absolute;left:.30rem;top:.34rem;bottom:.2rem;width:1px;
+  background:color-mix(in oklab,var(--border) 85%,transparent);
+}
+.hz-nav-group-btn,
+.hz-nav-docs{padding-left:.62rem}
+
+/* ---------------- 第 3 层：文档 ---------------- */
+.hz-nav-docs{display:flex;flex-direction:column;padding-bottom:.12rem}
+
+.hz-nav-doc-row{position:relative;display:flex;flex-direction:column}
+.hz-nav-doc{padding-left:.2rem}
+/* 树状连接线：竖线 + 短横线 */
+.hz-nav-doc::before{
+  content:"";position:absolute;left:-.06rem;top:0;bottom:0;width:1px;
+  background:color-mix(in oklab,var(--border) 70%,transparent);
+}
+.hz-nav-doc .hz-nav-bullet{
+  position:absolute;left:-.16rem;top:50%;width:.42rem;height:1px;
+  background:color-mix(in oklab,var(--border) 85%,transparent);
+}
+.hz-nav-doc{padding-left:.85rem;position:relative}
+.hz-nav-doc.active{
+  background:var(--sidebar-accent);color:var(--sidebar-accent-foreground);font-weight:550;
+}
+.hz-nav-doc.active::before{background:color-mix(in oklab,var(--primary) 40%,var(--border))}
+.hz-nav-doc.active .hz-nav-bullet{background:color-mix(in oklab,var(--primary) 55%,var(--border))}
+
+/* 章节展开按钮：hover 时才明显 */
+.hz-nav-headtoggle{
+  flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
+  width:1.1rem;height:1.1rem;border-radius:.28rem;color:var(--muted-foreground);
+  opacity:.55;transition:opacity .14s ease,background-color .14s ease;
+}
+.hz-nav-row:hover .hz-nav-headtoggle{opacity:1}
+.hz-nav-headtoggle:hover{background:color-mix(in oklab,var(--sidebar-accent) 60%,transparent);color:var(--foreground)}
+
+/* ---------------- 第 4/5 层：章节 ---------------- */
+.hz-nav-heads{display:flex;flex-direction:column;position:relative;padding-left:.3rem}
+/* 章节的整体缩进导线 */
+.hz-nav-heads::before{
+  content:"";position:absolute;left:.72rem;top:.1rem;bottom:.16rem;width:1px;
+  background:color-mix(in oklab,var(--border) 60%,transparent);
+}
+.hz-nav-head{
+  padding:.18rem .4rem .18rem 1.05rem;font-size:.8125rem;   /* ← 与文档项同字号，靠缩进区分 */
+  border-radius:.32rem;opacity:.85;
+}
+.hz-nav-head:hover{opacity:1}
+.hz-nav-head::before{
+  content:"";position:absolute;left:.72rem;top:50%;width:.4rem;height:1px;
+  background:color-mix(in oklab,var(--border) 60%,transparent);
+}
+.hz-nav-head.lv3{padding-left:1.72rem}
+.hz-nav-head.lv3::before{left:1.39rem;width:.4rem}
+
+/* ---------------- h2/h3 两级章节 ---------------- */
+.hz-nav-head.lv2{font-weight:550}
+.hz-nav-subhead{display:flex;align-items:center;gap:.1rem;padding:0}
+.hz-nav-subhead .hz-nav-head-link{
+  flex:1 1 auto;min-width:0;padding:.2rem .4rem .2rem 1.05rem;position:relative;
+  border-radius:.32rem;color:var(--muted-foreground);text-decoration:none;font-weight:550;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  transition:color .14s ease,background-color .14s ease;
+}
+.hz-nav-subhead .hz-nav-head-link:hover{color:var(--foreground);background:color-mix(in oklab,var(--sidebar-accent) 45%,transparent)}
+.hz-nav-subhead .hz-nav-head-link::before{
+  content:"";position:absolute;left:.72rem;top:50%;width:.4rem;height:1px;
+  background:color-mix(in oklab,var(--border) 60%,transparent);
+}
+.hz-nav-sub .hz-nav-headtoggle{
+  position:static;margin-right:.3rem;opacity:.5;
+}
+.hz-nav-sub:hover .hz-nav-headtoggle{opacity:1}
+.hz-nav-sublist{display:flex;flex-direction:column;position:relative}
+.hz-nav-sublist::before{
+  content:"";position:absolute;left:1.39rem;top:.06rem;bottom:.14rem;width:1px;
+  background:color-mix(in oklab,var(--border) 55%,transparent);
+}
