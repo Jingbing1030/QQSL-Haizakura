@@ -73,7 +73,7 @@ wsServers[] 中 path === "/v1/events" 的条目  =  Satori 服务器
 2. 去掉查询串（`?` 之后）与**尾部斜杠**；
 3. 与 `"/v1/events"` **精确相等**才算 Satori。
 
-因此以下三种写法都识别为 Satori：
+因此以下各写法识别结果如下：
 
 | 配置的 `path` | 识别为 |
 | --- | --- |
@@ -118,6 +118,11 @@ wsServers[] 中 path === "/v1/events" 的条目  =  Satori 服务器
 }
 ```
 
+> ⚠️ 把 `accessToken` 原样填成 `<your-token>` 占位符会被**令牌强度策略拒绝**
+> （少于 16 字符）：请换成真实随机 token，例如
+> `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`（43 字符）。
+> 若从**本机回环**保存、或把 `host` 绑回 `127.0.0.1`，才允许留空（= 不鉴权）。
+
 字段说明（沿用 `wsServers` 语义）：
 
 | 字段 | 必填 | 说明 |
@@ -126,10 +131,10 @@ wsServers[] 中 path === "/v1/events" 的条目  =  Satori 服务器
 | `host` | — | 默认 `0.0.0.0`；要跨机访问需显式写 `0.0.0.0` |
 | `port` | **✔** | 1–65535，**> 0** 且不可与其它监听条目冲突 |
 | `path` | **✔** | 必须**精确等于** `/v1/events`，这是哨兵 |
-| `accessToken` | 建议 | 留空 = **不鉴权**（见 §3.3 安全提示） |
+| `accessToken` | 建议 | 留空 = **不鉴权**（⚠️ 结合 §6.5 的未鉴权窗口，等于完全开放） |
 | `messageFormat` | — | ⚠️ **对 Satori 无效**（见 §9） |
 | `reportSelfMessage` | — | ⚠️ **对 Satori 无效**（见 §9） |
-| `role` | 可选 | 默认 `Universal`，**对 Satori 无意义、被忽略** |
+| `role` | 可选 | 默认 `Universal`，**对 Satori 完全无意义、被忽略**（写 `Api`/`Event` 也照常收发事件，实测确认） |
 | `maxPayloadBytes` | 可选 | 入站 WS 帧上限（`wsServers` 通用字段） |
 | `enabled` | 可选 | 置 `false` 则工厂仍返回 Satori 适配器，但 `open()` 直接返回、**不监听** |
 
@@ -137,8 +142,18 @@ wsServers[] 中 path === "/v1/events" 的条目  =  Satori 服务器
 文件配置，`fromJson` 会补齐 `statusCommand` / `historySync` / 其余三个网络数组的默认值，
 所以配置文件里可以只写 `networks.wsServers`。**WebUI 的 POST 接口不接受省略**，请用上面的完整形状。
 
-> `wsServers` 条目**不允许未知字段**（恢复/校验路径会 `rejectUnknownKeys`），
-> 所以不能把 Satori 专属字段塞进去 —— 这也正是本实现**自包含**的原因。
+> **不要往哨兵条目里加 Satori 专属字段**：`wsServers` 的字段集是固定的
+> （`name` / `enabled` / `accessToken` / `messageFormat` / `reportSelfMessage` /
+> `host` / `port` / `path` / `role` / `maxPayloadBytes`）。实测三种路径的表现不同：
+>
+> | 路径 | 未知字段行为 |
+> | --- | --- |
+> | `POST /api/config/:uin`（保存） | **静默接受**，不报错 |
+> | `fromJson`（加载文件） | **静默丢弃**（产出对象里没有该字段） |
+> | 配置导入/恢复（`validateOneBotRestoreSource`） | **明确拒绝**：`$.networks.wsServers[0].xxx is not supported` |
+>
+> 也就是说 WebUI 保存**不会报错**，但字段在下次加载时就消失了 —— 别指望它生效。
+> 这也正是本适配器**必须自包含**（不依赖额外配置字段）的原因。
 
 ### 2.3 为什么用这种「哨兵」方式？（设计取舍）
 
@@ -235,7 +250,11 @@ Content-Type: application/json
 ```
 
 - 请求体是 **JSON 对象**（数组或标量会被拒：`请求体必须是 JSON 对象`）；
+  空请求体被当作 `{}` 处理（实测 `200`）；
+- `Content-Type` **不做校验**：`application/json` / `text/plain` / 完全不传
+  都能正常处理（实测均 `200`）。规范建议用 `application/json`，本实现只是不强制；
 - 方法名就是**路径剩余部分**，例如 `POST /v1/login.get`、`POST /v1/message.create`；
+  方法路径**允许带查询串**（`/v1/login.get?x=1` 实测 `200`，查询参数被忽略）；
 - ⚠️ **不会再拼一层 `/v1`**。因为哨兵 `path` 本身就是 `/v1/events`，
   源码 `mountPrefix()` 对 `/` 和 `/v1/events` 都返回空串，
   所以端点是 `/v1/<method>`，**不是** `/v1/events/v1/<method>`
@@ -781,7 +800,7 @@ onEvent(event, _payload) {
 | `Channel.type` | `0` = TEXT（群聊）/ `1` = DIRECT（私聊） |
 | `Channel.name` | 群聊 = 群名；私聊 = 陌生人昵称 |
 | `User.id` | **字符串**形式的 QQ 号 |
-| `User.name` / `User.nick` | `card`（群名片）优先，否则 `nickname` |
+| `User.name` / `User.nick` | **群语境**取 `card`（群名片）优先、否则 `nickname`；**私聊/`user.get`/`login.get`** 取 `nickname`（见下注） |
 | `User.avatar` | `http://q.qlogo.cn/headimg_dl?dst_uin={uin}&spec=640` |
 | `User.is_bot` | 由 QQ 号段推断（见 §7.3） |
 | `GuildMember.user` | 同 `User` |
@@ -791,6 +810,19 @@ onEvent(event, _payload) {
 | `Message.id` | `message_id`（**整数 → 字符串**） |
 | `Message.content` | OneBot 消息段编码成 Satori 元素串（§8） |
 | `Message.created_at` | **毫秒**时间戳 |
+
+> **关于 `User.name` 的取值上下文**（源码 `satoriDecodeUser(uin, name)`）：
+> `name` 与 `nick` **同时设置且值相同**，为空时**两个字段都不出现**。取什么取决于调用点：
+>
+> | 场景 | 传入的 `name` | 实测 `name` |
+> | --- | --- | --- |
+> | `message-created`（群聊/私聊）、`message.get`、`guild.member.get`/`.list` | `card \|\| nickname` | `"群名片"` |
+> | `user.get`、`login.get`、`channel.get`（私聊）、`reaction.list` | 仅 `nickname` | `"陌生人昵称"` |
+> | `friend.list` | `nickname ?? remark`（另有 `nick` = `remark`） | `"好友昵称"` |
+> | **所有 `notice` / `request` 事件**（`message-deleted`、`guild-member-*`、`guild-request`、`friend-request`、`reaction-*`） | **不传**（单参调用） | **`name` 字段不存在** |
+>
+> 所以同一个用户在**群消息里有名字、在 notice/request 事件里没有 `name`** —— 这是正常行为。
+> 需要昵称时请在 notice 事件里按 `user.id` 回查 `user.get`，或直接依赖 `user.id`。
 
 ### 7.2 ⚠️ 时间戳单位是毫秒
 
@@ -930,7 +962,7 @@ Satori 元素串解析为 OneBot 消息段（源码 `satoriParseFragment` + `sat
 | 1 | **分页是近似实现** | `message.list` 的 `next` 用「本页最后一条的 id」，且只在 `行数 ≥ limit` 时给出；`prev`/`direction` 不支持。不是协议要求的真游标。 |
 | 2 | **`sn` 会话恢复未做缓冲重放** | `IDENTIFY.body.sn` 被记录后**从不使用**；断线期间事件永久丢失（§6.4）。 |
 | 3 | **真实 WS 帧收发只在 arm64 验证过** | 本机（x64）缺 `ws` 的 native addon（只有 arm64 二进制），协议状态机用 **socket double** 驱动。**真实握手/分帧未被覆盖**，需在 arm64 主机复验。 |
-| 4 | **未实现的 API 返回 404** | 这是**规范要求**（不是缺陷），但意味着调用未列出的方法（如 `channel.update`、`guild.member.role.create`、`interaction.*`）都会得到 404。 |
+| 4 | **未实现的 API 返回 404** | 这是**规范要求**（不是缺陷），但意味着调用未列出的方法（如 `channel.update`、`channel.delete`、`channel.mute`、`user.channel.create`、`message.update`、`guild.member.role.create`、`interaction.*`）都会得到 404。 |
 | 5 | **`private:` 频道约定跟随 LLBot** | 为兼容 SDK 生态而采用，非 Satori 强制；换实现时注意。 |
 | 6 | **`messageFormat` 对 Satori 无效** | 适配器**不读取**该字段 —— Satori 永远用元素串 `content`，无「array/string」之分。 |
 | 7 | **`reportSelfMessage` 对 Satori 无效** | 适配器**不读取**该字段。即使设为 `false`，`message_sent`（自己发的消息）**仍会被转成 `message-created` 并推送**（我实跑确认）。 |
@@ -943,6 +975,7 @@ Satori 元素串解析为 OneBot 消息段（源码 `satoriParseFragment` + `sat
 | 14 | **`<message>` 不能发送合并转发** | 顶层 `<message>` 只展开子元素、`id` 被忽略（§8.2）。 |
 | 15 | **无默认 Satori 监听** | 全新安装**不会**自动创建 Satori 服务器。源码里 `makeDefaultSatoriServer()` 已定义但**从未被调用**（死代码），默认配置的 `wsServers` 只有 `path: "/"` 的 `ws-default`。必须手工加哨兵条目。 |
 | 16 | **`satoriHttpStatusForResponse` 是死代码** | 该函数能把 OneBot 的 `1404` 映射成 `404`、`1400` → `400`，但**从未被调用**；实际所有下游失败都统一返回 **`400`**。 |
+| 17 | **`notice`/`request` 事件的 `User` 不带 `name`/`nick`** | 只有 `message-created` 与各 API 返回的 `User` 才带名字（§7.1 注）。需要昵称得按 `user.id` 回查 `user.get`。 |
 
 > **关于第 3 条**：`README-satori-tests.md` 明确写道 ——
 > *"true wire-level WS handshake/framing is NOT covered here. Verify that on an arm64 host."*
@@ -956,7 +989,7 @@ Satori 元素串解析为 OneBot 消息段（源码 `satoriParseFragment` + `sat
 | **接入方式** | 独立 `satoriServers` 配置项 | **复用 `wsServers[]` + `path` 哨兵** |
 | **平台标识** | `llonebot` | `haizakura` |
 | **API 数** | **28 个 handler**（29 个 `api__*.ts` 文件，含 `api__index.ts`） | **24 个** |
-| **事件类型** | 至少 10 种（`guild-added` / `guild-removed` / `guild-request` / `guild-member-added` / `-removed` / `-request` / `message-created` / `-deleted` / `reaction-added` / `-removed` / `friend-request`） | **12 种** |
+| **事件类型** | **11 种**（`guild-added` / `guild-removed` / `guild-request` / `guild-member-added` / `-removed` / `-request` / `message-created` / `-deleted` / `reaction-added` / `-removed` / `friend-request`） | **12 种**（见 §5.1） |
 | 配置改动 | 需改 `config.ts`（新增 kind） | **零 `config.ts` 改动**（只 patch 1 个原型方法） |
 | WebUI 分组 | 独立的 Satori 分组 | 归在「WS 服务器」分组（状态标签仍为 Satori） |
 | 传输实现 | Hono + `@hono/node-server` + 官方 `ws` | `node:http` + **自研 `WebSocketServer`** |
@@ -968,21 +1001,54 @@ Satori 元素串解析为 OneBot 消息段（源码 `satoriParseFragment` + `sat
 
 ```
 channel.update        channel.delete        channel.mute
-channel.user.create （创建私聊频道）
+user.channel.create （创建私聊频道；LLBot 内部名 createDirectChannel）
 ```
 
 > 核对方式：把两边方法名逐一对齐（`getChannel` → `channel.get`、
 > `handleGuildRequest` → `guild.approve`、`setGuildMemberRole` → `guild.member.role.set`、
-> `createDirectChannel` → `channel.user.create` 等，由 `api__index.ts` 的 import 路径推定），
+> `createDirectChannel` → `user.channel.create` 等，由 `api__index.ts` 的 import 路径推定），
 > 集合差恰为上述 4 项，故 **24 = 28 − 4** 完全吻合；
 > Haizakura 侧**没有 LLBot 缺失的独有方法**。
+>
+> 注：LLBot 按 `Universal.Methods` 查表（`server.ts` 的 `app.post('/v1/:name')`），
+> 所以其**实际可调用面**取决于 `handlers` 的函数名与协议方法名的交集。
 
+> **事件集合并不相同**（两边各 11/12 种，但不是包含关系）：
+>
+> - **LLBot 独有**：`guild-added`、`guild-removed`（Haizakura 无对应事件，
+>   群创建/解散不会产生 Satori 事件）；
+> - **Haizakura 独有**：`guild-member-updated`、`login-added`、`login-removed`
+>   （LLBot 的 `event__*.ts` 中未见这三类）。
+>
 > ⚠️ 上表 LLBot 侧的 handler 数与事件名由 `reference/satori/api__index.ts`
-> 与 `event__*.ts` 静态统计得出，**未在 LLBot 运行实例上实测**；
+> 与 `event__*.ts` **静态统计**得出，**未在 LLBot 运行实例上实测**；
 > Haizakura 侧数字均来自源码与本机实跑。
 
 > Satori 的 `adapter` / `platform` 字段标识**平台类型**，用于 SDK 侧的差异化处理。
 > 两者取值不同（`llonebot` vs `haizakura`），**应用侧的平台判断逻辑需要相应适配**。
+
+### 10.1 对 Satori 规范的覆盖度
+
+拿本仓已抓取的规范页面（`reference/satori-spec/`）里的方法名与本实现求差：
+
+**规范里有、本实现未实现**（调用返回 `404`）：
+
+```
+channel.create      channel.update      channel.delete      channel.mute
+user.channel.create （创建私聊频道）      message.update
+```
+
+**本实现有、规范资源页未列出**（属平台扩展，SDK 一般也能调用）：
+
+```
+login.get           guild.role.list     guild.member.role.set
+reaction.create     reaction.delete     reaction.list
+friend.list         friend.delete       friend.approve
+```
+
+> `*.md` 这类条目是抓取页面里的链接噪声，已剔除。
+> 上表由**静态比对**得出，未逐个在真机调过；规范是否还有未抓取的页面，
+> 请以 <https://satori.chat> 为准。
 
 ---
 
