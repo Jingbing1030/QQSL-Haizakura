@@ -344151,6 +344151,15 @@ var SatoriServerAdapter = class extends IOneBotNetworkAdapter {
 	}
 	onEvent(event, _payload) {
 		if (!this.isEnabled || this.connections.size === 0) return;
+		/** SECURITY: only sockets that completed IDENTIFY may receive event
+		*  frames. Without this check a connection that never authenticated
+		*  would still receive full event payloads (message contents included)
+		*  during the 10 s IDENTIFY grace window. */
+		let hasIdentified = false;
+		for (const connection of this.connections.values()) {
+			if (connection.identified) { hasIdentified = true; break; }
+		}
+		if (!hasIdentified) return;
 		let converted;
 		try {
 			converted = satoriConvertOneBotEvent(event, satoriSelfId(this.ctx));
@@ -344171,7 +344180,10 @@ var SatoriServerAdapter = class extends IOneBotNetworkAdapter {
 				...converted.payload
 			}
 		});
-		for (const connection of this.connections.values()) safeSend(connection.socket, frame);
+		for (const connection of this.connections.values()) {
+			/** SECURITY: never broadcast to sockets that have not IDENTIFYed. */
+			if (connection.identified) safeSend(connection.socket, frame);
+		}
 	}
 	closeConnections(code, reason) {
 		for (const connection of this.connections.values()) safeClose(connection.socket, code, reason);
