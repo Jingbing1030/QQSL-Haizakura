@@ -1,3 +1,6 @@
+| 日本語 | [`README.md`](README.md)
+| 中國語 | [`README.zh.md`](README.zh.md)
+
 # Haizakura
 
 > 公式 QQ クライアントの MSF セッションに寄生する、サードパーティ製 OneBot / Satori ランタイム。
