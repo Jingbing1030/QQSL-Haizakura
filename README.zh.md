@@ -1,3 +1,5 @@
+| 日本語 | [`README.md`](README.md)
+| 中國語 | [`README.zh.md`](README.zh.md)
 # Haizakura
 
 > 公式 QQ 客端 MSF 会話寄生之第三国 OneBot / Satori 運行時也。
