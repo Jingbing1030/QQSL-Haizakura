@@ -33,7 +33,7 @@ function hzDecorate(html){
 	return out;
 }
 
-function hzMobileNav(){
+function HzMobileNav(){
 	var st=E.useState(false),open=st[0],setOpen=st[1];
 	var rm=useRM();
 	var tr=rm?{duration:0}:{height:{duration:.24,ease:HZ_EASE},opacity:{duration:.18,ease:HZ_EASE}};
@@ -62,12 +62,14 @@ function hzMobileNav(){
 	]});
 }
 
-function hzToc(headings,curHash){
-	if(!headings||!headings.length)return null;
+function HzToc(props){
+	var headings=props.headings||[];
+	var curHash=props.curHash;
 	var rm=useRM();
 	var st=E.useState(""),act=st[0],setAct=st[1];
 	// 用滚动位置高亮当前章节（简单实现：按已滚过的标题推算）
 	E.useEffect(function(){
+		if(!headings.length)return;
 		var onScroll=function(){
 			var best="";
 			for(var i=0;i<headings.length;i++){
@@ -82,6 +84,7 @@ function hzToc(headings,curHash){
 		window.addEventListener("scroll",onScroll,{passive:true});
 		return function(){window.removeEventListener("scroll",onScroll)};
 	},[headings]);
+	if(!headings.length)return null;
 	return D.jsxs("nav",{className:"hz-toc",children:[
 		D.jsx("p",{className:"hz-toc-title",children:"\u672C\u9875\u76EE\u5F55"}),
 		headings.map(function(h){
@@ -156,7 +159,7 @@ export function DocsPage(){
 			:D.jsx("p",{className:"hz-doc-loading",children:"\u52A0\u8F7D\u4E2D\u2026"}));
 
 	return D.jsxs("div",{className:"hz-doc-page",children:[
-		hzMobileNav(),
+		D.jsx(HzMobileNav,{}),
 		D.jsxs("div",{className:"hz-doc-head",children:[
 			groupLabel?D.jsx("span",{className:"hz-doc-crumb",children:groupLabel}):null,
 			D.jsx("h1",{className:"hz-doc-title",children:doc?doc.title:sel.key||"\u6587\u6863"})
@@ -175,7 +178,7 @@ export function DocsPage(){
 				})
 			}),
 			doc&&doc.headings&&doc.headings.length
-				?D.jsx("aside",{className:"hz-doc-aside",children:hzToc(doc.headings,sel.hash)})
+				?D.jsx("aside",{className:"hz-doc-aside",children:D.jsx(HzToc,{headings:doc.headings,curHash:sel.hash})})
 				:null
 		]})
 	]});
