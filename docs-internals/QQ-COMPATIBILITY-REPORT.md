@@ -171,6 +171,39 @@ linjector        0      27042       0      xposed     0
 substrate        0      magisk      0      zygisk     0      riru       0
 ```
 
+
+### 4.6 假阳性完整排除表（重要）
+
+初查用 `strings | grep -i` 时出现多处「命中」，**逐个核实后全部为假阳性**。这张表记录了每个关键词的真实情况，避免后来者重复踩坑：
+
+| 关键词 | 初查命中 | 真实情况 | 核实方法 |
+|---|---|---|---|
+| `frida` | libbugly 8 处 / major.node 10 处 | **全部是 `Friday`** 的子串 | 提取含该词的实际行，看到 `Monday_Tuesday_..._Friday_Saturday`、日期正则 `(Jan\|Feb\|...)-(...)-(...)` |
+| `frida-` | 0 | — | — |
+| `frida_server` | 0 | — | — |
+| `frida-gadget` | 0 | — | — |
+| `xposed` | major.node 23 处 / qq 56 处 | **全部是 `exposed`** 的子串 | 唯一行 52 条全是 `is no longer exposed to user land`、`getVueExposed`、`initialExposedTraceIds`、`isRecallExposed`、`For internal loaders that should not be publicly exposed` 等 |
+| `riru` | major.node 1 处 / qq 4 处 | **字符串子串**：major.node 里是混淆串 `R"R(R1R2R5R<RERIRURWRXRZR...`；qq 里在 base64 wasm blob 内 | 打印实际行 |
+| `magisk` | 0 | — | — |
+| `zygisk` | 0 | — | — |
+| `substrate` | 0 | — | — |
+| `gadget` | 0 | — | — |
+| `27042`（frida 默认端口） | 0 | — | — |
+| `linjector` | 0 | — | — |
+
+**逐模块复核结果**：
+
+| 模块 | ptrace 引用 | TracerPid | frida 真检测 | 反调试提示语 |
+|---|---|---|---|---|
+| `libbugly.so` | 0 | 0 | 无 | 0 |
+| `major.node` (107MB) | 0 | 0 | 无（10 处全假阳性） | 0 |
+| `wrapper.node` (144MB) | 0 | 0 | 无 | 0 |
+| `qq` (198MB) | 3（仅函数导入） | 0 | 无（56 处全假阳性） | 0 |
+
+**结论：QQ 3.2.32 不存在任何移动端常见的注入框架检测（frida / Xposed / Magisk / Zygisk / Riru / Substrate）。**
+
+> **方法论提醒**：`strings | grep` 做关键词筛查时，短词极易被子串误命中。本表的做法是**必须打印含关键词的完整原始行**再判断，不能只看计数。
+
 ---
 
 ## 五、版本间对比（3.2.29 → 3.2.32）
