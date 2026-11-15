@@ -1,7 +1,7 @@
 # Satori 传输层 — arm64 真 socket 验证记录
 
 **日期**: 2026-11-13
-**主机**: 甲骨文 aarch64 (api.jingbing.top / 168.110.60.51), node v22.22.1
+**主机**: 甲骨文 aarch64 (<your-host> / <your-host>), node v22.22.1
 **目的**: 补上 x64 无法覆盖的最后一环 —— **真 WebSocket socket + 真 native 帧编解码**
 
 ## 被测产物
@@ -37,7 +37,7 @@
 | ① | **真 WS 握手 → HTTP 101** | PASS |
 | ① | `Sec-WebSocket-Accept` 与 native.computeAcceptKey 一致 | PASS |
 | ② | IDENTIFY{token} → **READY(op=4)** | PASS |
-| ② | READY.logins[0].user.id = "3254926145"；proxy_urls=[] | PASS |
+| ② | READY.logins[0].user.id = "<uin>"；proxy_urls=[] | PASS |
 | ③ | PING(1) → **PONG(op=2)** | PASS |
 | ④ | onEvent → **EVENT(op=0)** 被真实客户端解析 | PASS |
 | ④ | 资源提升（channel/guild/user 到顶层，message 内已剥离） | PASS |
@@ -59,8 +59,8 @@ Sec-WebSocket-Accept: Am6XNjQAt8jeYCVZjq46wGFL3+g=
 服务端首帧：RFC6455 frame opcode = 1 (TEXT)，payload 697 字节：
 ```json
 {"op":4,"body":{"logins":[{"sn":1,"adapter":"haizakura","platform":"haizakura",
-"user":{"id":"3254926145","avatar":"http://q.qlogo.cn/headimg_dl?dst_uin=3254926145&spec=640",
-"is_bot":false,"name":"碧海","nick":"碧海"},"status":1,"features":[...26 项...]}],"proxy_urls":[]}}
+"user":{"id":"<uin>","avatar":"http://q.qlogo.cn/headimg_dl?dst_uin=<uin>&spec=640",
+"is_bot":false,"name":"HaizakuraBot","nick":"HaizakuraBot"},"status":1,"features":[...26 项...]}],"proxy_urls":[]}}
 ```
 
 ## 生产容器安全确认（本次验证全程未触碰）

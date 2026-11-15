@@ -14,11 +14,11 @@ const __check = (n, ok, extra) => {
 const __sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const __ctx = {
-  uin: "3254926145", selfId: 3254926145,
+  uin: "<uin>", selfId: <uin>,
   api: {
     isAcceptingActions: true,
     handle: async (action, params) => {
-      if (action === "get_login_info") return { status: "ok", retcode: 0, data: { user_id: 3254926145, nickname: "碧海" } };
+      if (action === "get_login_info") return { status: "ok", retcode: 0, data: { user_id: <uin>, nickname: "HaizakuraBot" } };
       return { status: "ok", retcode: 0, data: {} };
     }
   },
@@ -85,10 +85,10 @@ const flow = await new Promise((resolve) => {
       ws.send(JSON.stringify({ op: 1 }));
       setTimeout(() => {
         adapter.onEvent({
-          time: 1763000000, self_id: 3254926145, post_type: "message", message_type: "group",
+          time: 1763000000, self_id: <uin>, post_type: "message", message_type: "group",
           sub_type: "normal", message_id: 1018302134, group_id: 391122026, group_name: "ChatLuna 闲聊群",
           user_id: 2635583281, sender: { user_id: 2635583281, nickname: "郁金香.", card: "郁金香." },
-          message: [{ type: "text", data: { text: "hello" } }, { type: "at", data: { qq: "3254926145" } }]
+          message: [{ type: "text", data: { text: "hello" } }, { type: "at", data: { qq: "<uin>" } }]
         }, null);
       }, 200);
     } else if (msg.op === 2 && !out.pong) out.pong = msg;
@@ -103,7 +103,7 @@ const flow = await new Promise((resolve) => {
 });
 
 __check("(2) IDENTIFY -> READY op=4 over real frames", flow.ready !== null, flow.upgraded);
-__check("(2) READY.logins[0].user.id", flow.ready?.body?.logins?.[0]?.user?.id === "3254926145");
+__check("(2) READY.logins[0].user.id", flow.ready?.body?.logins?.[0]?.user?.id === "<uin>");
 __check("(2) READY.proxy_urls is []", JSON.stringify(flow.ready?.body?.proxy_urls) === "[]");
 __check("(3) PING -> PONG op=2", flow.pong !== null);
 __check("(4) EVENT op=0 parsed by real client", flow.event !== null);

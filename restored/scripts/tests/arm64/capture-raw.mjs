@@ -9,7 +9,7 @@ const head = dist.slice(0, dist.lastIndexOf("\n", at) + 1);
 writeFileSync("/home/ubuntu/satori-transport-verify/raw-cap.mjs", head + "\n" + `
 async function rawCapGo(){
   const adapter = new SatoriServerAdapter("raw", { name:"raw", host:"127.0.0.1", port:5620, path:"/v1/events", accessToken:"raw-token", messageFormat:"array", reportSelfMessage:true },
-    { uin:"3254926145", selfId:3254926145, api:{ isAcceptingActions:true, handle: async(a)=> a==="get_login_info" ? {status:"ok",data:{user_id:3254926145,nickname:"碧海"}} : {status:"ok",data:{}} }, buildLifecycleEvent:()=>({}), buildHeartbeatEvent:()=>({}) });
+    { uin:"<uin>", selfId:<uin>, api:{ isAcceptingActions:true, handle: async(a)=> a==="get_login_info" ? {status:"ok",data:{user_id:<uin>,nickname:"HaizakuraBot"}} : {status:"ok",data:{}} }, buildLifecycleEvent:()=>({}), buildHeartbeatEvent:()=>({}) });
   await adapter.open();
   const crypto = createRequire(import.meta.url)("node:crypto");
   const key = crypto.randomBytes(16).toString("base64");
