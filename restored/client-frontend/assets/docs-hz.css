@@ -128,123 +128,102 @@
 .hz-toc-text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hz-toc-link.lv3{padding-left:1.05rem;font-size:.95em}
 
-/* ==========================================================================
-   Haizakura 文档样式 —— 侧栏目录树
-   设计：用【缩进 + 树状导线 + 圆点】表达层级，而不是靠字号大小区分
-   ========================================================================== */
-
-.hz-nav-tree{margin:.15rem 0 .5rem;padding:0 .35rem}
-
-/* 统一的「行」：所有层级共用同一字号，靠缩进区分 */
-.hz-nav-row{
-  display:flex;align-items:center;gap:.4rem;width:100%;
-  padding:.3rem .45rem;border:0;border-radius:.42rem;background:transparent;
-  font-size:.8125rem;line-height:1.45;color:var(--muted-foreground);
-  text-align:left;cursor:pointer;text-decoration:none;
-  transition:background-color .14s ease,color .14s ease;
+/* ---------------- AI 警告 / 提示块（> [!WARNING] 格式） ---------------- */
+.hz-doc-article .hz-warn{
+  border-left:3px solid #f59e0b;
+  background:color-mix(in oklab,#f59e0b 11%,transparent);
+  padding:.7rem 1rem;
 }
-.hz-nav-row:hover{color:var(--foreground);background:color-mix(in oklab,var(--sidebar-accent) 45%,transparent)}
-.hz-nav-row:focus-visible{outline:2px solid var(--ring);outline-offset:1px}
-
-.hz-nav-label{min-width:0;flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-
-/* 计数徽标：比正文小一号，弱化处理 */
-.hz-nav-count{
-  flex:0 0 auto;font-size:.6875rem;line-height:1;padding:.14rem .34rem;border-radius:.35rem;
-  background:color-mix(in oklab,var(--muted-foreground) 14%,transparent);
-  color:var(--muted-foreground);font-variant-numeric:tabular-nums;
+.hz-doc-article .hz-warn p{margin:.2rem 0}
+.hz-doc-article .hz-warn p:first-child{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:.75rem;letter-spacing:.06em;color:#b45309;
 }
+.dark .hz-doc-article .hz-warn p:first-child{color:#fbbf24}
+.hz-doc-article .hz-warn p+p{color:var(--foreground);font-weight:450}
 
-/* 箭头：由 framer-motion 旋转，这里只定尺寸与颜色 */
-.hz-nav-caret{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
-  width:.9rem;font-size:.7rem;color:currentColor;opacity:.75}
-
-/* ---------------- 第 1 层：整棵树 ---------------- */
-.hz-nav-tree-btn{font-weight:600;letter-spacing:.04em;color:var(--muted-foreground)}
-.hz-nav-tree-btn:hover{color:var(--foreground)}
-
-/* ---------------- 第 2 层：分组 ---------------- */
-.hz-nav-groups{display:flex;flex-direction:column;gap:.02rem;padding-left:.62rem}
-
-.hz-nav-group-btn{color:var(--muted-foreground)}
-/* 分组前挂一条缩进导线 */
-.hz-nav-group{position:relative;display:flex;flex-direction:column}
-.hz-nav-group::before{
-  content:"";position:absolute;left:.30rem;top:.34rem;bottom:.2rem;width:1px;
-  background:color-mix(in oklab,var(--border) 85%,transparent);
+.hz-doc-article .hz-note{
+  border-left:3px solid #3b82f6;
+  background:color-mix(in oklab,#3b82f6 10%,transparent);
+  padding:.7rem 1rem;
 }
-.hz-nav-group-btn,
-.hz-nav-docs{padding-left:.62rem}
+.hz-doc-article .hz-note p:first-child{
+  font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.75rem;
+  letter-spacing:.06em;color:#1d4ed8;margin:.2rem 0;
+}
+.dark .hz-doc-article .hz-note p:first-child{color:#60a5fa}
 
-/* ---------------- 第 3 层：文档 ---------------- */
-.hz-nav-docs{display:flex;flex-direction:column;padding-bottom:.12rem}
+.hz-doc-article .hz-tip{
+  border-left:3px solid #10b981;
+  background:color-mix(in oklab,#10b981 10%,transparent);
+  padding:.7rem 1rem;
+}
+.hz-doc-article .hz-tip p:first-child{
+  font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.75rem;
+  letter-spacing:.06em;color:#047857;margin:.2rem 0;
+}
+.dark .hz-doc-article .hz-tip p:first-child{color:#34d399}
 
-.hz-nav-doc-row{position:relative;display:flex;flex-direction:column}
-.hz-nav-doc{padding-left:.2rem}
-/* 树状连接线：竖线 + 短横线 */
-.hz-nav-doc::before{
-  content:"";position:absolute;left:-.06rem;top:0;bottom:0;width:1px;
-  background:color-mix(in oklab,var(--border) 70%,transparent);
+/* ---------------- 窄屏篇目列表 ---------------- */
+.hz-doclist{display:flex;flex-direction:column;gap:.05rem}
+.hz-doclist-item{
+  display:flex;flex-direction:column;gap:.05rem;width:100%;text-align:left;
+  padding:.4rem .55rem;border:0;border-radius:.45rem;background:transparent;
+  cursor:pointer;transition:background-color .14s ease;
 }
-.hz-nav-doc .hz-nav-bullet{
-  position:absolute;left:-.16rem;top:50%;width:.42rem;height:1px;
-  background:color-mix(in oklab,var(--border) 85%,transparent);
-}
-.hz-nav-doc{padding-left:.85rem;position:relative}
-.hz-nav-doc.active{
-  background:var(--sidebar-accent);color:var(--sidebar-accent-foreground);font-weight:550;
-}
-.hz-nav-doc.active::before{background:color-mix(in oklab,var(--primary) 40%,var(--border))}
-.hz-nav-doc.active .hz-nav-bullet{background:color-mix(in oklab,var(--primary) 55%,var(--border))}
+.hz-doclist-item:hover{background:color-mix(in oklab,var(--sidebar-accent) 45%,transparent)}
+.hz-doclist-item.active{background:var(--sidebar-accent);color:var(--sidebar-accent-foreground)}
+.hz-doclist-group{font-size:.6875rem;letter-spacing:.04em;text-transform:uppercase;color:var(--muted-foreground)}
+.hz-doclist-item.active .hz-doclist-group{color:inherit;opacity:.75}
+.hz-doclist-title{font-size:.8125rem;line-height:1.4}
 
-/* 章节展开按钮：hover 时才明显 */
-.hz-nav-headtoggle{
-  flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
-  width:1.1rem;height:1.1rem;border-radius:.28rem;color:var(--muted-foreground);
-  opacity:.55;transition:opacity .14s ease,background-color .14s ease;
+/* ---------------- 上一篇 / 下一篇 ---------------- */
+.hz-pager{margin-top:1.6rem;padding-top:1.1rem;border-top:1px solid var(--border)}
+.hz-pager-row{display:flex;gap:.7rem;align-items:stretch}
+.hz-pager-btn{
+  display:flex;flex:1 1 0;min-width:0;align-items:center;gap:.6rem;
+  padding:.7rem .9rem;border:1px solid var(--border);border-radius:.7rem;
+  background:color-mix(in oklab,var(--card) 60%,transparent);
+  cursor:pointer;text-align:left;
+  transition:border-color .15s ease,background-color .15s ease,transform .15s ease;
 }
-.hz-nav-row:hover .hz-nav-headtoggle{opacity:1}
-.hz-nav-headtoggle:hover{background:color-mix(in oklab,var(--sidebar-accent) 60%,transparent);color:var(--foreground)}
-
-/* ---------------- 第 4/5 层：章节 ---------------- */
-.hz-nav-heads{display:flex;flex-direction:column;position:relative;padding-left:.3rem}
-/* 章节的整体缩进导线 */
-.hz-nav-heads::before{
-  content:"";position:absolute;left:.72rem;top:.1rem;bottom:.16rem;width:1px;
-  background:color-mix(in oklab,var(--border) 60%,transparent);
+.hz-pager-btn:hover:not(.disabled){
+  border-color:color-mix(in oklab,var(--primary) 45%,var(--border));
+  background:color-mix(in oklab,var(--primary) 7%,transparent);
 }
-.hz-nav-head{
-  padding:.18rem .4rem .18rem 1.05rem;font-size:.8125rem;   /* ← 与文档项同字号，靠缩进区分 */
-  border-radius:.32rem;opacity:.85;
+.hz-pager-btn:active:not(.disabled){transform:translateY(1px)}
+.hz-pager-next{flex-direction:row-reverse;text-align:right}
+.hz-pager-btn.disabled{
+  opacity:.5;cursor:not-allowed;
+  background:color-mix(in oklab,var(--muted-foreground) 6%,transparent);
+  border-style:dashed;
 }
-.hz-nav-head:hover{opacity:1}
-.hz-nav-head::before{
-  content:"";position:absolute;left:.72rem;top:50%;width:.4rem;height:1px;
-  background:color-mix(in oklab,var(--border) 60%,transparent);
+.hz-pager-btn:focus-visible{outline:2px solid var(--ring);outline-offset:2px}
+.hz-pager-arrow{flex:0 0 auto;font-size:.95rem;color:var(--muted-foreground);line-height:1}
+.hz-pager-btn:hover:not(.disabled) .hz-pager-arrow{color:var(--primary)}
+.hz-pager-text{display:flex;min-width:0;flex:1 1 auto;flex-direction:column;gap:.1rem}
+.hz-pager-label{
+  font-size:.6875rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--muted-foreground);
 }
-.hz-nav-head.lv3{padding-left:1.72rem}
-.hz-nav-head.lv3::before{left:1.39rem;width:.4rem}
-
-/* ---------------- h2/h3 两级章节 ---------------- */
-.hz-nav-head.lv2{font-weight:550}
-.hz-nav-subhead{display:flex;align-items:center;gap:.1rem;padding:0}
-.hz-nav-subhead .hz-nav-head-link{
-  flex:1 1 auto;min-width:0;padding:.2rem .4rem .2rem 1.05rem;position:relative;
-  border-radius:.32rem;color:var(--muted-foreground);text-decoration:none;font-weight:550;
+.hz-pager-title{
+  font-size:.875rem;font-weight:550;line-height:1.35;color:var(--foreground);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  transition:color .14s ease,background-color .14s ease;
 }
-.hz-nav-subhead .hz-nav-head-link:hover{color:var(--foreground);background:color-mix(in oklab,var(--sidebar-accent) 45%,transparent)}
-.hz-nav-subhead .hz-nav-head-link::before{
-  content:"";position:absolute;left:.72rem;top:50%;width:.4rem;height:1px;
-  background:color-mix(in oklab,var(--border) 60%,transparent);
+.hz-pager-btn.disabled .hz-pager-title{color:var(--muted-foreground);font-weight:450}
+.hz-pager-tip{
+  margin:.7rem 0 0;padding:.5rem .8rem;border-radius:.55rem;text-align:center;
+  font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8125rem;
+  color:var(--muted-foreground);
+  background:color-mix(in oklab,var(--muted-foreground) 9%,transparent);
 }
-.hz-nav-sub .hz-nav-headtoggle{
-  position:static;margin-right:.3rem;opacity:.5;
+@media (max-width:520px){
+  .hz-pager-row{flex-direction:column}
+  .hz-pager-next{flex-direction:row;text-align:left}
 }
-.hz-nav-sub:hover .hz-nav-headtoggle{opacity:1}
-.hz-nav-sublist{display:flex;flex-direction:column;position:relative}
-.hz-nav-sublist::before{
-  content:"";position:absolute;left:1.39rem;top:.06rem;bottom:.14rem;width:1px;
-  background:color-mix(in oklab,var(--border) 55%,transparent);
+
+/* ---------------- 折叠箭头（移动端目录按钮复用） ---------------- */
+.hz-nav-caret{
+  flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
+  width:.9rem;font-size:.7rem;color:currentColor;opacity:.75;
 }

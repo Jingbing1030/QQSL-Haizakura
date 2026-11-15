@@ -1,33 +1,42 @@
 import{a as e}from"./rolldown-runtime-CNC7AqOf.js";
 import{dt as a,lt as o,d as fm,p as AP,u as useRM}from"./api-CBg-YqKK.js";
-import{hzUseSel,hzUseNav,hzDoc,hzSetSel,hzScrollTo,DocsNavTree}from"./docs-nav-hz.js";
+import{hzUseSel,hzUseNav,hzDoc,hzSetSel,hzScrollTo,hzFlat}from"./docs-nav-hz.js";
 var E=e(a(),1),D=o();
 
 /* ===========================================================================
  * 文档正文页
  *
- * 目录树在侧栏（docs-nav-hz.js），本页只负责正文：
- *   · 面包屑 + 标题
- *   · 服务端渲染好的 HTML（dangerouslySetInnerHTML）
- *   · 窄屏可折叠目录面板（带高度动画）
- *   · 宽屏右侧「本页目录」
+ *   · 面包屑 + 标题（正文里的 h1 会被去掉，避免与页面标题重复）
+ *   · AI 警告以 > [!WARNING] 单独成块
+ *   · 底部「上一篇 / 下一篇」；到头时按钮不可用，点了提示 (,,o-o,,)
+ *   · 窄屏可折叠目录、宽屏右侧「本页目录」
  *
- * 动画沿用前端既有语言：AnimatePresence + height:0↔auto、淡入位移、spring。
+ * 动画沿用前端既有语言：AnimatePresence + height:0↔auto、spring、cubic-bezier。
  * =========================================================================== */
 
 var HZ_EASE=[.16,1,.3,1];
+var HZ_NOPE="(,,o-o,,)";        // 到头时的提示语
 
-/** 渲染后处理：AI 警告加醒目样式；宽表格包一层容器以支持横向滚动。 */
+/** 正文后处理：去重标题、警告单独成块、宽表格加滚动容器 */
 function hzDecorate(html){
 	var out=html;
+	// ① 去掉正文开头与页面标题重复的 h1
+	out=out.replace(/^\s*<h1[^>]*>[\s\S]*?<\/h1>\s*/,"");
+	// ② AI 警告：单独成块的 > [!WARNING]
 	out=out.replace(
-		/<blockquote><p>\[!WARNING\]([\s\S]*?)<\/p><\/blockquote>/g,
-		'<blockquote class="hz-warn"><p><strong>\u26A0 \u63D0\u9192</strong>$1</p></blockquote>'
+		/<blockquote>\s*<p>\s*\[!WARNING\]\s*([\s\S]*?)<\/p>\s*<\/blockquote>/g,
+		'<blockquote class="hz-warn"><p><strong>[!WARNING]</strong></p><p>$1</p></blockquote>'
+	);
+	// ③ 其它 GitHub 风格提示
+	out=out.replace(
+		/<blockquote>\s*<p>\s*\[!NOTE\]\s*([\s\S]*?)<\/p>\s*<\/blockquote>/g,
+		'<blockquote class="hz-note"><p><strong>[!NOTE]</strong></p><p>$1</p></blockquote>'
 	);
 	out=out.replace(
-		/<blockquote><p>\[!NOTE\]([\s\S]*?)<\/p><\/blockquote>/g,
-		'<blockquote><p><strong>\u2139 \u8BF4\u660E</strong>$1</p></blockquote>'
+		/<blockquote>\s*<p>\s*\[!TIP\]\s*([\s\S]*?)<\/p>\s*<\/blockquote>/g,
+		'<blockquote class="hz-tip"><p><strong>[!TIP]</strong></p><p>$1</p></blockquote>'
 	);
+	// ④ 表格横向滚动
 	out=out.replace(/<table>/g,'<div class="hz-table-wrap"><table>');
 	out=out.replace(/<\/table>/g,'</table></div>');
 	return out;
@@ -56,18 +65,38 @@ function HzMobileNav(){
 				exit:{height:0,opacity:0},
 				transition:tr,
 				className:"overflow-hidden",
-				children:D.jsx("div",{className:"hz-doc-mobile-panel",children:D.jsx(DocsNavTree,{active:true,onItemClick:function(){setOpen(false)}})})
+				children:D.jsx("div",{className:"hz-doc-mobile-panel",children:D.jsx(HzDocList,{onItemClick:function(){setOpen(false)}})})
 			})
 			:null})
 	]});
 }
 
+/** 窄屏的篇目列表（替代原侧栏树，只在移动端面板里用） */
+function HzDocList(props){
+	var nav=hzUseNav(),cur=hzUseSel();
+	var flat=hzFlat(nav);
+	if(!flat.length)return null;
+	var after=props&&props.onItemClick;
+	return D.jsx("div",{className:"hz-doclist",children:flat.map(function(it){
+		var on=it.key===cur.key;
+		return D.jsxs("button",{
+			key:it.key,
+			type:"button",
+			className:"hz-doclist-item"+(on?" active":""),
+			onClick:function(){hzSetSel({key:it.key,hash:""});if(after)after()},
+			children:[
+				D.jsx("span",{className:"hz-doclist-group",children:it.group}),
+				D.jsx("span",{className:"hz-doclist-title",children:it.title})
+			]
+		},it.key);
+	})});
+}
+
+/** 右侧「本页目录」 */
 function HzToc(props){
 	var headings=props.headings||[];
-	var curHash=props.curHash;
 	var rm=useRM();
 	var st=E.useState(""),act=st[0],setAct=st[1];
-	// 用滚动位置高亮当前章节（简单实现：按已滚过的标题推算）
 	E.useEffect(function(){
 		if(!headings.length)return;
 		var onScroll=function(){
@@ -75,8 +104,7 @@ function HzToc(props){
 			for(var i=0;i<headings.length;i++){
 				var el=document.getElementById(headings[i].slug);
 				if(!el)continue;
-				var top=el.getBoundingClientRect().top;
-				if(top<=110)best=headings[i].slug;else break;
+				if(el.getBoundingClientRect().top<=110)best=headings[i].slug;else break;
 			}
 			setAct(best||(headings[0]?headings[0].slug:""));
 		};
@@ -111,6 +139,77 @@ function HzToc(props){
 	]});
 }
 
+/**
+ * 上一篇 / 下一篇。
+ * 到头的按钮不可选中（disabled），点击时给出 (,,o-o,,) 提示。
+ */
+function HzPager(props){
+	var flat=props.flat,idx=props.idx;
+	var tipSt=E.useState(""),tip=tipSt[0],setTip=tipSt[1];
+	var rm=useRM();
+	var timer=E.useRef(null);
+
+	E.useEffect(function(){
+		return function(){if(timer.current)clearTimeout(timer.current)};
+	},[]);
+
+	// 切篇时清掉提示
+	E.useEffect(function(){setTip("")},[idx]);
+
+	var nope=function(delta){
+		// delta < 0 表示「上一篇」到头，> 0 表示「下一篇」到头
+		setTip((delta<0?"已经是第一篇了 ":"已经是最后一篇了 ")+HZ_NOPE);
+		if(timer.current)clearTimeout(timer.current);
+		timer.current=setTimeout(function(){setTip("")},2600);
+	};
+
+	var mk=function(delta,label){
+		var target=idx+delta;
+		var ok=target>=0&&target<flat.length;
+		var go=function(){
+			if(!ok){nope(delta);return}
+			hzSetSel({key:flat[target].key,hash:""});
+			hzScrollTo("");
+			try{window.scrollTo({top:0,behavior:"smooth"})}catch(err){}
+		};
+		var cls="hz-pager-btn"+(delta>0?" hz-pager-next":"");
+		var inner=[
+			delta<0?D.jsx("span",{className:"hz-pager-arrow","aria-hidden":"true",children:"\u2190"}):null,
+			D.jsxs("span",{className:"hz-pager-text",children:[
+				D.jsx("span",{className:"hz-pager-label",children:label}),
+				D.jsx("span",{className:"hz-pager-title",children:ok?flat[target].title:"\u6CA1\u6709\u4E86"})
+			]}),
+			delta>0?D.jsx("span",{className:"hz-pager-arrow","aria-hidden":"true",children:"\u2192"}):null
+		];
+		return D.jsx("button",{
+			type:"button",
+			className:cls+(ok?"":" disabled"),
+			"aria-disabled":ok?void 0:"true",
+			"data-ok":ok?"1":"0",
+			title:ok?flat[target].title:(delta<0?"\u5DF2\u7ECF\u662F\u7B2C\u4E00\u7BC7\u4E86":"\u5DF2\u7ECF\u662F\u6700\u540E\u4E00\u7BC7\u4E86"),
+			onClick:go,
+			children:inner
+		});
+	};
+
+	return D.jsxs("div",{className:"hz-pager",children:[
+		D.jsxs("div",{className:"hz-pager-row",children:[
+			mk(-1,"\u4E0A\u4E00\u7BC7"),
+			mk(1,"\u4E0B\u4E00\u7BC7")
+		]}),
+		D.jsx(AP,{initial:!1,children:tip
+			?D.jsx(fm.div,{
+				initial:{height:0,opacity:0},
+				animate:{height:"auto",opacity:1},
+				exit:{height:0,opacity:0},
+				transition:rm?{duration:0}:{height:{duration:.2,ease:HZ_EASE},opacity:{duration:.16}},
+				className:"overflow-hidden",
+				children:D.jsx("p",{className:"hz-pager-tip",role:"status",children:tip})
+			})
+			:null})
+	]});
+}
+
 export function DocsPage(){
 	var sel=hzUseSel();
 	var nav=hzUseNav();
@@ -118,13 +217,12 @@ export function DocsPage(){
 	var es=E.useState(""),err=es[0],setErr=es[1];
 	var rm=useRM();
 
+	var flat=hzFlat(nav);
+
 	// 首次进入若没有选中项，取第一篇
 	E.useEffect(function(){
-		if(sel.key||!nav||!nav.length)return;
-		for(var i=0;i<nav.length;i++){
-			var list=nav[i].docs||[];
-			if(list.length){hzSetSel({key:list[0].key,hash:""});return}
-		}
+		if(sel.key||!flat.length)return;
+		hzSetSel({key:flat[0].key,hash:""});
 	},[nav,sel.key]);
 
 	E.useEffect(function(){
@@ -141,16 +239,10 @@ export function DocsPage(){
 
 	E.useEffect(function(){if(sel.hash&&doc)hzScrollTo(sel.hash)},[sel.hash,doc]);
 
-	var groupLabel="";
-	if(nav&&sel.key){
-		for(var i=0;i<nav.length;i++){
-			var list=nav[i].docs||[];
-			for(var j=0;j<list.length;j++)if(list[j].key===sel.key){groupLabel=nav[i].label;break}
-			if(groupLabel)break;
-		}
-	}
+	var idx=-1;
+	for(var i=0;i<flat.length;i++)if(flat[i].key===sel.key){idx=i;break}
+	var groupLabel=idx>=0?flat[idx].group:"";
 
-	// 骨架 / 错误 / 正文（切换时淡入，避免闪白）
 	var bodyKey=err?"err":(doc?doc.key:"load");
 	var body=err
 		?D.jsx("p",{className:"hz-doc-err",children:err})
@@ -165,7 +257,7 @@ export function DocsPage(){
 			D.jsx("h1",{className:"hz-doc-title",children:doc?doc.title:sel.key||"\u6587\u6863"})
 		]}),
 		D.jsxs("div",{className:"hz-doc-cols",children:[
-			D.jsx("div",{className:"hz-doc-main",children:
+			D.jsxs("div",{className:"hz-doc-main",children:[
 				D.jsx(AP,{mode:"wait",initial:!1,children:
 					D.jsx(fm.div,{
 						key:bodyKey,
@@ -175,8 +267,9 @@ export function DocsPage(){
 						transition:rm?{duration:0}:{duration:.22,ease:HZ_EASE},
 						children:body
 					},bodyKey)
-				})
-			}),
+				}),
+				flat.length&&!err?D.jsx(HzPager,{flat:flat,idx:idx}):null
+			]}),
 			doc&&doc.headings&&doc.headings.length
 				?D.jsx("aside",{className:"hz-doc-aside",children:D.jsx(HzToc,{headings:doc.headings,curHash:sel.hash})})
 				:null
