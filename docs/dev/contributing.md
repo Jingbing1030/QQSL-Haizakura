@@ -1,681 +1,328 @@
-# 参与开发指南
+# 贡献指南
 
-> [!WARNING]
-> 本内容完全由 AI 编写，请谨慎查看。
 
-> **面向读者**：要接手维护 Haizakura（原名 SnowLuma）的开发者。
-> **本文回答**：代码在哪、想改某功能该动哪个文件、怎么验证、有哪些坑和限制。
+欢迎！如果你正在阅读这份文档，多半是因为你想给 Haizakura 提一个 PR、修一个 bug，或者只是想了解这个项目是怎么运作的。无论你是第一次接触开源、还是已经有十年经验，我们都希望让你尽快上手。
 
----
-
-## 1. 先读这三条
-
-```
-① 业务逻辑 100% 有源码（在 bundle 里，未混淆）
-   → 改 OneBot / 协议 / WebUI 后端 / 日志，都不需要反编译
-
-② 但 native 层（注入器 + hook 后端，共 654 KB）是纯黑箱
-   → 改 hook 目标 = 重写 native，极高工作量
-
-③ WebUI 前端源码缺失（只有构建产物）
-   → 改 UI 组件不可行；只能通过配置定制外观
-```
-
-**这三条决定了一切**：能用 JS 解决的都容易，需要碰 native 的都很难。
+参与项目即视为你同意遵守 [行为准则（Code of Conduct）](./CODE_OF_CONDUCT.md)。在开始之前请花两分钟读一下，它定义了我们希望社区维持的氛围。
 
 ---
 
-## 2. 代码结构
+## 在动手之前
 
-### 2.1 8 个包
+Haizakura 处于开发早期，迭代速度很快，**接口与目录结构随时可能变化**。如果你打算做较大的改动，强烈建议先在 issue 或者社群里和维护者对齐一下方向，避免做了一半发现已经被另一条路替代。
 
-原 monorepo 名为 **`snowluma-monorepo`**（`packageManager: pnpm@11.25.0`），
-8 个 workspace 包全部被内联进单个 `dist/index.mjs`。
+提交 PR 前，必须先通过 [GitHub 网页模板](https://github.com/Haizakura/Haizakura/issues/new/choose) 提交对应 issue，或认领已有的对应 issue。可以只提 issue；提交 PR 是可选的后续步骤。
 
-| 包 | 文件数 | 正文行数 | 职责 |
-|---|---:|---:|---|
-| **`protocol`** | 180 | **269,936** | **最大**。OIDB 服务、Highway 上传、消息推送解码、Web/QZone API |
-| **`core`** | 65 | 53,487 | 入口 + WebUI 后端 + update + bridge API 实现 |
-| **`onebot`** | 77 | 20,986 | OneBot v11 实现（动作、事件、网络适配器） |
-| `bridge` | 17 | 3,146 | **注入核心**：injector / hook-manager / pipe-watcher / qq-account |
-| `common` | 20 | 1,806 | 日志脱敏、错误、coerce、runtime 路径、版本 |
-| `websocket` | 5 | 1,124 | WebSocket 客户端/服务端封装 |
-| `sqlite` | 3 | 226 | SQLite 驱动（native 加载、prebuild 选择） |
-| `proton` | 1 | 26 | **【未查清】** 功能，region 名被截断 |
-| *第三方（vendored）* | 99 | 15,668 | 15 个 npm 包 |
-| `rolldown/runtime.js` | 1 | 38 | 打包器互操作运行时（`__esmMin` 等） |
-| | **467** | **366,443** | |
+不知道从哪里入手？以下几类贡献最容易被合并：
 
-> **正文行数**是 region 内的行数（不含还原时加的注释头）。
-> 加上注释头后本地文件会更多，属正常。
+- 修复你在使用中遇到的具体 bug，附最小复现步骤。
+- 改善错误提示、文档、注释、类型签名。
+- 给已有模块补测试，尤其是 `packages/core` 下覆盖率较低的部分。
+- 实现 [RoadMap.md](./RoadMap.md) 中列出的、还没被认领的项。
 
-### 2.2 目录树
+如果你只是想看看代码长什么样，可以直接跳到 [本地开发环境](#本地开发环境)。
 
-```
-restored/
-├── package.json                     # 根 workspace 清单
-├── pnpm-workspace.yaml              # 8 个 packages/*
-├── tsconfig.json                    # 基础 TS 配置
-├── rolldown.config.ts               # 复现单文件形态的打包配置
-├── manifest.json                    # ★ 467 个 region 的完整索引（行号/字节数）
-├── scripts/
-│   ├── merge.mjs                    # ★ 构建：region 切片 → dist/index.mjs
-│   ├── split.mjs                    # ★ 切分（bundle → 467 个切片 + manifest）
-│   └── check.mjs                    # ★ 完整性校验
-├── dist/
-│   └── index.mjs                    # 重建产物
-├── packages/                        # ★ 源码在这里
-│   ├── core/        65 个 .ts  ── src/index.ts、src/webui/(30)、src/update/(6)、src/bridge/apis/(20)
-│   ├── protocol/   180 个 .ts  ── src/oidb-services/(117)、src/msg-push/(21)、src/highway/(13)、src/web/(12)
-│   ├── onebot/      77 个 .ts  ── src/actions/、src/event-converter/、src/modules/、src/network/
-│   ├── common/      20 个 .ts
-│   ├── bridge/      17 个 .ts  ── src/qq-account/(6)、injector.ts、hook-*.ts
-│   ├── websocket/    5 个 .ts
-│   ├── sqlite/       3 个 .ts
-│   └── proton/       1 个 .ts
-├── vendor-regions/                  # 99 个第三方 region 切片（只读参考）
-│   └── node_modules/.pnpm/…
-└── _unassigned/
-    └── loose-lines.txt              # region 外的 47 行（顶部 import 序言，逐行带原始行号）
-```
+### AI Agent 贡献须知
 
-### 2.3 模块依赖图
+如果你是 AI Agent，并准备为本仓库贡献代码、提交 PR 或提出 issue，请先明确告知你的使用者：
 
-```
-                    ┌──────────────────────────┐
-                    │  core/src/index.ts (入口)  │
-                    └────────────┬─────────────┘
-                                 │
-     ┌───────────────────────────┼───────────────────────────┐
-     ▼                           ▼                           ▼
-┌───────────────┐      ┌──────────────────┐        ┌─────────────────┐
-│ core/webui/*  │      │ bridge/manager.ts│        │ core/update/*   │
-│ :5099 WebUI   │◄────►│  HookManager     │        │ 自动更新         │
-│ hono + SSE    │      │  ├ pipe-watcher  │        │ GitHub+镜像     │
-└───────┬───────┘      │  ├ HookSession   │        └─────────────────┘
-        │              │  ├ injector.ts ──┼──► .node addon（宿主插件）
-        │              │  └ qq-hook-      │
-        │              │     client.ts ───┼──► Unix socket (mojo.*.sock)
-        │              └────────┬─────────┘      ↕ 40B 帧协议
-        ▼                       ▼
-┌─────────────────────────────────────────────────────────────┐
-│ core/bridge/apis/*  (19 个)  ←→  protocol/src/**  (180 个)   │
-│  contacts / group-admin / group-file / message / profile /   │
-│  qzone / collection / interaction / system-face / web …      │
-└──────────────────────────────┬──────────────────────────────┘
-                               ▼
-┌─────────────────────────────────────────────────────────────┐
-│ onebot/src/** (77)                                          │
-│  actions/* (16)  event-converter/* (8)  network/* (11)       │
-│  modules/* (7)   message-store / media-store / reaction-store│
-│  → ：3000 HTTP   ：3001 WS  以及 wsClients 出站                │
-└─────────────────────────────────────────────────────────────┘
-```
+> **请通过 GitHub 网页端手动使用模板创建 issue。未通过模板检查的 issue 会被自动关闭，也不能用于满足 PR 的关联要求。**
 
-> ⚠️ **注意**：因为所有包被内联进单一作用域，
-> 还原出的文件**互相看不见**（没有真正的 import/export 边）。
-> 它们**是精确的 JS，不是可独立编译的模块**。详见 §6.4。
+你可以协助整理问题描述、复现步骤和相关日志，并将 issue 草稿交给用户，由用户在网页端完成提交。后续若创建 PR，必须先有符合要求的 issue，并在 PR 正文填写关联标记。
 
 ---
 
-## 3. ★ 修改指南：想改什么 → 改哪个文件
+## 项目结构速览
 
-### 3.1 业务逻辑（🟢 容易，改完重新构建即可）
+这是一个 pnpm workspace monorepo，主要 package 如下：
 
-| 想改什么 | 改哪个文件 | 难度 |
-|---|---|---|
-| **启动流程 / 生命周期 / 信号处理** | `packages/core/src/index.ts` | 🟢 |
-| **OneBot 动作行为** | `packages/onebot/src/actions/*.ts`、`modules/*.ts` | 🟢 |
-| **加一个 OneBot 动作** | 新增 `actions/xxx.ts` + 注册进 `actions/index.ts` / `api-handler.ts` | 🟢 |
-| **OneBot 事件转换** | `packages/onebot/src/event-converter/*` | 🟡 要与 `protocol/msg-push/decoders/*` 对齐 |
-| **OneBot 消息段构造** | `packages/onebot/src/message-parser.ts`、`message-id.ts` | 🟡 |
-| **网络 / 端口 / 鉴权** | `packages/onebot/src/network/*`、`onebot.json` | 🟢 配置优先 |
-| **状态指令（`#hz` 等）** | `packages/onebot/src/modules/status-command.ts`、`config.ts` | 🟢 |
-| **事件过滤** | `packages/onebot/src/event-filter.ts` | 🟢 |
-| **历史同步** | `packages/onebot/src/history-sync.ts`、`history-persistence.ts` | 🟡 |
-| **消息/媒体/表情存储** | `packages/onebot/src/message-store.ts`、`media-store.ts`、`reaction-store.ts` | 🟡 |
+| 路径 | 作用 |
+| --- | --- |
+| `packages/core` | 应用入口、账号级 Bridge 编排、WebUI 服务端和发行构建 |
+| `packages/bridge` | QQ 进程发现、Hook 会话和原生传输生命周期 |
+| `packages/protocol` | QQ 数据包解码、身份解析、协议请求和媒体传输 |
+| `packages/onebot` | OneBot 动作、事件转换、消息存储和传输适配 |
+| `packages/common` | 日志、配置和共享工具 |
+| `packages/proto-defs`、`packages/proton` | 协议结构定义、编译期 protobuf 编解码和构建集成 |
+| `packages/sdk` | 面向第三方开发者的 SDK，会发布到 npm |
+| `packages/mcp` | MCP 服务端和生成的动作目录 |
+| `packages/ui` | 发布到 npm 的共享 UI 组件 |
+| `packages/runtime` | 运行时辅助包 |
+| `packages/websocket` | WebSocket 实现 |
+| `packages/webui` | 基于 Vite + React 的前端控制台 |
+| `tools/` | 版本管理、发布脚本 |
+| `.github/workflows/` | CI / 发布 / Promote 工作流 |
 
-### 3.2 WebUI（🟢 后端容易，🔴 前端不可行）
-
-| 想改什么 | 改哪个文件 | 难度 |
-|---|---|---|
-| **WebUI 后端路由、鉴权、TOTP** | `packages/core/src/webui/server.ts`、`auth.ts`、`totp.ts`、`webui-login.ts` | 🟢 |
-| **状态推送 / SSE** | `packages/core/src/webui/state-bus.ts`、`state-stream.ts`、`sse-response.ts` | 🟢 |
-| **存储 / 备份 / 恢复** | `packages/core/src/webui/storage-*.ts`、`backup.ts`、`restore.ts` | 🟢 |
-| **UI 配置 API** | `packages/core/src/webui/ui-config.ts` | 🟢 |
-| **TLS** | `packages/core/src/webui/tls.ts` | 🟢 |
-| **反代信任 / 客户端 IP** | `packages/core/src/webui/client-ip.ts`、`request-security.ts` | 🟢 |
-| **日志导出** | `packages/core/src/webui/log-export.ts`、`debug-tools.ts` | 🟢 |
-| **★ WebUI 外观（不用改代码）** | `ui.json` / `appearance.customCss` / `POST /api/ui` | 🟢 |
-| ❌ **WebUI 前端组件** | **无源码** | 🔴 **不可行** |
-
-### 3.3 协议栈（🟡 中等）
-
-| 想改什么 | 改哪个文件 | 难度 |
-|---|---|---|
-| **OIDB 协议（某类操作）** | `packages/protocol/src/oidb-services/<分类>/` | 🟡 |
-| **消息推送解码** | `packages/protocol/src/msg-push/`（`context.ts`、`decoders/`） | 🟡 |
-| **消息元素构造 / HTML** | `packages/protocol/src/element-builder.ts`（10,832 行）、`format.ts` | 🟡 |
-| **Highway 大文件上传下载** | `packages/protocol/src/highway/`（`highway-client.ts`、`ntv2-upload-request.ts`） | 🟡 |
-| **Web / QZone API** | `packages/protocol/src/web/` | 🟡 |
-| **消息推送分发** | `packages/protocol/src/msg-push/{client,codec,registry}.ts` | 🟡 |
-
-**OIDB 服务分类**（`oidb-services/` 下的子目录）：
-
-```
-contacts(15)        group-admin(26)     group-file(21)
-friend(7)           profile(5)          reaction(3)
-interaction(3)      custom-face(8)      sys-faces(2)
-flash-transfer(13)  web(2)              extras(5)
-misc(5)             highway             shared.ts
-```
-
-### 3.4 bridge / 注入（🟢 改策略容易，🔴 改 hook 目标不可行）
-
-| 想改什么 | 改哪个文件 | 难度 |
-|---|---|---|
-| **注入行为 / 超时 / 重试** | `packages/bridge/src/injector.ts`、`packet-timeout.ts` | 🟢 |
-| **Hook 会话 / 状态机** | `packages/bridge/src/hook-session.ts`、`hook-status.ts`、`hook-manager.ts` | 🟢 |
-| **zygote 过滤规则** | `shouldAutoLoadPid()`（`injector.ts`） | 🟢 纯 JS |
-| **转账 / 账号发现（uin 检测）** | `packages/bridge/src/qq-account/`（含 `sqlcipher.ts`） | 🟡 纯 JS，但算法要对齐 QQ 的库格式 |
-| **QQ 数据库路径推导** | `packages/bridge/src/qq-account/paths.ts`、`login-db.ts` | 🟡 |
-| **native 运行时完整性校验** | `packages/bridge/src/runtime-integrity.ts` | 🟡 |
-| ❌ **hook 目标函数** | **在 `.so` 里** | 🔴 **极高** |
-| ❌ **适配新 QQ 版本** | 主要在 `.so` / `.node` | 🔴 **极高**（见 §3.6） |
-
-### 3.5 基础设施（🟢）
-
-| 想改什么 | 改哪个文件 | 难度 |
-|---|---|---|
-| **★ 自动更新源** | `packages/core/src/update/sources.ts` | 🟢 **必做**（上游已删库） |
-| **更新检查 / 下载 / 替换** | `packages/core/src/update/{check,download,files,service,release}.ts` | 🟢 |
-| **日志 / 脱敏 / 环境变量** | `packages/common/src/{logger,log-sanitize,env,coerce}.ts` | 🟢 |
-| **日志轮转策略** | `runtime.json` + `SNOWLUMA_LOG_*` | 🟢 |
-| **通知（webhook）** | `packages/core/src/notifications/`、`common/notification-templates.ts` | 🟢 |
-| **SQLite 表结构** | 各 `*-store.ts` 的 `CREATE TABLE` + `prepare*Schema()` | 🟡 **务必写迁移** |
-| **SQLite 驱动封装** | `packages/sqlite/src/{native,driver,index}.ts` | 🟡 保持 `NATIVE_INTERFACE_VERSION===1` |
-| **WebSocket 原生封装** | `packages/websocket/src/{native,server,client,extensions}.ts` | 🟡 |
-| **换 Node 版本** | `check-node-version.cjs` | 🟢 注意 N-API 约束 |
-| ❌ **换 CPU 架构（x64 等）** | 需要**全部 5 个 native 产物** | 🔴 极高 |
-
-### 3.6 适配新 QQ 版本
-
-**不在"改文件"的范畴里** —— 它的工作方式是**跑脚本 + 看 diff**。
-
-```
-腾讯改动 → 对应情况 → 工作量 → 要重写 native 吗
-─────────────────────────────────────────────────
-只改函数实现     情况 1    0              否
-改类名          情况 2    2–6 小时       否（只改字符串）
-改槽位顺序      情况 3    0.5–2 天       否（改数字）
-末尾加虚函数    情况 4    小时级验证      否
-多继承/虚基类   情况 5    3–7 天         ★ 是
-删了锚点串      情况 6    数天–2 周       ★ 是
-wrapper 被 strip 情况 7   2–5 天         ★ 是
-换 ABI/编译器   情况 8    1–3 天         半
-```
-
-**结论**：
-
-> **只要腾讯不动「类名 + 继承结构 + vtable 槽位顺序」，适配成本 = 0~1 天，
-> 只改字符串/数字，不用碰 native 代码。**
-> **一旦 vtable 形状变了（多继承/虚基类），就必须重写 native 解析器。**
-
-**完整难度矩阵与操作流程见 [compatibility.md §7](../advanced/compatibility.md)。**
+入口在 `packages/core/src/index.ts`，整体架构在 `packages/core/src/bridge/` 下能看出大致脉络。
 
 ---
 
-## 4. 开发流程
+## 本地开发环境
 
-### 4.1 标准循环
+### 系统要求
+
+- **Node.js 24.22.1（24 系列），或 26.12.1 及更新版本**；开发和构建使用 [`.node-version`](.node-version) 固定的版本。
+- **pnpm 11.25.0**（项目通过 `packageManager` 与 CI 统一版本）
+- macOS / Linux / Windows 均可。如果要构建原生产物，需要对应平台的工具链。
+
+如果系统提供 Corepack，可执行 `corepack enable pnpm`；没有 Corepack 时可执行
+`npm install -g pnpm@11.25.0`。进入仓库后，`node --version` 与
+`pnpm --version` 应满足上述版本要求，否则安装会直接失败。
+
+### 拉代码、装依赖、跑起来
 
 ```bash
-# ── ① 改代码 ──
-# ★ 只改 region【内部】的代码
-# ★ 不要增删 region，不要动 manifest.json 的行号
-cd <工程根>
+git clone https://github.com/<你的用户名>/Haizakura.git
+cd Haizakura
 
-# ── ② 构建 ──
-npm run build                # 拼装 + 语法检查
+git checkout dev
 
-# ── ③ 校验 ──
-node scripts/check.mjs /path/to/reference/index.mjs
-md5sum dist/index.mjs        # 与已知 good 值对比
+pnpm install --frozen-lockfile
 
-# ── ④ 冒烟（隔离环境，不碰生产）──
-cd dist && SNOWLUMA_DEV_NO_NATIVE=1 SNOWLUMA_DEV_MODE=1 node index.mjs
-# 期望日志：INFO [WebUI] listening http://127.0.0.1:<port>
-#           WARN [Hook] … No hook native addon found for linux-x64  ← 预期（本机非 arm64）
+pnpm typecheck
 
-# ── ⑤ 部署（★ 注意登录态）──
-docker exec <容器> supervisorctl restart snowluma      # 只重启 runtime
+pnpm test
 
-# ── ⑥ ★ 端到端验证 ──
-#    真的发一条消息、真的收一条消息
-docker exec <容器> sh -c 'grep -c unresolved /app/data/logs/*.log'   # 0 = 健康
+pnpm dev          # core
+pnpm dev:web      # webui
 ```
 
-**详细的构建/部署说明见 [build.md](build.md)。**
+如果 `pnpm install` 卡住或报错，先确认 Node 版本和 pnpm 版本，再看 `.npmrc` 里是否配置了你环境下可用的 registry。
 
-### 4.2 ★ 一条铁律：不能只看"进程没崩"
+---
 
-**VTable 替换是最脆弱的 hook 形式。槽位错一位不会立刻崩**，
-而是**把消息发到错误的路径上** —— 表现为用户可见的：
+## 第一次提交 PR
 
-```
-"The QQ connection changed. Please restart QQ and try again."
-```
+### 1. 创建分支
 
-> **每次改动（尤其是涉及 protocol / bridge 的改动）都必须做
-> 真实收发消息的端到端验证。**
-
-### 4.3 加一个新 OneBot 动作
-
-**已有的脚手架**：
-
-```
-packages/onebot/src/
-├── action-kit.ts               动作构造工具
-├── action-args-schemas.ts      参数校验
-├── action-result-schemas.ts    返回值校验
-├── action-docs.ts              动作文档
-├── api-handler.ts              ★ 动作分发（要在这里注册）
-└── actions/
-    ├── index.ts                ★ 动作注册表
-    ├── message.ts
-    ├── friend.ts
-    ├── group-admin.ts
-    ├── group-info.ts
-    ├── group-file.ts
-    ├── group-album.ts
-    ├── request.ts
-    ├── info.ts
-    ├── extended.ts
-    ├── qzone.ts / qzone-public.ts
-    ├── system-face.ts
-    ├── stream-download.ts / stream-file.ts
-    └── contact-profile-schema.ts
-```
-
-**步骤**：
-
-```
-① 在合适的 actions/*.ts 里加动作实现
-   （或新建 actions/xxx.ts —— 但见下方警告）
-② 在 actions/index.ts 注册进动作表
-③ 若有参数/返回值校验，在 *-schemas.ts 里补 schema
-④ 若调用新协议，在 packages/protocol/src/ 里加对应的 OIDB 服务
-⑤ 在 action-docs.ts 补文档（可选）
-⑥ npm run build → 部署 → 端到端测试
-```
-
-> ⚠️ **新建文件的警告**：`merge.mjs` 是按 `manifest.json` 的**行号**拼装的。
-> **新建一个 `.ts` 文件不会自动进入产物** ——
-> 你必须**扩展 `manifest.json`** 并**同步平移后续所有 region 的行号**。
->
-> **更省事的做法**：把新动作写进**现有的** `actions/*.ts` 内部
-> （选语义最接近的那个文件）。这样行号只在文件内部变化，
-> **但注意：文件内部增删行同样会让该 region 的长度与 `body_lines` 不符** ——
-> 好在这个字段不参与拼装（只用于校验），所以**只要不改变 region 的起止行号语义即可**。
-> 具体约束见 [build.md §2.4](build.md)。
-
-### 4.4 调试技巧
+请基于 `dev` 创建分支。`main` 是发布指针，只由维护者的 Promote 更新。**目标分支不是 `dev` 的 PR 会被自动关闭**，之后修改目标分支或重新打开 PR 也会触发检查。
 
 ```bash
-# ── 开发模式（固定密码 snowluma-dev，跳过部分鉴权）──
-SNOWLUMA_DEV_MODE=1 SNOWLUMA_DEV_WEBUI=1 node dist/index.mjs
-
-# ── 无 native 模式（在没有 native 产物的平台上跑）──
-SNOWLUMA_DEV_NO_NATIVE=1 node dist/index.mjs
-
-# ── 调日志级别 ──
-SNOWLUMA_LOG_LEVEL=debug SNOWLUMA_LOG_FILE_LEVEL=debug node dist/index.mjs
-
-# ── 实时看日志（SSE）──
-curl -N -H "Authorization: Bearer $TOKEN" http://127.0.0.1:5099/api/logs/stream
-
-# ── 调试 API（★ 等于远程任意动作执行，生产环境应关闭/加鉴权）──
-curl -s -H "Authorization: Bearer $TOKEN" http://127.0.0.1:5099/api/debug/actions
-curl -s -X POST -H "Authorization: Bearer $TOKEN" \
-  http://127.0.0.1:5099/api/debug/invoke \
-  -H 'Content-Type: application/json' \
-  -d '{"action":"get_status","params":{}}'
+git checkout dev
+git pull upstream dev          # 假设你把官方仓库设为 upstream remote
+git checkout -b fix/onebot-mention-encoding
 ```
 
-### 4.5 逆向/分析脚本的注意事项
+分支命名没有强制规则，但建议用 `fix/...`、`feat/...`、`docs/...`、`refactor/...` 这种前缀，便于一眼看出意图。
 
-如果你要分析 `wrapper.node` 或 `.so`，**先读
-[troubleshooting.md T15](../advanced/troubleshooting.md)** —— 那里列了 7 个
-"亲自踩过的坑"，每一条都能让脚本崩掉或把机器搞挂。
+### 2. 写代码
 
-**最关键的三个**：
+- **保持改动聚焦**：一个 PR 只做一件事。顺手发现的其他问题请单独开 issue 或新 PR。
+- **跟随既有风格**：TypeScript 排版以仓库 Prettier 配置为准；普通功能或修复 PR 只格式化涉及的文件，避免混入无关的大规模格式化或重命名。
+- **写测试**：修 bug 时优先写一个能复现该 bug 的测试，确认它会 fail，再让它 pass。新增功能至少补上 happy path 的测试。
+- **不要添加无意义的注释**：标识符已经说清楚的事情不需要再写一遍。注释应当解释"为什么"，而不是"做了什么"。
+
+提交之前请运行与 PR CI 相同的验证入口：
+
+```bash
+pnpm typecheck
+pnpm lint
+pnpm test
+pnpm run build:all
+```
+
+`pnpm test` 会运行所有声明了测试脚本的工作区包；只验证 Core 时可使用
+`pnpm test:core`。CI 会重新执行上述完整检查。
+
+### 3. 提交信息
+
+我们大致遵循 [Conventional Commits](https://www.conventionalcommits.org/zh-hans/v1.0.0/)：
 
 ```
-① 不能把"已定义导出"子集当"全部符号" → 会得出错误结论
-   永远回到 readelf -sW --dyn-syms 原文
+<type>(<scope>): <subject>
 
-② __type_name 存的是 mangled 名（N2nt10MSFServiceE），不是 "MSFService"
-   按字面量搜 → 0 命中
+<body>
+```
 
-③ 所有循环必须加计数上限
-   一次边界写错就能把负载推到 37、内存吃到 2.7 GB
+`type` 常用：`feat` / `fix` / `docs` / `refactor` / `test` / `chore` / `perf`。
+`scope` 常用：`core` / `sdk` / `webui` / `onebot` / `bridge` / `protocol` 等模块名。
+
+示例：
+
+```
+fix(onebot): handle empty mention segments in group messages
+refactor(bridge): extract BridgeInterface as the OneBot-facing seam
+docs: clarify dev environment setup steps
+```
+
+> ⚠️ **请不要**在你的提交信息里使用 `[merge]` 前缀或 `chore(release):` 前缀 —— 这两个前缀是维护者用来把 `main` 指到 `dev` 的，会让你的 PR 行为异常。详见后文 [维护者参考](#维护者参考release--promote)。
+
+### 4. 推送并发起 PR
+
+```bash
+git push origin fix/onebot-mention-encoding
+```
+
+到 GitHub 上发起 PR，**目标分支选 `dev`**。请在 PR 描述里写明：
+
+- 这个 PR 解决什么问题 / 实现什么功能。
+- 主要的实现思路（如果有非显然的取舍）。
+- 测试方式（你跑了什么、怎么验证有效）。
+- 必填的 issue 关联标记，例如 `Refs #123` 或 `Closes #123`；也支持 GitHub 的 `Fixes`、`Resolves` 等关闭关键词。
+
+关联标记必须写在 PR 正文中；HTML 注释、代码示例和引用块不计入。支持 `#123`、`Haizakura/Haizakura#123` 和本仓库 issue 的完整链接，前面均需带上述关键词。
+
+自动检查要求至少一个关联对象是真实的本仓库 issue，先于 PR 创建、仍处于开放状态，并通过现有 issue 模板规则：带有 `bug` / `enhancement` 标签，或属于该规则已有的维护者身份豁免。不存在的编号、另一个 PR、已关闭或模板不合规的 issue 都不算。**所有 PR 都必须满足目标分支和 issue 关联要求，包括维护者与机器人提交的 PR。**
+
+不符合要求的 PR 会收到说明并自动关闭。若已有符合要求的 issue，可修改 PR 后重新打开；若需补建 issue，请先提交 issue，再创建新的 PR。接口故障或限流会让检查失败，不会被当成 PR 违规而自动关闭。
+
+`Refs` 用于关联；`Closes` 等关键词在这里也用于关联检查。由于 PR 目标为 `dev`，合并到 `dev` 本身不会触发 GitHub 针对默认分支的 issue 自动关闭机制。
+
+### 5. Code Review 与合并
+
+- 维护者会在能腾出时间时来 review。如果一周内没有任何回应，欢迎在 PR 里 @ 一下，或者去社群里提醒。
+- review 意见请尽量在同一个 PR 内修改，避免反复关闭重开。
+- 合并方式由维护者决定，通常是 squash merge 到 `dev`。**`main` 由维护者通过 Promote 指到当时的 `dev`**，你不需要操心 `main`。
+
+---
+
+## 风格与约定
+
+### 代码风格
+
+- TypeScript 严格模式，按 `tsconfig.base.json` 配置。
+- TypeScript 使用四空格缩进，控制语句始终带大括号。排版由根目录 [`.prettierrc.json`](./.prettierrc.json) 和独立的本地 [ESLint 格式规则](./eslint.format.config.ts) 管理；普通 `pnpm lint` 负责代码质量检查。
+- 优先用现有抽象，不要为"假想的未来需求"提前抽象。
+- 不要给内部函数加防御性的参数校验，除非是系统边界（用户输入、外部 API）。
+- 不要保留死代码、被注释掉的代码或者 `// TODO` 没有具体上下文的占位。
+
+从仓库根目录运行本地格式化命令：
+
+```bash
+pnpm format                         # 为全部 TS/TSX/MTS/CTS 补大括号、空行并排版
+pnpm format:check                   # 检查上述规则，不修改文件
+
+pnpm exec eslint --config eslint.format.config.ts --fix packages/core/src/index.ts
+pnpm exec prettier --write packages/core/src/index.ts
+```
+
+格式化范围排除 [`.prettierignore`](./.prettierignore) 中的构建产物、生成文件和编译器测试夹具；普通源码与测试都参与格式化。这两个命令供本地使用，不接入 CI。
+
+空行采用保守规则：在语句块前后留空行，保留已有逻辑分段，不强行拆开连续声明或普通调用，也不在每条 `return`、`break` 前插空行；共用同一分支的连续 `case` 标签保持相邻。JSON、YAML 等文件继续使用原有缩进。
+
+编辑器请选择项目本地安装的 Prettier 并读取仓库配置。VS Code 可安装
+`esbenp.prettier-vscode`，将 TypeScript / TypeScript React 的默认格式化器设为
+Prettier，并按需开启保存时格式化。
+
+### 测试
+
+- 单测放在被测代码同包的 `tests/` 或同目录的 `*.test.ts`，按既有风格走。
+- 测试要描述行为，不要测实现细节。`it('should call internal foo')` 这种是反例。
+- 涉及 IO / 时序 / 外部进程的，用现有的 fake/stub 模式，参考 `packages/onebot/tests/` 中的 Bridge 测试替身。
+- PR 自动检查的隔离回归可运行 `pnpm test:workflows`；`pnpm test` 已包含此检查，不需要创建真实 PR 来测试自动关闭。
+
+### 文档
+
+- **主 README 的定位**：根目录 [`README.md`](./README.md) 用于展示项目定位、整体能力、快速开始和文档入口，仅在这些总体信息发生变化时更新。不要因为新增或修复某个具体功能，就在主 README 增加该功能的专门说明。
+- **具体功能的说明位置**：接口用法、配置项、功能限制和排障说明写入对应 package 的 README 或专题文档，优先更新已有文档。用户/贡献者可见的行为变化，仍需同步维护对应文档。
+- SDK 的破坏性变更必须更新 `packages/sdk/CHANGELOG.md` 和 `packages/sdk/VERSIONING.md`。
+
+---
+
+## 报告 Bug / 请求功能
+
+- **Bug 报告**：开 issue，附最小复现步骤、期望行为、实际行为、版本号、运行环境。能附上日志最好。
+- **功能请求**：先描述你想解决的实际场景，再描述你想要的接口。维护者更在意"为什么需要"而不是"具体怎么做"。
+- **安全问题**：请勿公开发 issue，先通过社群私聊联系维护者。
+
+社群入口（见 [README](./README.md)）：
+
+- QQ：[Haizakura-QQ](https://qm.qq.com/q/g3UMLpWALe)
+- Telegram：[Haizakura-TG](https://t.me/napcatqq)
+
+---
+
+## 维护者参考：release & Promote
+
+> 以下内容主要写给具备发版权限的维护者。普通贡献者只需要把 PR 提到 `dev`，不需要关心这一节。
+
+### 分支模型
+
+Haizakura 使用 **`main` + `dev`** 双分支模型：
+
+- **`dev`** — 日常开发分支。所有功能、修复、文档变更都先进入 `dev`。
+- **`main`** — 发布指针，应与某次 Promote 当时的 `dev` 尖端是**同一个提交**。不要直接 push，也不要往 `main` 开 PR（CI 会拒）。
+- **`native/auto-update-*`** — 由 `Haizakura Bot` 自动创建的原生产物更新分支（来自 `HaizakuraNative`，不需要手动维护）。
+
+### 把 `main` 指到 `dev`
+
+工作流 `.github/workflows/promote-dev-to-main.yml` 以 `Haizakura Bot` 身份把 `main` 指到当前 `dev` 尖端，**不再开 merge PR**。`main` 上若有 `dev` 还没有的独有改动，Promote 会失败，需要先把那些改动收回 `dev`。
+
+推到 `dev` 仍会跑 `dev-build.yml`。Promote **不等**那组检查；发版请用下面的 `pnpm release`，它会在本地先跑完整 CI。
+
+#### 1. 提交信息前缀（推荐日常使用）
+
+向 `dev` push 一个提交，提交信息**以**以下任一前缀**开头**即触发（不区分大小写）：
+
+- `[merge]` — 例如 `[merge] fix: hotfix for OneBot mention`
+- `chore(release):` — 例如 `chore(release): v1.7.0`，符合 conventional commits 的发版习惯。**只许用在真正的版本 bump**，不要写进普通 CI / 工具提交。
+
+> 是**前缀**匹配，不是任意位置。`fix: something [merge]` 不会触发，必须把 `[merge]` 写在最前面。
+
+#### 2. 推送 `chore.*` Tag
+
+任何符合 `chore.*` 的 tag（如 `chore.merge-20240509`、`chore.promote-v1.7.0`）被推送时也会触发：
+
+- `chore.*` → 仅触发 `promote-dev-to-main.yml`（把 `main` 指到 `dev`）
+- `v*` → 仅触发 `release.yml`（构建发布产物）
+
+推荐流程：用 `pnpm release`（或先 Promote，再确认 `origin/main` 已等于 `dev` 尖端）之后，在 `main` 上打 `v*` tag。这样 `release.yml` 始终基于当时的 `main` HEAD 构建。
+
+#### 3. 手动触发
+
+打开仓库 Actions 页面 → `Promote Dev to Main` → `Run workflow`。没有 merge 策略选项；跑起来就是一次指针更新。
+
+### 不要给 `main` 套「必须走 PR」
+
+Promote 不通过 PR 更新 `main`。如果给 `main` 打开 **Require a pull request before merging** 或禁止更新引用，Promote 会失效。
+
+可以限制删除 `main`。外来 PR 必须打 `dev`；打到 `main` 的 PR 会被 `main-pr-target-guard.yml` 拒绝。
+
+本地若已经 checkout 过旧的 `main`，Promote 之后可能无法快进，对齐 `origin/main` 即可。
+
+### 必需的 Secrets
+
+`promote-dev-to-main.yml` 复用 `HaizakuraNative/build-native.yml` 同一个 GitHub App。请确认 Haizakura 仓库（或 organization）级别已经配置：
+
+- `SNOWLUMA_BOT_APP_ID` — 数字类型的 App ID。
+- `SNOWLUMA_BOT_PRIVATE_KEY` — 该 App 的 PEM 私钥。
+
+App 必须在本仓库已安装，且授予 **Contents: Read+Write**。
+
+### 本地工作流速查（维护者）
+
+```bash
+pnpm release 1.7.0
+
+git commit -m "chore(release): v1.7.0"     # 或 "[merge] fix: hotfix"
+git push                                    # → 触发 promote-dev-to-main
+
+git tag chore.merge-20240509
+git push origin chore.merge-20240509        # → 触发 promote-dev-to-main
+
+git fetch origin
+git switch main
+git merge --ff-only origin/main             # 对不齐就 reset 到 origin/main
+git tag v1.7.0
+git push origin v1.7.0                      # → 仅触发 release.yml
 ```
 
 ---
 
-## 5. 接手必做项（按优先级）
+## 还有问题？
 
-| # | 事项 | 位置 | 为什么必须做 |
-|---|---|---|---|
-| **1** | **改自动更新源** | `packages/core/src/update/sources.ts` | 上游 `api.github.com/repos/SnowLuma/SnowLuma` **已删库，必然 404** |
-| **2** | **归档版本基线** | 保留 `wrapper.node` 的 md5 / build-id + native 产物 sha256 | 出问题时唯一能回退的参照系 |
-| **3** | **做 `dump-vtable.py`** | 新工具 | 把 RTTI 分析机械化 → 适配从"逆向工程"变成"跑脚本看 diff" |
-| **4** | **钉死 QQ 版本** | 部署策略 | 别自动升级，等确认兼容性 |
-| **5** | **检查 hook 健康度** | `grep -c unresolved` 日志 | 0 = 健康 |
+- 看一下已有的 issue 和 PR，可能你的问题已经被讨论过。
+- 去社群问一句（QQ / TG 链接见上方）。
+- 有对应 issue 后，如果只是想确认"我这么改 OK 吗"，欢迎开 draft PR，把代码亮出来再讨论。
 
-**第 3 项的工作量估算**（1 名熟悉 AArch64 + C++ ABI 的工程师）：
+感谢你愿意花时间贡献 Haizakura —— 这个项目能走多远，取决于你们每一个人。❄️
 
-| 阶段 | 内容 | 人日 |
-|---|---|---|
-| P0 | 复现离线解析器（Python，跑在 `wrapper.node` 上出 vtable 表） | **1–2 天** |
-| P1 | 进程/模块定位 + ELF 解析 + 重定位表 | 3–5 天 |
-| P2 | 模块身份校验（build-id + 磁盘/内存比对） | 1–2 天 |
-| P3 | RTTI 链（含 `__vmi_class_type_info` 布局） | 3–5 天 |
-| P4 | 锚点/函数名反查（指令解码器约 200 行） | 2–4 天 |
-| P5 | VTable 替换 + 一致性校验 + 回滚 | 3–5 天 |
-| P6 | 与 `.node` 的 `RuntimeTargets` 对接 | 2–3 天 |
-| P7 | 真机验证 + 线程安全 | 5–10 天 |
-| | **从零重写 `.so` 总计** | **约 20–36 人日 ≈ 1–1.5 人月** |
-| | **★ 只做「离线解析器 + 适配脚本」（P0+P3+P4）** | **约 5–10 人日** ← **强烈建议先做这个** |
+## 贡献的许可 / Licensing of contributions
 
-> **重要建议：不要一上来重写 `.so`。**
-> 先做 P0 —— 它就能覆盖难度矩阵里**最可能发生的**情况 2/3/4，
-> 成本 5–10 人日而不是 1 人月。
+当你提交 PR，即表示你的贡献按本项目的 `LICENSE`（Haizakura 源码可见非商业许可）授权，且你声明你有权这么做、贡献为你的原创（若含第三方材料，请在 PR 中显著标注其来源与许可证）。
 
----
+**你保留对自己贡献的版权**，同时**授予 Haizakura 一项永久、全球、免费、不可撤销、可再许可（sublicensable）的许可**，可使用、复制、修改、分发你的贡献并基于其制作衍生作品，**包括以本项目非商业许可之外的其他条款（含商业条款）再许可与分发**——以便项目方无需逐一回头征求同意，即可在获授权的商业场景中使用社区贡献。
 
-## 6. 已知限制
+By opening a PR, you agree your contribution is licensed under the project's `LICENSE`; you represent that you have the right to submit it and that it is your own work (clearly identify any third-party material in the PR).
 
-### 6.1 ⚠️ WebUI 前端无源码
-
-| 项 | 情况 |
-|---|---|
-| **现状** | 只有构建产物 `client/`（`index.html` 6,210 B + `assets/` + `logo.png` + `icons.svg`） |
-| **证据** | bundle 内 **0 处** `<!DOCTYPE html>` / `ReactDOM` / `createRoot` / `jsx(` |
-| **加载方式** | `packages/core/src/webui/static-frontend.ts` 从磁盘读 `client/index.html` |
-| **找不到时** | `"WebUI client bundle not found. Run \`pnpm --filter webui build\`"` |
-| **原始构建** | 独立的 **Vite** 构建（dev server 端口 **:5178**） |
-| **影响** | **能改配置，不能改组件** |
-| **可行替代** | 改 `ui.json` / `appearance.customCss` / `POST /api/ui`（外观与布局） |
-| **要改组件** | 需从零重写前端，或找上游 monorepo 残留 |
-
-**从根 `package.json` 能看出的缺失包**：
-
-| 包名 | 在 bundle 里？ | 作用 |
-|---|---|---|
-| `@snowluma/core` | ✅ 就是本 bundle | 运行时主体 |
-| `@snowluma/common` | ✅ | 公共库 |
-| `webui` | ❌ 只有后端 | WebUI **前端**（React + Vite） |
-| `@snowluma/sdk` | ❌ | 客户端 SDK |
-| `@snowluma/ui` | ❌ | 共享 UI 组件 |
-| `@snowluma/mcp` | ❌ | MCP 服务端 |
-
-### 6.2 ⚠️ native 层是黑箱
-
-| 组件 | 形态 | 可维护性 | 说明 |
-|---|---|---|---|
-| `snowluma-linux-arm64.node`（319 KB） | ELF N-API，**strip 但仍可读** | ★★★☆☆ **半黑箱** | dynsym 只剩 `napi_register_module_v1`；但**字符串表极丰富**（~500 条有意义串，等于把流程写出来了）+ **导入符号表完整**。**有效但不可改** |
-| `snowluma-linux-arm64.so`（335 KB） | ELF，**strip 但导出 6 符号** | ★★☆☆☆ **黑箱（有 ABI 契约）** | 6 个导出是稳定 ABI。**内部逻辑不可改**；但它只是"后端 stub"，**理论上可整体重写** |
-
-**能否重写 `.so`？** —— 这是最该评估的战略问题：
-
-| 方案 | 可行性 | 说明 |
-|---|---|---|
-| **A. 重写 hook 后端**，保留 bundle | 🟡 理论可行，工作量大 | ABI 只有 6 个函数（契约极简），但要重写内部（MSF VTable 解析 + 管道服务）才是真正的工作量 |
-| **B. 换成 inline hook 框架**（Dobby / frida-gum / plthook） | 🟡 可行 | 但**要重新找到"hook 哪里"** —— 这是难点，不是框架问题。且 VTable 替换比 inline hook **更稳**（不破坏代码段、不需 mprotect 代码页、对 anti-tamper 友好）—— **现有选择是对的** |
-| **C. 借鉴 NapCat / Lagrange.Core 重做** | 🔴 大工程 | NapCat 走的是"官方 Electron 客户端 + 自己的协议实现"，与"寄生官方会话"路线**不同**。参考价值在上层协议实现（bundle 里的 `protocol/` 已很完整） |
-| **D. 纯运维，不碰 native** | ✅ **最现实** | 锁定一个**已知可用**的 QQ 版本，不升级。只在上游 bundle 上做改进 |
-
-> **强烈建议：接手初期选 D。**
-> `package.json` 的 `description` 明确说
-> *"There are intentionally NO runtime npm dependencies; production artifacts are self-contained"*
-> —— 上游很重视"可复现的单体产物"。
-> **把 QQ 版本 + 运行时版本一起钉死**，优先修业务层，**把 native 层当不动产对待**。
-
-### 6.3 ⚠️ 仅 arm64
-
-**只有 Linux arm64 有构建产物**（5 个 native 文件全是 arm64）。
-x86_64 / Windows / macOS 有代码路径但无产物。
-
-> 实测：在 x64 上跑会报
-> `No hook native addon found for linux-x64`。
-> **换架构需要重写全部 5 个 native 产物** —— 极高工作量，不推荐。
-
-### 6.4 ⚠️ TS 类型已擦除 + import/export 边缺失
-
-**类型擦除**（TS → JS 编译的必然结果）：
-
-| | 状态 |
-|---|---|
-| ✅ **保留** | 变量/函数名、类结构、注释、字符串、逻辑 |
-| ❌ **丢失** | `interface` / `type` / 泛型参数、参数与返回类型、`private` 等修饰符、`async` 之外的 TS 特性、枚举（编译成了对象字面量） |
-
-所以每个还原文件都加了 `// @ts-nocheck` 与说明头 ——
-**它们是精确的 JS，不是原版 TS。**
-
-**import/export 边缺失**（更严重的限制）：
-
-```
-原 bundle：0 个 export，所有 import 被提升到文件顶部
-→ 模块间依赖关系【不可恢复】
-
-后果：packages/*/src/*.ts 是【扁平化的 fragment】
-      · 每个文件能单独通过 node --check ✅
-      · 但互相看不见，编译不了 ❌
-```
-
-**这是"能跑"与"能改"之间最大的缺口。**
-
-**重建路线**（进阶，按包逐步迁移）：
-
-```
-① 重建 import 图
-   · 从 init_xxx() 调用序反推（已验证：15 个 init_* 定义与 15 个调用完全配对）
-   · 从标识符命名规律反推（rolldown 给重名符号加 $1/$2，如 fs$1、logger$2）
-② 给每个文件补 export
-③ 替换 init_xxx() 为真正的 import 副作用
-④ 用 npm run build:rolldown 试打包，比对行为
-
-迁移顺序（依赖从少到多）：
-common(20) → sqlite(3) → websocket(5) → bridge(17)
-  → onebot(77) → protocol(180) → core(64)
-
-★ 每迁完一个包就跑一次重建做回归
-```
-
-### 6.5 ⚠️ 构建期工具链缺失
-
-以下**都不在 bundle 里，无法还原**：
-
-```
-tools/bump-version.mjs  tools/release.mjs  tools/ci-check.mjs
-tools/check-release-layout.mjs  tools/coverage.mjs
-.github/scripts/*.test.cjs
-eslint / prettier 配置文件
-LICENSE / EULA.md / PRIVACY.md
-```
-
-> 根 `package.json` 的 `scripts` 字段是唯一线索。
-> **替代方案**：`LICENSE.md` / `EULA.md` / `PRIVACY.md` 可从
-> 归档包 `archive/snowluma-archive-core.tgz` 里取到（实测存在）。
-
----
-
-## 7. 开源许可注意事项
-
-> ⚠️ **重要提示：许可状态不明确。以下仅为事实陈述，不构成法律意见。
-> 使用者请自行判断并承担相应风险。**
-
-### 7.1 现状
-
-| 项 | 状态 |
-|---|---|
-| 上游仓库 | **已删库**（`github.com/SnowLuma/SnowLuma`） |
-| `package.json` 的 `license` 字段 | `"SEE LICENSE IN LICENSE"` |
-| **`LICENSE` 文件本身** | ⚠️ **未随任何素材提供** —— 已随上游删库丢失 |
-| `EULA.md` | ✅ 已归档（12,290 B） |
-| `PRIVACY.md` | ✅ 已归档（10,510 B） |
-| 运行时行为 | 启动时会检查 `EULA.md` / `PRIVACY.md`，缺失则警告 |
-
-**关键问题**：`EULA.md` 多处**引用 `LICENSE`**（"依 `LICENSE` 授权"、
-"以 `LICENSE` 为准"），**但 `LICENSE` 的内容我们拿不到**。
-⇒ **完整的许可条款无法确定。**
-
-### 7.2 EULA 里与本项目直接相关的条款
-
-**第 5 条「专有组件」** —— 这是最需要注意的一条：
-
-> **5.1** 本软件可能包含或依赖**专有组件**，包括但不限于原生附加组件
-> （如 `snowluma-*.node`、`snowluma-*.dll`、`snowluma-*.so`），
-> 以及其中可能包含的授权、激活或技术保护措施。
->
-> **5.2** 此类专有组件**不属于 `LICENSE` 所授权的源代码与资源**，
-> 仅以随本软件提供的**预编译形式**按本条款授权使用；
-> 本协议**不授予其源代码权利**。
->
-> **5.3** 除适用法律强制性规定明确允许外，
-> 您**不得对专有组件进行逆向工程、反编译或反汇编**，
-> 亦不得规避、破解或绕过其授权或激活机制。
->
-> **5.4** 除事先取得著作权人的书面授权外，您仅可为 `LICENSE` 允许的
-> **非商业用途**，以专有组件随本软件提供的**形式**运行该组件；
-> 不得复制、修改、单独再分发或再许可该组件。
-> **将其并入第三方安装包或 Docker 镜像、通过自动化脚本部署，
-> 或者将其用于任何商业用途，均须事先取得书面授权。**
-
-**第 2 条「授权范围」**：
-
-> **2.1** 本软件的源代码与资源依据随附的 `LICENSE` ——
-> **SnowLuma 源码可见非商业许可（SnowLuma Source-Available Non-Commercial License）** —— 授权。
->
-> **2.2** `LICENSE` 仅授予其中明确列明的权利，包括**查看、学习、
-> 个人或其他非商业使用、非商业自托管**，以及在规定条件下进行修改或再分发。
-> **任何商业使用，以及公开发布修改版或衍生版，均须事先取得著作权人的书面授权。**
->
-> **2.4** 专有组件（见第 5 条）不属于源码许可范围。
-
-**第 3 条「免责声明」**（要点）：
-
-> **3.1** 本软件是**独立的第三方互操作性项目**，
-> 与腾讯公司及 QQ **无任何隶属、合作、授权或背书关系**。
->
-> **3.2** 除非事先取得书面商业授权，本软件仅供 `LICENSE` 允许的
-> **个人或其他非商业用途**使用。
->
-> **3.4** 按"**现状（AS-IS）**"及"**现有（AS-AVAILABLE）**"提供，不附带任何担保。
->
-> **3.5** 在适用法律允许的最大范围内，对于因使用或无法使用本软件而导致的
-> 任何损害（**包括但不限于账号封禁或限制、数据丢失**），
-> **SnowLumaDevs 概不承担责任**。
->
-> **3.6** 您理解，使用非官方协议工具接入第三方平台
-> **可能违反该平台条款并导致账号风险**，您**自愿承担**该等风险。
-
-### 7.3 ⚠️ 事实层面的张力（如实标注）
-
-**需要使用者自行判断的事实**：
-
-```
-① 本项目的接手维护工作，其前提是【对 native 组件做了逆向分析】
-   —— 这与 EULA §5.3 的表述存在张力。
-
-② 实际部署形态是【Docker 镜像 / 自动化脚本部署】
-   —— 这与 EULA §5.4 的表述存在张力。
-
-③ EULA 提到的 "LICENSE" 文件本身已随上游删库丢失，
-   ⇒ 完整的许可条款【无法确定】，无法据此判断"被授权了什么"。
-
-④ EULA §2.2 保留"规定条件下进行修改或再分发"的权利，
-   但具体条件在被引用的 LICENSE 里 —— 而它不可得。
-```
-
-> **本文档不对上述张力做法律判断。**
-> **立场声明**：本项目以**接手维护、非商业用途**为前提推进。
-> **使用者需自行判断合规性并承担风险。**
-> 如需商业使用或公开发布衍生版，**应设法联系原著作权人取得书面授权**。
-
-### 7.4 实践中的注意事项
-
-| 事项 | 建议 |
-|---|---|
-| **凭据** | **绝不入库** —— 密码、`accessToken`、`webui.json`、`machine-id`、`vnc-password` 全部排除 |
-| **`onebot.json` 的 token** | 明文存储（644 权限）→ 生产环境改强随机 + 权限收紧到 600 |
-| **WebUI 密码** | 必须 ≥10 位 + 大小写 + 数字 + 特殊符号（见 [troubleshooting.md T8](../advanced/troubleshooting.md)） |
-| **`/api/debug/invoke`** | 等于远程任意动作执行 → 暴露公网时务必启用 TOTP + 强密码 |
-| **`sqlcipher.ts`** | 敏感代码（能解密用户本地库）→ 处理时遵守合规 |
-| **`webuiHost: 0.0.0.0` + TLS 关闭** | 建议改 `127.0.0.1` + 反代，或启用 TLS |
-| **上游归属** | EULA/PRIVACY 里引用了原项目名；改名（→ Haizakura）**不改变许可约束** |
-
-### 7.5 归档资产说明
-
-```
-archive/snowluma-archive-core.tgz     原始二进制资产（含 sha256 清单）
-  ├── index.mjs                       12 MB bundle
-  ├── EULA.md / PRIVACY.md            ✅ 许可文本
-  ├── native/                         5 个 native 产物 + sqlite LICENSE.sqlite3
-  ├── client/                         WebUI 前端构建产物
-  └── release.json / launcher.sh / check-node-version.cjs
-```
-
-> **建议**：这个归档是**上游删库后唯一的来源**，请**多地备份**。
-
----
-
-## 8. 尚未查清的部分（诚实标注）
-
-| 项 | 状态 | 为什么值得知道 |
-|---|---|---|
-| **管道的完整 op 码表** | **【未查清】** | 定义在 `.so` 内。已知 `op=17`（登录身份）、`op=1`（binary）、`status=1`（私聊上报可用）。要完整还原需逐函数反汇编 `.so` 的 `0xcf98` 一族（约 20 个内部函数），或抓包 |
-| **`RuntimeTargets` 的完整内存布局（字段顺序/大小）** | **【未查清】** | ★ **适配工作最高优先级的待办**。已知字段名，但没 dump 出真实结构体数组 |
-| **`nnphook` 具体 hook 的 VTable 槽位索引** | **【未查清】** | 需把 `.so` 的 `wrapperBase` 解析逻辑逐条反汇编 |
-| **4 个锚点名在 `wrapper.node` 里字节级 0 命中** | **【未查清】** | `sendSsoInternal` / `msfDidRecvResponseData` / `msfGetStatus` / `selfInfoOnLoginSuccess` —— 它们是**跨版本 ABI 指纹**，但**取值来源未定**（可能是别的平台构建或更老/更新版本的特征名） |
-| **`xrefFileOffsets` / `xrefRuntimeAddresses` 的确切语义** | **【强推断】** | 疑为"静态指纹 + 动态地址"配对，用于版本错配/内存篡改的双向校验 |
-| **`msfCoreCallbackOffset` 的精确含义** | **【强推断】** | 强烈倾向"vtable 内字节偏移 0x178"，但没有直接读到赋值点 |
-| **`.eh_frame` / `exceptionTable` 的用途** | **【推断】** | 疑为注册 C++ 异常展开表，让 hook 函数内抛异常不崩 QQ |
-| **`orcexec` 文件名构造点** | **【推断】** | 前缀 + 6 位随机；字符串不在两个二进制里，**疑在注入用的 stub shellcode 中** |
-| **PID 80 / 105 双进程的来源** | **【未查清】** | 是 fork 的子进程还是 `ps` 的呈现；不影响维护 |
-| **`../proton/src` 是什么** | **【未查清】** | 只有 1 个 region，名字被截断 |
-| **`QQ_RECV_HEARTBEAT_CMD`** | **【未查清】** | 疑似 QQ 收包心跳的命令名，可能与登录保持有关 |
-| **`vnc-password`（root, 600）** | **【未查清】** | 与运行时逻辑无关，疑为容器内 noVNC 服务 |
-| **WebUI 前端源码** | **缺失** | 只有构建产物；可从 `assets/` chunk 名推断组件结构 |
-| **日志级别 `success`** | 已知但非标准 | `SNOWLUMA_LOG_FILE_LEVEL` 支持 `success`（非 pino 标准）→ **日志层是自研的** |
-| **`.so` 的 `0xfd4c` 内部 15+ 个 `0x36xxx` 子函数** | **【未查清】** | 只按字符串归了类；要完全重写 `.so` 需补齐 |
-
-### 8.1 方法名表的置信度说明
-
-| 槽位 | 置信度 | 依据 |
-|---|---|---|
-| **`SessionInit`（v[19]）** | **【确证】** | 锚点串 xref site **精确落在** `.eh_frame_hdr` 解出的函数边界内 —— 闭环 |
-| `Initialize`（v[17]/v[18]） | 【确证】 | 同上 |
-| **其余槽位** | **【强推断】** | 来源是"该函数体内引用的 `Class::method` 字符串"，但 **0x1400 字节扫描窗可能跨入相邻函数**，个别条目可能偏移一位 |
-
-> **做版本适配时的正确做法**：
-> **不要依赖方法名表**（它只是"辅助理解"），
-> 而要依赖 **"锚点串 → xref site 精确落在哪个 vtable 槽位函数内"** 的判定 —— **那是确定性的**。
-
----
-
-## 9. 相关文档
-
-| 想了解 | 去看 |
-|---|---|
-| 它到底怎么工作的 | [architecture.md](../advanced/architecture.md) |
-| 支持哪些版本 / 依赖什么 | [compatibility.md](../advanced/compatibility.md) |
-| 出问题怎么排查 | [troubleshooting.md](../advanced/troubleshooting.md) |
-| 怎么从源码构建 | [build.md](build.md) |
-
----
-
-*本文档的"修改指南"综合了源码 region 路径、`bridge/apis` 目录结构与
-`RESTORE-REPORT.md` 的映射表，并已与还原工程的实际文件列表核对。
-许可部分为 EULA 条款的**原文摘录**，不对其做法律解释。*
+**You retain copyright in your contribution** and additionally grant Haizakura a **perpetual, worldwide, royalty-free, irrevocable, sublicensable license** to use, reproduce, modify, distribute, and create derivative works of your contribution, **including the right to relicense and distribute it under terms other than this project's non-commercial license (including commercial terms)** — so the project can use community contributions in authorized commercial scenarios without seeking each contributor's consent again.
