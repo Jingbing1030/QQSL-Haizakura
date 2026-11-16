@@ -5,3 +5,7 @@ index-hz.mjs
 # Python 缓存
 __pycache__/
 *.pyc
+
+# 子代理工作区的临时参考物（编译产物与源文档副本，可随时重建）
+webui-work/reference/
+webui-work/docs-source/
