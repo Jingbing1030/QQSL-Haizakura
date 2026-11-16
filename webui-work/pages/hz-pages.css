@@ -1,0 +1,383 @@
+/* ===========================================================================
+ * hz-pages.css —— 新组件样式表
+ *
+ * 设计原则：**完全沿用现有 WebUI 的视觉体系**。
+ *   · 颜色/圆角/字体全部取自现有设计令牌（--background/--foreground/--card/
+ *     --border/--primary/--muted-foreground/--radius/--font-sans …）
+ *   · 不新增任何 CSS 变量，不引入第二套配色
+ *   · 因此自动跟随用户的主题切换（浅色/深色/OLED）、调色板与强调色设置
+ *
+ * 若某个令牌在旧版 WebUI 里不存在，用 var(x, fallback) 给一个中性兜底，
+ * 不硬编码具体颜色。
+ * =========================================================================== */
+
+.hz-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+  color: var(--foreground, #1a1a1a);
+  font-family: var(--font-sans, system-ui, sans-serif);
+}
+
+/* ── 页头 ───────────────────────────────────────────────────── */
+
+.hz-page__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.hz-page__title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: var(--font-weight-semibold, 600);
+  line-height: var(--leading-snug, 1.375);
+}
+
+.hz-page__hint,
+.hz-page__subtitle {
+  margin: .25rem 0 0;
+  font-size: .8125rem;
+  color: var(--muted-foreground, #6b7280);
+}
+
+.hz-page__actions { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+
+/* ── 卡片 ───────────────────────────────────────────────────── */
+
+.hz-card {
+  background: var(--card, #fff);
+  color: var(--card-foreground, var(--foreground, #1a1a1a));
+  border: 1px solid var(--border, rgba(0, 0, 0, .1));
+  border-radius: var(--radius, .75rem);
+  overflow: hidden;
+}
+
+.hz-card--stretch { height: 100%; }
+
+.hz-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  padding: .75rem 1rem;
+  border-bottom: 1px solid var(--border, rgba(0, 0, 0, .08));
+}
+
+.hz-card__titles { display: flex; flex-direction: column; min-width: 0; }
+.hz-card__title { font-size: .875rem; font-weight: var(--font-weight-medium, 500); }
+.hz-card__desc,
+.hz-card__hint { font-size: .75rem; color: var(--muted-foreground, #6b7280); }
+.hz-card__actions { display: flex; gap: .375rem; align-items: center; }
+.hz-card__body { padding: 1rem; }
+
+/* ── 栅格 ───────────────────────────────────────────────────── */
+
+.hz-grid {
+  display: grid;
+  gap: .75rem;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+}
+
+.hz-stack { display: flex; flex-direction: column; gap: .75rem; }
+
+.hz-row { display: flex; align-items: center; gap: .5rem; }
+.hz-row--stack { flex-direction: column; align-items: stretch; }
+.hz-row--between { justify-content: space-between; }
+
+/* ── 指标 ───────────────────────────────────────────────────── */
+
+.hz-stat { display: flex; flex-direction: column; gap: .25rem; }
+.hz-stat__label { font-size: .75rem; color: var(--muted-foreground, #6b7280); }
+.hz-stat__value {
+  font-size: 1.5rem;
+  font-weight: var(--font-weight-semibold, 600);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+.hz-stat__unit { font-size: .875rem; font-weight: 400; color: var(--muted-foreground, #6b7280); margin-left: .125rem; }
+.hz-stat__hint { font-size: .6875rem; color: var(--muted-foreground, #6b7280); }
+
+/* ── 徽章 ───────────────────────────────────────────────────── */
+
+.hz-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+  padding: .125rem .5rem;
+  border-radius: calc(var(--radius, .75rem) * .6);
+  font-size: .6875rem;
+  font-weight: var(--font-weight-medium, 500);
+  line-height: 1.5;
+  white-space: nowrap;
+  /* 用 currentColor 混合，自动适配任何调色板 */
+  background: color-mix(in oklab, currentColor 12%, transparent);
+  border: 1px solid color-mix(in oklab, currentColor 24%, transparent);
+}
+
+.hz-badge--success { color: var(--success, oklch(65% .15 150)); }
+.hz-badge--warning { color: var(--warning, oklch(70% .15 80)); }
+.hz-badge--danger  { color: var(--destructive, oklch(60% .22 27)); }
+.hz-badge--neutral { color: var(--muted-foreground, #6b7280); }
+.hz-badge--info    { color: var(--primary, oklch(57% .14 300)); }
+
+/* ── 按钮 ───────────────────────────────────────────────────── */
+
+.hz-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .375rem;
+  padding: .375rem .75rem;
+  border-radius: calc(var(--radius, .75rem) * .6);
+  border: 1px solid transparent;
+  font-size: .8125rem;
+  font-weight: var(--font-weight-medium, 500);
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color .15s var(--ease-out, ease-out), opacity .15s;
+  background: transparent;
+  color: inherit;
+}
+
+.hz-btn:disabled { opacity: .5; cursor: not-allowed; }
+.hz-btn--primary { background: var(--primary, oklch(57% .14 300)); color: var(--primary-foreground, #fff); }
+.hz-btn--primary:hover:not(:disabled) { opacity: .9; }
+.hz-btn--outline { border-color: var(--border, rgba(0, 0, 0, .15)); }
+.hz-btn--outline:hover:not(:disabled) { background: var(--accent, rgba(0, 0, 0, .05)); }
+.hz-btn--ghost:hover:not(:disabled) { background: var(--accent, rgba(0, 0, 0, .05)); }
+.hz-btn--danger { background: var(--destructive, oklch(60% .22 27)); color: #fff; }
+.hz-btn--sm { padding: .25rem .5rem; font-size: .75rem; }
+
+.hz-btn-group { display: inline-flex; border: 1px solid var(--border, rgba(0,0,0,.15)); border-radius: calc(var(--radius, .75rem) * .6); overflow: hidden; }
+.hz-btn-group .hz-btn { border-radius: 0; border: 0; }
+.hz-btn-group .hz-btn + .hz-btn { border-left: 1px solid var(--border, rgba(0,0,0,.1)); }
+.hz-btn-group .hz-btn[aria-pressed="true"] { background: var(--accent, rgba(0,0,0,.06)); }
+
+/* ── 表格 ───────────────────────────────────────────────────── */
+
+.hz-table-wrap { overflow-x: auto; }
+
+.hz-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .8125rem;
+}
+
+.hz-table th {
+  text-align: left;
+  font-weight: var(--font-weight-medium, 500);
+  color: var(--muted-foreground, #6b7280);
+  padding: .5rem .625rem;
+  border-bottom: 1px solid var(--border, rgba(0,0,0,.1));
+  white-space: nowrap;
+}
+
+.hz-table td {
+  padding: .5rem .625rem;
+  border-bottom: 1px solid var(--border, rgba(0,0,0,.06));
+  vertical-align: middle;
+}
+
+.hz-table tbody tr:last-child td { border-bottom: 0; }
+.hz-table tbody tr:hover { background: var(--accent, rgba(0,0,0,.03)); }
+
+/* ── 状态视图 ───────────────────────────────────────────────── */
+
+.hz-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--muted-foreground, #6b7280);
+  font-size: .8125rem;
+}
+
+.hz-state__title { font-weight: var(--font-weight-medium, 500); color: var(--foreground, #1a1a1a); }
+.hz-state__hint { font-size: .75rem; max-width: 32rem; }
+.hz-state--error { color: var(--destructive, oklch(60% .22 27)); }
+.hz-state--error .hz-state__title { color: var(--destructive, oklch(60% .22 27)); }
+
+/* 错误条：保留旧数据时挂在卡片顶部 */
+.hz-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: .5rem;
+  padding: .5rem .75rem;
+  font-size: .75rem;
+  border-radius: calc(var(--radius, .75rem) * .6);
+  background: color-mix(in oklab, currentColor 10%, transparent);
+  border: 1px solid color-mix(in oklab, currentColor 22%, transparent);
+}
+.hz-banner--error { color: var(--destructive, oklch(60% .22 27)); }
+.hz-banner--warn { color: var(--warning, oklch(70% .15 80)); }
+
+/* ── 加载指示 ───────────────────────────────────────────────── */
+
+.hz-spinner {
+  width: 1rem; height: 1rem;
+  border: 2px solid color-mix(in oklab, currentColor 25%, transparent);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: hz-spin .6s linear infinite;
+  display: inline-block;
+}
+@keyframes hz-spin { to { transform: rotate(360deg); } }
+
+.hz-skeleton {
+  background: color-mix(in oklab, currentColor 10%, transparent);
+  border-radius: calc(var(--radius, .75rem) * .5);
+  animation: hz-pulse 1.5s ease-in-out infinite;
+  min-height: 1rem;
+}
+@keyframes hz-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+
+/* ── 进度条 ─────────────────────────────────────────────────── */
+
+.hz-progress {
+  height: .375rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, currentColor 15%, transparent);
+  overflow: hidden;
+}
+.hz-progress__bar {
+  height: 100%;
+  background: var(--primary, oklch(57% .14 300));
+  transition: width .3s var(--ease-out, ease-out);
+}
+
+/* ── 开关 ───────────────────────────────────────────────────── */
+
+.hz-toggle {
+  position: relative;
+  width: 2.25rem; height: 1.25rem;
+  border-radius: 999px;
+  border: 1px solid var(--border, rgba(0,0,0,.15));
+  background: color-mix(in oklab, currentColor 12%, transparent);
+  cursor: pointer;
+  padding: 0;
+  transition: background-color .15s;
+}
+.hz-toggle[aria-checked="true"] { background: var(--primary, oklch(57% .14 300)); border-color: transparent; }
+.hz-toggle::after {
+  content: "";
+  position: absolute;
+  top: 50%; left: .125rem;
+  width: .875rem; height: .875rem;
+  border-radius: 50%;
+  background: var(--background, #fff);
+  transform: translateY(-50%);
+  transition: left .15s var(--ease-out, ease-out);
+}
+.hz-toggle[aria-checked="true"]::after { left: calc(100% - 1rem); }
+
+/* ── 键盘值列表 ─────────────────────────────────────────────── */
+
+.hz-kv { display: grid; grid-template-columns: auto 1fr; gap: .25rem .75rem; font-size: .8125rem; }
+.hz-kv__k { color: var(--muted-foreground, #6b7280); white-space: nowrap; }
+.hz-kv__v { font-variant-numeric: tabular-nums; }
+
+/* ── 头像 ───────────────────────────────────────────────────── */
+
+.hz-avatar {
+  width: 1.75rem; height: 1.75rem;
+  border-radius: 50%;
+  background: color-mix(in oklab, currentColor 15%, transparent);
+  display: inline-flex;
+  align-items: center; justify-content: center;
+  font-size: .6875rem;
+  font-weight: var(--font-weight-medium, 500);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+/* ── 输入 ───────────────────────────────────────────────────── */
+
+.hz-input,
+.hz-select,
+.hz-textarea {
+  width: 100%;
+  padding: .375rem .625rem;
+  font-size: .8125rem;
+  font-family: inherit;
+  color: var(--foreground, #1a1a1a);
+  background: var(--background, #fff);
+  border: 1px solid var(--border, rgba(0,0,0,.15));
+  border-radius: calc(var(--radius, .75rem) * .6);
+}
+.hz-input:focus,
+.hz-select:focus,
+.hz-textarea:focus { outline: 2px solid var(--ring, var(--primary)); outline-offset: 1px; }
+.hz-textarea { min-height: 4rem; font-family: var(--font-mono, monospace); resize: vertical; }
+
+/* ── 日志视图 ───────────────────────────────────────────────── */
+
+.hz-logs {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: .75rem;
+  line-height: 1.5;
+  overflow-y: auto;
+  background: var(--background, #fff);
+  border-radius: calc(var(--radius, .75rem) * .6);
+}
+.hz-logs__line { display: flex; gap: .5rem; padding: .0625rem .5rem; white-space: pre-wrap; word-break: break-word; }
+.hz-logs__line:hover { background: var(--accent, rgba(0,0,0,.03)); }
+.hz-logs__time { color: var(--muted-foreground, #6b7280); flex-shrink: 0; }
+.hz-logs__level { flex-shrink: 0; width: 3.25rem; text-transform: uppercase; font-weight: var(--font-weight-medium, 500); }
+.hz-logs__msg { flex: 1; min-width: 0; }
+
+/* 日志级别用已有的语义色，不新增 */
+/* 直接用现有的 --log-* 语义色，与旧日志页完全一致 */
+.hz-logs__line[data-level="trace"]   .hz-logs__level { color: var(--muted-foreground, #6b7280); }
+.hz-logs__line[data-level="debug"]   .hz-logs__level { color: var(--muted-foreground, #6b7280); }
+.hz-logs__line[data-level="info"]    .hz-logs__level { color: var(--log-info, oklch(50% .155 230)); }
+.hz-logs__line[data-level="success"] .hz-logs__level { color: var(--log-success, oklch(50% .15 160)); }
+.hz-logs__line[data-level="warn"]    .hz-logs__level { color: var(--log-warn, oklch(52% .16 80)); }
+.hz-logs__line[data-level="error"]   .hz-logs__level { color: var(--log-error, oklch(55% .22 27)); }
+
+/* ── 代码/JSON 视图 ─────────────────────────────────────────── */
+
+.hz-code {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: .75rem;
+  line-height: 1.55;
+  padding: .75rem;
+  margin: 0;
+  overflow: auto;
+  max-height: 28rem;
+  background: color-mix(in oklab, currentColor 5%, transparent);
+  border-radius: calc(var(--radius, .75rem) * .6);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.hz-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+  padding: .125rem .4375rem;
+  border-radius: calc(var(--radius, .75rem) * .5);
+  border: 1px solid var(--border, rgba(0,0,0,.12));
+  font-size: .6875rem;
+  cursor: pointer;
+  background: transparent;
+  color: inherit;
+}
+.hz-chip:hover { background: var(--accent, rgba(0,0,0,.05)); }
+.hz-chip[aria-pressed="true"] { background: var(--primary, oklch(57% .14 300)); color: var(--primary-foreground, #fff); border-color: transparent; }
+
+/* ── 语言挂载点 ─────────────────────────────────────────────── */
+
+.hz-slot { min-height: 0; }
+.hz-slot:empty { display: none; }
+
+/* ── 拖动排序（沿用现有 grid-stack 观感）───────────────────── */
+
+.hz-drag-handle { cursor: grab; color: var(--muted-foreground, #6b7280); }
+.hz-drag-handle:active { cursor: grabbing; }

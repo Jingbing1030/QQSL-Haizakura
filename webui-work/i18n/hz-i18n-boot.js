@@ -19,9 +19,9 @@
  * 出错只在控制台警告，宿主 bundle 照常运行。
  */
 
-import { getLang, setLang, onLangChange, LANGS } from './i18n-core.js';
-import { startDomI18n, translateNow } from './i18n-dom.js';
-import { startSettingsLanguage } from './settings-language.js';
+import { getLang, setLang, onLangChange, LANGS } from './hz-i18n-core.js';
+import { startDomI18n, translateNow } from './hz-i18n-dom.js';
+import { startSettingsLanguage } from './hz-settings-language.js';
 
 /** 引导完成标记，避免被重复执行。 */
 const BOOT_FLAG = '__HZ_I18N_BOOTED__';

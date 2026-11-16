@@ -21,8 +21,8 @@
  * 纯 ES module，无外部依赖。
  */
 
-import { MESSAGES } from './i18n-messages.js';
-import { getLang, onLangChange, t, DEFAULT_LANG, LANG_EVENT } from './i18n-core.js';
+import { MESSAGES } from './hz-i18n-messages.js';
+import { getLang, onLangChange, t, DEFAULT_LANG, LANG_EVENT } from './hz-i18n-core.js';
 
 /* ------------------------------------------------------------------ *
  * 常量

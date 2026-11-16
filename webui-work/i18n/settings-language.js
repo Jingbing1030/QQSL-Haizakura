@@ -32,8 +32,8 @@
  * 纯 ES module，无外部依赖。
  */
 
-import { LANGS, getLang, setLang, onLangChange, t } from './i18n-core.js';
-import { MARK_ATTR } from './i18n-dom.js';
+import { LANGS, getLang, setLang, onLangChange, t } from './hz-i18n-core.js';
+import { MARK_ATTR } from './hz-i18n-dom.js';
 
 /** 选择器容器的 id，用于幂等判断。 */
 export const PICKER_ID = 'hz-language-picker';

@@ -16,7 +16,7 @@
  *   has(key) / getMessages(lang?) / resolveLang(code) / interpolate(s, vars)
  */
 
-import { MESSAGES } from './i18n-messages.js';
+import { MESSAGES } from './hz-i18n-messages.js';
 
 /** 默认语言：简体中文（chunk 内写死的原文语言）。 */
 export const DEFAULT_LANG = 'zh-cn';
