@@ -1,0 +1,722 @@
+======================== function assertValidOneBotConfig 196249
+function assertValidOneBotConfig(value) {
+	if (!isObject$4(value)) invalid("configuration must be an object");
+	if (!isObject$4(value.networks)) invalid("networks must be an object");
+	const seen = /* @__PURE__ */ new Map();
+	const serverBindings = /* @__PURE__ */ new Map();
+	validateNetworkList(value.networks, "httpServers", seen, (item, at) => {
+		validateServer(item, at);
+		parseMaxPayloadBytes(item.maxPayloadBytes, at);
+		if (item.enableWebSocket !== void 0 && typeof item.enableWebSocket !== "boolean") invalid(`${at}.enableWebSocket must be a boolean`);
+		if (item.enableSse !== void 0 && typeof item.enableSse !== "boolean") invalid(`${at}.enableSse must be a boolean`);
+		validateServerBinding(item, at, serverBindings);
+	});
+	validateNetworkList(value.networks, "httpClients", seen, (item, at) => {
+		validateClient(item, at, /* @__PURE__ */ new Set(["http:", "https:"]));
+		rejectHttpClientMaxPayloadBytes(item, at);
+		if (item.timeoutMs !== void 0 && (typeof item.timeoutMs !== "number" || !Number.isSafeInteger(item.timeoutMs) || item.timeoutMs <= 0 || item.timeoutMs > NODE_TIMER_MAX_MS)) invalid(`${at}.timeoutMs must be an integer between 1 and ${NODE_TIMER_MAX_MS}`);
+	});
+	validateNetworkList(value.networks, "wsServers", seen, (item, at) => {
+		validateServer(item, at);
+		validateServerBinding(item, at, serverBindings);
+		validateRole(item.role, `${at}.role`);
+		parseMaxPayloadBytes(item.maxPayloadBytes, at);
+	});
+	validateNetworkList(value.networks, "wsClients", seen, (item, at) => {
+		validateClient(item, at, /* @__PURE__ */ new Set(["ws:", "wss:"]));
+		validateRole(item.role, `${at}.role`);
+		parseMaxPayloadBytes(item.maxPayloadBytes, at);
+		if (item.reconnectIntervalMs !== void 0 && (typeof item.reconnectIntervalMs !== "number" || !Number.isSafeInteger(item.reconnectIntervalMs) || item.reconnectIntervalMs < 1e3 || item.reconnectIntervalMs > NODE_TIMER_MAX_MS)) invalid(`${at}.reconnectIntervalMs must be an integer between 1000 and ${NODE_TIMER_MAX_MS}`);
+	});
+	if (!isObject$4(value.statusCommand)) invalid("statusCommand must be an object");
+	const status = value.statusCommand;
+	if (typeof status.enabled !== "boolean") invalid("statusCommand.enabled must be a boolean");
+	if (typeof status.swallow !== "boolean") invalid("statusCommand.swallow must be a boolean");
+	if (typeof status.cooldownSeconds !== "number" || !Number.isInteger(status.cooldownSeconds) || status.cooldownSeconds < 0) invalid("statusCommand.cooldownSeconds must be a non-negative integer");
+	if (typeof status.trigger !== "string" || !status.trigger.trim() || status.trigger.length > 32 || /[\r\n]/.test(status.trigger)) invalid(`statusCommand.trigger must be non-empty, single-line, and <= 32 characters`);
+	if (!isObject$4(value.historySync)) invalid("historySync must be an object");
+	if (typeof value.historySync.enabled !== "boolean") invalid("historySync.enabled must be a boolean");
+	if (value.notifications !== void 0) {
+		if (!isObject$4(value.notifications) || !Array.isArray(value.notifications.channelIds)) invalid("notifications.channelIds must be an array");
+		for (const [index, channelId] of value.notifications.channelIds.entries()) if (typeof channelId !== "string" || !channelId || channelId.length > 64 || !/^[\w.-]+$/.test(channelId)) invalid(`notifications.channelIds[${index}] is invalid`);
+	}
+}
+function validateNetworkList(networks, kind, seen, validateSpecific) {
+	const list = networks[kind];
+	if (!Array.isArray(list)) invalid(`networks.${kind} must be an array`);
+	for (let index = 0; index < list.length; index += 1) {
+		const item = list[index];
+		const at = `networks.${kind}[${index}]`;
+		if (!isObject$4(item)) invalid(`${at} must be an object`);
+		validateNetworkBase(item, at);
+		const name = item.name;
+		const previousKind = seen.get(name);
+		if (previousKind !== void 0) invalid(`network adapter name "${name}" is duplicated in ${previousKind} and ${kind}`);
+		seen.set(name, kind);
+		validateSpecific(item, at);
+	}
+}
+function validateNetworkBase(item, at) {
+	if (typeof item.name !== "string" || !item.name.trim()) invalid(`${at}.name must be a non-empty string`);
+	if (item.name !== item.name.trim()) invalid(`${at}.name must not have surrounding whitespace`);
+	if (item.enabled !== void 0 && typeof item.enabled !== "boolean") invalid(`${at}.enabled must be a boolean`);
+	if (item.accessToken !== void 0 && typeof item.accessToken !== "string") invalid(`${at}.accessToken must be a string`);
+	if (item.messageFormat !== "array" && item.messageFormat !== "string") invalid(`${at}.messageFormat must be "array" or "string"`);
+	if (typeof item.reportSelfMessage !== "boolean") invalid(`${at}.reportSelfMessage must be a boolean`);
+}
+/** Apply the same limit validation to files, restores and API writes. */
+function parseMaxPayloadBytes(value, at) {
+	if (value === void 0) return;
+	if (typeof value !== "number" || !Number.isSafeInteger(value) || value < MAX_PAYLOAD_BYTES_MIN || value > MAX_PAYLOAD_BYTES_MAX) invalid(`${at}.maxPayloadBytes must b
+
+======================== function loadOneBotConfig 183699
+function loadOneBotConfig(uin, options = {}) {
+	ensureConfigDir$4();
+	const perUinPath = path$1.join(CONFIG_DIR$5, `onebot_${uin}.json`);
+	const globalRaw = tryLoadJson(DEFAULT_CONFIG_PATH);
+	const perUinRaw = tryLoadJson(perUinPath, true);
+	const legacy = !!perUinRaw && hasLegacyTopLevel(perUinRaw);
+	const sources = [];
+	const isCanonicalSnapshot = perUinRaw?.mode === PER_UIN_SNAPSHOT_MARKER;
+	if (globalRaw && !isCanonicalSnapshot) sources.push(globalRaw);
+	if (perUinRaw) sources.push(perUinRaw);
+	const config = fromJson(sources, !perUinRaw && !globalRaw);
+	if (options.persistDefaults && (!perUinRaw || legacy)) saveOneBotConfig(uin, config, { mode: globalRaw ? "overlay" : "snapshot" });
+	return applyOneBotListenPortOverrides(config);
+}
+var HTTP_DEFAULT_SERVER = "http-default";
+var WS_DEFAULT_SERVER = "ws-default";
+/** Override only the factory listeners. Other adapters keep their saved ports. */
+function applyOneBotListenPortOverrides(config, env = process.env) {
+	const httpPort = readListenPort("SNOWLUMA_ONEBOT_HTTP_PORT", env);
+	const wsPort = readListenPort("SNOWLUMA_ONEBOT_WS_PORT", env);
+	if (httpPort === void 0 && wsPort === void 0) return config;
+	const next = structuredClone(config);
+	const httpApplied = httpPort !== void 0 && assignFactoryPort(next.networks.httpServers, HTTP_DEFAULT_SERVER, httpPort, "SNOWLUMA_ONEBOT_HTTP_PORT");
+	const wsApplied = wsPort !== void 0 && assignFactoryPort(next.networks.wsServers, WS_DEFAULT_SERVER, wsPort, "SNOWLUMA_ONEBOT_WS_PORT");
+	if (!httpApplied && !wsApplied) return config;
+	try {
+		assertValidOneBotConfig(next);
+	} catch (error) {
+		log$67.warn("OneBot listen port override ignored: %s", error instanceof Error ? error.message : String(error));
+		return config;
+	}
+	return next;
+}
+function readListenPort(name, env) {
+	const raw = env[name];
+	if (typeof raw !== "string" || !raw.trim()) return;
+	const port = positiveIntEnv(name, 0, {
+		max: 65535,
+		env
+	});
+	return port > 0 ? port : void 0;
+}
+function assignFactoryPort(servers, name, port, envName) {
+	const server = servers.find((entry) => entry.name === name);
+	if (!server) {
+		log$67.warn("%s is ignored; no %s listener", envName, name);
+		return false;
+	}
+	server.port = port;
+	return true;
+}
+function saveOneBotConfig(uin, config, options = {}) {
+	assertValidOneBotConfig(config);
+	ensureConfigDir$4();
+	saveJson(path$1.join(CONFIG_DIR$5, `onebot_${uin}.json`), toJsonObject(config, options.mode ?? "snapshot"));
+}
+/**
+* Parse and canonicalize an on-disk OneBot config without touching the
+* filesystem. Restore uses this owner-provided seam so legacy layouts are
+* migrated deliberately while malformed values cannot disappear through the
+* normal load path's permissive compatibility parser.
+*/
+function prepareOneBotConfigForRestore(value, scope, inheritedGlobal) {
+	if (!isObject$4(value)) invalid("restore source must be an object");
+	validateOneBotRestoreSource(value);
+	let global = null;
+	if (inheritedGlobal !== void 0 && inheritedGlobal !== null) {
+		if (!isObject$4(inheritedGlobal)) invalid("inherited global restore source must be an object");
+		validateOneBotRestoreSource(inheritedGlobal);
+		global = inheritedGlobal;
+	}
+	if (scope === "global") return {
+		value,
+		migratedFields: []
+	};
+	const canonical = toJsonObject(fromJson(value.mode !== PER_UIN_SNAPSHOT_MARKER && global ? [global, value] : [value], false), scope === "per-uin" && value.mode === PER_UIN_SNAPSHOT_MARKER ? "snapshot" : "overlay");
+	if (Object.prototype.hasOwnProperty.call(value, "musicSignUrl")) canonical.musicSignUrl = value.musicSignUrl;
+	return {
+		value: canonical,
+		migratedFields: JSON.stringify(value) === JSON.stringify(canonical) ? [] : ["$"]
+	};
+}
+var RESTORE_TOP_LEVEL_KEYS = /* @__PURE__ */ new Set([
+	"mode",
+	"networks",
+	"statusCommand",
+	"historySync",
+	"notifications",
+	"musicSignUrl",
+	"httpServers",
+	"httpClients",
+	"httpPostEndpoints",
+	"wsServers",
+	"wsClients",
+	"messageFormat",
+	"reportSelfMessage"
+]);
+var RESTORE_NETWORK_KEYS = /* @__PURE__ */ new Set([
+	"httpServers",
+	"httpClients",
+	"wsServers",
+	"wsClients"
+]);
+var RESTORE_BASE_ADAPTER_KEYS = [
+	"name",
+	"enabled",
+	"accessToken",
+	"messageFormat", "protocol",
+	"reportSelfMessage"
+];
+function validateOneBotRestoreSource(value) {
+	rejectUnknownKeys(value, RESTORE_TOP_LEVEL_KEYS, "$");
+	if (value.mode !== void 0 && value.mode !== "snapshot" && value.mode !== "overlay") invalid("$.mode must be snapshot or overlay");
+	if (value.messageFormat !== void 0 && parseMessageFormat(value.messageFormat) === void 0) invalid("$.messageFormat must be array or string");
+	if (value.reportSelfMessage !== void 0 && typeof value.reportSelfMessage !== "boolean") invalid("$.reportSelfMessage must be a boolean");
+	if (value.musicSignUrl !== void 0) {
+		if (typeof value.musicSignUrl !== "string") invalid("$.musicSignUrl must be a string");
+		const url = value.musicSignUrl.trim();
+		if (url && !isHttpUrlForRestore(url)) invalid("$.musicSignUrl must be empty or an http(s) URL");
+	}
+	const networks
+
+======================== function defaultOneBotConfig NOT FOUND
+======================== function normalizeOneBot NOT FOUND
+======================== function validateOneBotAccessTokenChanges 12480771
+function validateOneBotAccessTokenChanges(previous, next, options) {
+	const allowEmptyFromClient = isLoopbackClientIp(options.clientIp);
+	for (const kind of INBOUND_KINDS) {
+		const previousList = previous?.networks[kind] ?? [];
+		const nextList = next.networks[kind];
+		for (let index = 0; index < nextList.length; index += 1) {
+			const adapter = nextList[index];
+			const token = adapter.accessToken ?? "";
+			if (sameTokenAtPreviousIdentity(previousList, nextList, adapter.name, token, index)) continue;
+			if (!token) {
+				if (!allowEmptyFromClient && !isLoopbackBindHost(adapter.host)) throw new OneBotAccessTokenPolicyError(`节点“${adapter.name}”未绑定本机地址，远程保存必须填写令牌；请生成令牌或将主机改为 127.0.0.1。`);
+				continue;
+			}
+			const host = adapter.host ?? "0.0.0.0";
+			const assessment = assessAccessToken(token, [
+				options.uin,
+				adapter.name,
+				kind,
+				host,
+				adapter.port
+			]);
+			if (assessment.reason === "too-short") throw new OneBotAccessTokenPolicyError(`节点“${adapter.name}”的令牌至少需要 16 个字符；请重新生成或继续补充。`);
+			if (!assessment.acceptable) throw new OneBotAccessTokenPolicyError(`节点“${adapter.name}”的令牌容易被猜中；请重新生成随机令牌。`);
+		}
+	}
+}
+//#endregion
+//#region src/webui/port.ts
+function isPortAvailable(port, host = "127.0.0.1") {
+	return new Promise((resolve) => {
+		const server = net.createServer();
+		let settled = false;
+		const finalize = (ok) => {
+			if (settled) return;
+			settled = true;
+			try {
+				server.close(() => resolve(ok));
+			} catch {
+				resolve(ok);
+			}
+		};
+		server.once("error", () => finalize(false));
+		server.once("listening", () => finalize(true));
+		try {
+			server.listen(port, host);
+		} catch {
+			finalize(false);
+		}
+	});
+}
+/**
+* Find an available TCP port starting from `start`, advancing by 1 up to `maxTries` attempts.
+* Skips reserved/invalid port numbers.
+*/
+async function findAvailablePort(start, options = {}) {
+	const { maxTries = 50, host = "127.0.0.1" } = options;
+	let port = Math.max(1, Math.min(65535, Math.trunc(start)));
+	for (let i = 0; i < maxTries; i++) {
+		if (port > 65535) break;
+		if (await isPortAvailable(port, host)) return port;
+		port += 1;
+	}
+	throw new Error(`No available TCP port found near ${start}`);
+}
+//#endregion
+//#region ../../node_modules/.pnpm/semver@7.7.4/node_modules/semver/internal/debug.js
+var require_debug = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	module.exports = typeof process === "object" && process.env && process.env.NODE_DEBUG && /\bsemver\b/i.test(process.env.NODE_DEBUG) ? (...args) => console.error("SEMVER", ...args) : () => {};
+}));
+//#endregion
+//#region ../../node_modules/.pnpm/semver@7.7.4/node_modules/semver/internal/constants.js
+var require_constants = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	var SEMVER_SPEC_VERSION = "2.0.0";
+	var MAX_LENGTH = 256;
+	var MAX_SAFE_INTEGER = Number.MAX_SAFE_INTEGER || 9007199254740991;
+	module.exports = {
+		MAX_LENGTH,
+		MAX_SAFE_COMPONENT_LENGTH: 16,
+		MAX_SAFE_BUILD_LENGTH: MAX_LENGTH - 6,
+		MAX_SAFE_INTEGER,
+		RELEASE_TYPES: [
+			"major",
+			"premajor",
+			"minor",
+			"preminor",
+			"patch",
+			"prepatch",
+			"prerelease"
+		],
+		SEMVER_SPEC_VERSION,
+		FLAG_INCLUDE_PRERELEASE: 1,
+		FLAG_LOOSE: 2
+	};
+}));
+//#endregion
+//#region ../../node_modules/.pnpm/semver@7.7.4/node_modules/semver/internal/re.js
+var require_re = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	var { MAX_SAFE_COMPONENT_LENGTH, MAX_SAFE_BUILD_LENGTH, MAX_LENGTH } = require_constants();
+	var debug = require_debug();
+	exports = module.exports = {};
+	var re = exports.re = [];
+	var safeRe = exports.safeRe = [];
+	var src = exports.src = [];
+	var safeSrc = exports.safeSrc = [];
+	var t = exports.t = {};
+	var R = 0;
+	var LETTERDASHNUMBER = "[a-zA-Z0-9-]";
+	var safeRegexReplacements = [
+		["\\s", 1],
+		["\\d", MAX_LENGTH],
+		[LETTERDASHNUMBER, MAX_SAFE_BUILD_LENGTH]
+	];
+	var makeSafeRegex = (value) => {
+		for (const [token, max] of safeRegexReplacements) value = value.split(`${token}*`).join(`${token}{0,${max}}`).split(`${token}+`).join(`${token}{1,${max}}`);
+		return value;
+	};
+	var createToken = (name, value, isGlobal) => {
+		const safe = makeSafeRegex(value);
+		const index = R++;
+		debug(name, index, value);
+		t[name] = index;
+		src[index] = value;
+		safeSrc[index] = safe;
+		re[index] = new RegExp(value, isGlobal ? "g" : void 0);
+		safeRe[index] = new RegExp(safe, isGlobal ? "g" : void 0);
+	};
+	createToken("NUMERICIDENTIFIER", "0|[1-9]\\d*");
+	createToken("NUMERICIDENTIFIERLOOSE", "\\d+");
+	createToken("NONNUMERICIDENTIFIER", `\\d*[a-zA-Z-]${LETTERDASHNUMBER}*`);
+	createToken("MAINVERSION", `(${src[t.NUMERICIDENTIFIER]})\\.(${src[t.NUMERICIDENTIFIER]})\\.(${src[t.NUMERICIDENTIFIER]})`);
+	createToken("MAINVERSIONLOOSE", `(${src[t.NUMERICIDENTIFIERLOOSE]})\\.(${src[t.NUMERICIDENTIFIERLOOSE]})\\.(${src[t.NUMERICIDENTIFIERLOOSE]})`);
+	createToken("PRERELEASEIDENTIFIER", `(?:${src[t.NONNUMERICIDENTIFIER]}|${src[t.NUMERICIDENTIFIER]})`);
+	createToken("PRERELEASEIDENTIFIERLOOSE", `(?:${src[t.NONNUMERICIDENTIFIER]}|${src[t.N
+
+======================== function loadGlobalSettings 219039
+function loadGlobalSettings() {
+	if (!fs$1.existsSync(GLOBAL_CONFIG_PATH)) return defaultGlobalSettings();
+	try {
+		const raw = fs$1.readFileSync(GLOBAL_CONFIG_PATH, "utf8");
+		return normalizeGlobalSettings(JSON.parse(raw));
+	} catch (err) {
+		if (err instanceof RangeError) {
+			log$66.error("invalid global upload settings: %s", err.message);
+			throw err;
+		}
+		log$66.warn("config/snowluma.json is corrupt and will be ignored: %s", err instanceof Error ? err.message : String(err));
+		return defaultGlobalSettings();
+	}
+}
+/**
+* Persist global settings, SECTION-MERGING over what's on disk: only the
+* top-level sections actually present in `incoming` are overwritten, so a
+* partial save (e.g. just `rkey`) never wipes a sibling knob. Mirrors
+* saveNotificationsConfig's merge discipline.
+*/
+function saveGlobalSettings(incoming) {
+	const merged = loadGlobalSettings();
+	if (isObject$3(incoming)) {
+		if (isObject$3(incoming.rkey)) merged.rkey.fallbackServers = normalizeRkeyServers(incoming.rkey.fallbackServers);
+		if ("videoUploadConcurrency" in incoming) merged.videoUploadConcurrency = validateUploadConcurrency(incoming.videoUploadConcurrency);
+		if (typeof incoming.musicSignUrl === "string") {
+			const v = incoming.musicSignUrl.trim();
+			merged.musicSignUrl = v && isHttpUrl$1(v) ? v : "";
+		}
+	}
+	fs$1.mkdirSync(CONFIG_DIR$4, { recursive: true });
+	const tmp = GLOBAL_CONFIG_PATH + ".tmp";
+	fs$1.writeFileSync(tmp, JSON.stringify(toJson(merged), null, 2), "utf8");
+	fs$1.renameSync(tmp, GLOBAL_CONFIG_PATH);
+	return merged;
+}
+function toJson(settings) {
+	return {
+		rkey: { fallbackServers: settings.rkey.fallbackServers },
+		musicSignUrl: settings.musicSignUrl,
+		videoUploadConcurrency: settings.videoUploadConcurrency ?? 1
+	};
+}
+function isObject$3(value) {
+	return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+/**
+* One-shot copy-up: `musicSignUrl` used to live in per-UIN config. If the global
+* store has none yet, lift the first non-empty value found in any legacy
+* `config/onebot*.json` into `config/snowluma.json`. Idempotent — skips once the
+* global value is set. (If an operator later clears the global value while a
+* stale per-UIN value lingers, a restart would re-copy it; benign and rare.)
+*/
+function migrateGlobalSettings() {
+	if (globalConfigHasMusicSignUrlKey()) return;
+	const found = scanLegacyMusicSignUrl();
+	if (!found) return;
+	saveGlobalSettings({ musicSignUrl: found.value });
+	const extra = found.others.length ? `; ignored differing value(s) in ${found.others.join(", ")}` : "";
+	log$66.info("migrated musicSignUrl to global config from %s: %s%s", found.source, found.value, extra);
+}
+function globalConfigHasMusicSignUrlKey() {
+	if (!fs$1.existsSync(GLOBAL_CONFIG_PATH)) return false;
+	try {
+		const raw = JSON.parse(fs$1.readFileSync(GLOBAL_CONFIG_PATH, "utf8"));
+		return isObject$3(raw) && "musicSignUrl" in raw;
+	} catch {
+		return false;
+	}
+}
+/** Scan config/onebot.json + config/onebot_<uin>.json for a non-empty
+*  musicSignUrl. Returns the first found plus any other files that carried a
+*  (differing) value, for logging. */
+function scanLegacyMusicSignUrl() {
+	let dir;
+	try {
+		dir = fs$1.readdirSync(CONFIG_DIR$4);
+	} catch {
+		return null;
+	}
+	const files = dir.filter((f) => f === "onebot.json" || /^onebot_\d+\.json$/.test(f)).sort();
+	let first = null;
+	const others = [];
+	for (const file of files) {
+		let value;
+		try {
+			const raw = JSON.parse(fs$1.readFileSync(path$1.join(CONFIG_DIR$4, file), "utf8"));
+			value = isObject$3(raw) ? raw.musicSignUrl : void 0;
+		} catch {
+			continue;
+		}
+		if (typeof value !== "string") continue;
+		const v = value.trim();
+		if (!v || !isHttpUrl$1(v)) continue;
+		if (!first) first = {
+			value: v,
+			source: file
+		};
+		else if (v !== first.value) others.push(file);
+	}
+	return first ? {
+		...first,
+		others
+	} : null;
+}
+//#endregion
+//#region ../common/src/version.ts
+var APP_VERSION = {
+	license: "SEE LICENSE IN LICENSE",
+	name: "snowluma-monorepo",
+	version: "0.2.4.1",
+	description: "Haizakura monorepo workspace (pnpm)",
+	"private": true,
+	type: "module",
+	scripts: {
+		"build": "pnpm --filter @snowluma/core build",
+		"build:sdk": "pnpm --filter @snowluma/sdk build",
+		"build:webui": "pnpm --filter webui build",
+		"build:mcp": "pnpm --filter @snowluma/mcp build",
+		"build:all": "pnpm --filter @snowluma/core build:all && pnpm --filter @snowluma/sdk build && pnpm --filter @snowluma/mcp build && pnpm --filter @snowluma/ui build && pnpm --filter webui build",
+		"check:release-layout": "node tools/check-release-layout.mjs",
+		"dev": "pnpm --filter @snowluma/core dev",
+		"dev:mode": "cd dist && cross-env SNOWLUMA_DEV_MODE=1 SNOWLUMA_DEV_WEBUI=1 node index.mjs",
+		"dev:web": "pnpm --filter webui dev",
+		"test": "pnpm test:workflows && pnpm --filter=\"./packages/**\" -r --no-bail --if-present test",
+		"test:workflows": "node --test .github/scripts/*.test.cjs",
+		"test:core": "pnpm --filter @snowluma/core test",
+		"test:watch": "pnpm --filter @snowlum
+
+======================== function saveGlobalSettings 219836
+function saveGlobalSettings(incoming) {
+	const merged = loadGlobalSettings();
+	if (isObject$3(incoming)) {
+		if (isObject$3(incoming.rkey)) merged.rkey.fallbackServers = normalizeRkeyServers(incoming.rkey.fallbackServers);
+		if ("videoUploadConcurrency" in incoming) merged.videoUploadConcurrency = validateUploadConcurrency(incoming.videoUploadConcurrency);
+		if (typeof incoming.musicSignUrl === "string") {
+			const v = incoming.musicSignUrl.trim();
+			merged.musicSignUrl = v && isHttpUrl$1(v) ? v : "";
+		}
+	}
+	fs$1.mkdirSync(CONFIG_DIR$4, { recursive: true });
+	const tmp = GLOBAL_CONFIG_PATH + ".tmp";
+	fs$1.writeFileSync(tmp, JSON.stringify(toJson(merged), null, 2), "utf8");
+	fs$1.renameSync(tmp, GLOBAL_CONFIG_PATH);
+	return merged;
+}
+function toJson(settings) {
+	return {
+		rkey: { fallbackServers: settings.rkey.fallbackServers },
+		musicSignUrl: settings.musicSignUrl,
+		videoUploadConcurrency: settings.videoUploadConcurrency ?? 1
+	};
+}
+function isObject$3(value) {
+	return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+/**
+* One-shot copy-up: `musicSignUrl` used to live in per-UIN config. If the global
+* store has none yet, lift the first non-empty value found in any legacy
+* `config/onebot*.json` into `config/snowluma.json`. Idempotent — skips once the
+* global value is set. (If an operator later clears the global value while a
+* stale per-UIN value lingers, a restart would re-copy it; benign and rare.)
+*/
+function migrateGlobalSettings() {
+	if (globalConfigHasMusicSignUrlKey()) return;
+	const found = scanLegacyMusicSignUrl();
+	if (!found) return;
+	saveGlobalSettings({ musicSignUrl: found.value });
+	const extra = found.others.length ? `; ignored differing value(s) in ${found.others.join(", ")}` : "";
+	log$66.info("migrated musicSignUrl to global config from %s: %s%s", found.source, found.value, extra);
+}
+function globalConfigHasMusicSignUrlKey() {
+	if (!fs$1.existsSync(GLOBAL_CONFIG_PATH)) return false;
+	try {
+		const raw = JSON.parse(fs$1.readFileSync(GLOBAL_CONFIG_PATH, "utf8"));
+		return isObject$3(raw) && "musicSignUrl" in raw;
+	} catch {
+		return false;
+	}
+}
+/** Scan config/onebot.json + config/onebot_<uin>.json for a non-empty
+*  musicSignUrl. Returns the first found plus any other files that carried a
+*  (differing) value, for logging. */
+function scanLegacyMusicSignUrl() {
+	let dir;
+	try {
+		dir = fs$1.readdirSync(CONFIG_DIR$4);
+	} catch {
+		return null;
+	}
+	const files = dir.filter((f) => f === "onebot.json" || /^onebot_\d+\.json$/.test(f)).sort();
+	let first = null;
+	const others = [];
+	for (const file of files) {
+		let value;
+		try {
+			const raw = JSON.parse(fs$1.readFileSync(path$1.join(CONFIG_DIR$4, file), "utf8"));
+			value = isObject$3(raw) ? raw.musicSignUrl : void 0;
+		} catch {
+			continue;
+		}
+		if (typeof value !== "string") continue;
+		const v = value.trim();
+		if (!v || !isHttpUrl$1(v)) continue;
+		if (!first) first = {
+			value: v,
+			source: file
+		};
+		else if (v !== first.value) others.push(file);
+	}
+	return first ? {
+		...first,
+		others
+	} : null;
+}
+//#endregion
+//#region ../common/src/version.ts
+var APP_VERSION = {
+	license: "SEE LICENSE IN LICENSE",
+	name: "snowluma-monorepo",
+	version: "0.2.4.1",
+	description: "Haizakura monorepo workspace (pnpm)",
+	"private": true,
+	type: "module",
+	scripts: {
+		"build": "pnpm --filter @snowluma/core build",
+		"build:sdk": "pnpm --filter @snowluma/sdk build",
+		"build:webui": "pnpm --filter webui build",
+		"build:mcp": "pnpm --filter @snowluma/mcp build",
+		"build:all": "pnpm --filter @snowluma/core build:all && pnpm --filter @snowluma/sdk build && pnpm --filter @snowluma/mcp build && pnpm --filter @snowluma/ui build && pnpm --filter webui build",
+		"check:release-layout": "node tools/check-release-layout.mjs",
+		"dev": "pnpm --filter @snowluma/core dev",
+		"dev:mode": "cd dist && cross-env SNOWLUMA_DEV_MODE=1 SNOWLUMA_DEV_WEBUI=1 node index.mjs",
+		"dev:web": "pnpm --filter webui dev",
+		"test": "pnpm test:workflows && pnpm --filter=\"./packages/**\" -r --no-bail --if-present test",
+		"test:workflows": "node --test .github/scripts/*.test.cjs",
+		"test:core": "pnpm --filter @snowluma/core test",
+		"test:watch": "pnpm --filter @snowluma/core test:watch",
+		"test:common": "pnpm --filter @snowluma/common test",
+		"test:all": "pnpm test",
+		"test:native": "pnpm --filter=\"./packages/**\" -r --if-present test:native",
+		"coverage": "node tools/coverage.mjs",
+		"typecheck": "pnpm -r --if-present typecheck",
+		"lint": "eslint .",
+		"lint:fix": "eslint . --fix",
+		"format": "eslint --config eslint.format.config.ts --fix \"**/*.{ts,tsx,mts,cts}\" && prettier --write \"**/*.{ts,tsx,mts,cts}\"",
+		"format:check": "eslint --config eslint.format.config.ts \"**/*.{ts,tsx,mts,cts}\" && prettier --check \"**/*.{ts,tsx,mts,cts}\"",
+		"ci": "node tools/ci-check.mjs",
+		"start": "node dist/index.mjs",
+		"bump": "node tools/bump-version.mjs",
+		"release": "node tools/release.mjs"
+	},
+	devDependencies: {
+		"@eslint/js": "^10.0.1",
+		"@s
+
+======================== function normalizeGlobalSettings 218521
+function normalizeGlobalSettings(value) {
+	const out = defaultGlobalSettings();
+	if (!isObject$3(value)) return out;
+	const rkey = value.rkey;
+	if (isObject$3(rkey)) out.rkey.fallbackServers = normalizeRkeyServers(rkey.fallbackServers);
+	if (typeof value.musicSignUrl === "string") {
+		const v = value.musicSignUrl.trim();
+		out.musicSignUrl = v && isHttpUrl$1(v) ? v : "";
+	}
+	if ("videoUploadConcurrency" in value) out.videoUploadConcurrency = validateUploadConcurrency(value.videoUploadConcurrency);
+	return out;
+}
+function loadGlobalSettings() {
+	if (!fs$1.existsSync(GLOBAL_CONFIG_PATH)) return defaultGlobalSettings();
+	try {
+		const raw = fs$1.readFileSync(GLOBAL_CONFIG_PATH, "utf8");
+		return normalizeGlobalSettings(JSON.parse(raw));
+	} catch (err) {
+		if (err instanceof RangeError) {
+			log$66.error("invalid global upload settings: %s", err.message);
+			throw err;
+		}
+		log$66.warn("config/snowluma.json is corrupt and will be ignored: %s", err instanceof Error ? err.message : String(err));
+		return defaultGlobalSettings();
+	}
+}
+/**
+* Persist global settings, SECTION-MERGING over what's on disk: only the
+* top-level sections actually present in `incoming` are overwritten, so a
+* partial save (e.g. just `rkey`) never wipes a sibling knob. Mirrors
+* saveNotificationsConfig's merge discipline.
+*/
+function saveGlobalSettings(incoming) {
+	const merged = loadGlobalSettings();
+	if (isObject$3(incoming)) {
+		if (isObject$3(incoming.rkey)) merged.rkey.fallbackServers = normalizeRkeyServers(incoming.rkey.fallbackServers);
+		if ("videoUploadConcurrency" in incoming) merged.videoUploadConcurrency = validateUploadConcurrency(incoming.videoUploadConcurrency);
+		if (typeof incoming.musicSignUrl === "string") {
+			const v = incoming.musicSignUrl.trim();
+			merged.musicSignUrl = v && isHttpUrl$1(v) ? v : "";
+		}
+	}
+	fs$1.mkdirSync(CONFIG_DIR$4, { recursive: true });
+	const tmp = GLOBAL_CONFIG_PATH + ".tmp";
+	fs$1.writeFileSync(tmp, JSON.stringify(toJson(merged), null, 2), "utf8");
+	fs$1.renameSync(tmp, GLOBAL_CONFIG_PATH);
+	return merged;
+}
+function toJson(settings) {
+	return {
+		rkey: { fallbackServers: settings.rkey.fallbackServers },
+		musicSignUrl: settings.musicSignUrl,
+		videoUploadConcurrency: settings.videoUploadConcurrency ?? 1
+	};
+}
+function isObject$3(value) {
+	return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+/**
+* One-shot copy-up: `musicSignUrl` used to live in per-UIN config. If the global
+* store has none yet, lift the first non-empty value found in any legacy
+* `config/onebot*.json` into `config/snowluma.json`. Idempotent — skips once the
+* global value is set. (If an operator later clears the global value while a
+* stale per-UIN value lingers, a restart would re-copy it; benign and rare.)
+*/
+function migrateGlobalSettings() {
+	if (globalConfigHasMusicSignUrlKey()) return;
+	const found = scanLegacyMusicSignUrl();
+	if (!found) return;
+	saveGlobalSettings({ musicSignUrl: found.value });
+	const extra = found.others.length ? `; ignored differing value(s) in ${found.others.join(", ")}` : "";
+	log$66.info("migrated musicSignUrl to global config from %s: %s%s", found.source, found.value, extra);
+}
+function globalConfigHasMusicSignUrlKey() {
+	if (!fs$1.existsSync(GLOBAL_CONFIG_PATH)) return false;
+	try {
+		const raw = JSON.parse(fs$1.readFileSync(GLOBAL_CONFIG_PATH, "utf8"));
+		return isObject$3(raw) && "musicSignUrl" in raw;
+	} catch {
+		return false;
+	}
+}
+/** Scan config/onebot.json + config/onebot_<uin>.json for a non-empty
+*  musicSignUrl. Returns the first found plus any other files that carried a
+*  (differing) value, for logging. */
+function scanLegacyMusicSignUrl() {
+	let dir;
+	try {
+		dir = fs$1.readdirSync(CONFIG_DIR$4);
+	} catch {
+		return null;
+	}
+	const files = dir.filter((f) => f === "onebot.json" || /^onebot_\d+\.json$/.test(f)).sort();
+	let first = null;
+	const others = [];
+	for (const file of files) {
+		let value;
+		try {
+			const raw = JSON.parse(fs$1.readFileSync(path$1.join(CONFIG_DIR$4, file), "utf8"));
+			value = isObject$3(raw) ? raw.musicSignUrl : void 0;
+		} catch {
+			continue;
+		}
+		if (typeof value !== "string") continue;
+		const v = value.trim();
+		if (!v || !isHttpUrl$1(v)) continue;
+		if (!first) first = {
+			value: v,
+			source: file
+		};
+		else if (v !== first.value) others.push(file);
+	}
+	return first ? {
+		...first,
+		others
+	} : null;
+}
+//#endregion
+//#region ../common/src/version.ts
+var APP_VERSION = {
+	license: "SEE LICENSE IN LICENSE",
+	name: "snowluma-monorepo",
+	version: "0.2.4.1",
+	description: "Haizakura monorepo workspace (pnpm)",
+	"private": true,
+	type: "module",
+	scripts: {
+		"build": "pnpm --filter @snowluma/core build",
+		"build:sdk": "pnpm --filter @snowluma/sdk build",
+		"build:webui": "pnpm --filter webui build",
+		"build:mcp": "pnpm --filter @snowluma/mcp build",
+		"build:all": "pnpm --filter @snowluma/core build:all && pnpm --filter @snowluma/sdk build && pnpm --filter @snowluma/mcp build && pnpm --filter @snowluma/ui build && pnpm -
+

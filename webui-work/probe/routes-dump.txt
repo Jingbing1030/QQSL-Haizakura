@@ -1,0 +1,1029 @@
+======================== function coerceSettingsPatch 11896656
+function coerceSettingsPatch(body) {
+	if (!isObject$5(body)) return {
+		ok: false,
+		error: "body must be an object"
+	};
+	const patch = {};
+	if ("webuiPort" in body) {
+		const p = body.webuiPort;
+		if (typeof p !== "number" || !Number.isInteger(p) || p <= 0 || p > 65535) return {
+			ok: false,
+			error: "webuiPort must be an integer in 1..65535"
+		};
+		patch.webuiPort = p;
+	}
+	if ("webuiHost" in body) {
+		if (typeof body.webuiHost !== "string" || !body.webuiHost.trim()) return {
+			ok: false,
+			error: "webuiHost must be a non-empty string"
+		};
+		patch.webuiHost = body.webuiHost.trim();
+	}
+	if ("tlsEnabled" in body) {
+		if (typeof body.tlsEnabled !== "boolean") return {
+			ok: false,
+			error: "tlsEnabled must be a boolean"
+		};
+		patch.webuiTls = { enabled: body.tlsEnabled };
+	}
+	if ("trustProxy" in body) {
+		if (typeof body.trustProxy !== "string") return {
+			ok: false,
+			error: "trustProxy must be a string"
+		};
+		patch.trustProxy = body.trustProxy;
+	}
+	return {
+		ok: true,
+		patch
+	};
+}
+var SETTINGS_ERRORS = {
+	"invalid-bind-host": "绑定地址不是有效的 TCP 地址",
+	"tls-pair-required": "启用 TLS 前请先上传有效的证书与私钥"
+};
+/** Validate the listener that would be persisted after applying `patch` to `current`. */
+function evaluateSettingsSave(current, patch, pairOk) {
+	const check = checkListenerExposure({
+		webuiHost: patch.webuiHost ?? current.webuiHost ?? "127.0.0.1",
+		tlsEnabled: patch.webuiTls?.enabled ?? current.webuiTls?.enabled ?? false,
+		pairOk
+	});
+	if (!check.ok) return {
+		ok: false,
+		error: SETTINGS_ERRORS[check.code]
+	};
+	return {
+		ok: true,
+		patch
+	};
+}
+function tlsCertDeletionBlocked(tlsEnabled) {
+	return tlsEnabled;
+}
+//#endregion
+//#region src/webui/ui-config.ts
+init_coerce();
+init_logger();
+var log$11 = createLogger("WebUI.UiConfig");
+var CONFIG_DIR = "config";
+var UI_CONFIG_PATH = path$1.join(CONFIG_DIR, "ui.json");
+/** Directory for operator-uploaded UI assets (currently just the background). */
+var UI_ASSETS_DIR = path$1.join(CONFIG_DIR, "ui-assets");
+/** Fixed path of the single background image (overwrite-on-upload). */
+var BACKGROUND_IMAGE_PATH = path$1.join(UI_ASSETS_DIR, "background");
+/** Reject uploads larger than this (bytes). */
+var MAX_BACKGROUND_BYTES = 5 * 1024 * 1024;
+var DEFAULT_BACKGROUND = {
+	type: "none",
+	color: "#b99ae6",
+	gradient: "none",
+	imageOpacity: .15,
+	imageBlur: 0,
+	hasImage: false,
+	imageMime: "",
+	imageVersion: 0
+};
+var DEFAULT_APPEARANCE = {
+	mode: "system",
+	accentMode: "preset",
+	accentPreset: "lavender",
+	accentCustom: "#8561bd",
+	accentScope: "global",
+	darkIntensity: "soft",
+	palette: "default",
+	sidebarStyle: "follow",
+	background: DEFAULT_BACKGROUND,
+	fontSans: "default",
+	fontSansCustom: "",
+	fontMono: "default",
+	fontMonoCustom: "",
+	uiScale: 1,
+	radius: .75,
+	density: "cozy",
+	reduceMotion: false,
+	disableMotion: false,
+	customPointerSystem: false,
+	customContextMenu: true,
+	highContrast: false,
+	sidebarPinned: false,
+	timeFormat: "24h",
+	pollInterval: 3e3,
+	customCss: "",
+	cssVars: {}
+};
+var DEFAU
+
+======================== function evaluateSettingsSave 11897869
+function evaluateSettingsSave(current, patch, pairOk) {
+	const check = checkListenerExposure({
+		webuiHost: patch.webuiHost ?? current.webuiHost ?? "127.0.0.1",
+		tlsEnabled: patch.webuiTls?.enabled ?? current.webuiTls?.enabled ?? false,
+		pairOk
+	});
+	if (!check.ok) return {
+		ok: false,
+		error: SETTINGS_ERRORS[check.code]
+	};
+	return {
+		ok: true,
+		patch
+	};
+}
+function tlsCertDeletionBlocked(tlsEnabled) {
+	return tlsEnabled;
+}
+//#endregion
+//#region src/webui/ui-config.ts
+init_coerce();
+init_logger();
+var log$11 = createLogger("WebUI.UiConfig");
+var CONFIG_DIR = "config";
+var UI_CONFIG_PATH = path$1.join(CONFIG_DIR, "ui.json");
+/** Directory for operator-uploaded UI assets (currently just the background). */
+var UI_ASSETS_DIR = path$1.join(CONFIG_DIR, "ui-assets");
+/** Fixed path of the single background image (overwrite-on-upload). */
+var BACKGROUND_IMAGE_PATH = path$1.join(UI_ASSETS_DIR, "background");
+/** Reject uploads larger than this (bytes). */
+var MAX_BACKGROUND_BYTES = 5 * 1024 * 1024;
+var DEFAULT_BACKGROUND = {
+	type: "none",
+	color: "#b99ae6",
+	gradient: "none",
+	imageOpacity: .15,
+	imageBlur: 0,
+	hasImage: false,
+	imageMime: "",
+	imageVersion: 0
+};
+var DEFAULT_APPEARANCE = {
+	mode: "system",
+	accentMode: "preset",
+	accentPreset: "lavender",
+	accentCustom: "#8561bd",
+	accentScope: "global",
+	darkIntensity: "soft",
+	palette: "default",
+	sidebarStyle: "follow",
+	background: DEFAULT_BACKGROUND,
+	fontSans: "default",
+	fontSansCustom: "",
+	fontMono: "default",
+	fontMonoCustom: "",
+	uiScale: 1,
+	radius: .75,
+	density: "cozy",
+	reduceMotion: false,
+	disableMotion: false,
+	customPointerSystem: false,
+	customContextMenu: true,
+	highContrast: false,
+	sidebarPinned: false,
+	timeFormat: "24h",
+	pollInterval: 3e3,
+	customCss: "",
+	cssVars: {}
+};
+var DEFAULT_OVERVIEW_BLOCKS = [
+	{
+		id: "stats",
+		visible: true
+	},
+	{
+		id: "connections",
+		visible: true
+	},
+	{
+		id: "alerts",
+		visible: true
+	},
+	{
+		id: "host",
+		visible: true
+	},
+	{
+		id: "sessions",
+		visible: true
+	}
+];
+var DEFAULT_OVERVIEW_MOBILE = [
+	{
+		id: "stat:status",
+		visible: true
+	},
+	{
+		id: "stat:accounts",
+		visible: true
+	},
+	{
+		id: "stat:processes",
+		visible: true
+	},
+	{
+		id: "stat:host",
+		visible: true
+	},
+	{
+		id: "stat:uptime",
+		visible: true
+	},
+	{
+		id: "connections",
+		visible: true
+	},
+	{
+		id: "alerts",
+		visible: true
+	},
+	{
+		id: "host",
+		visible: true
+	},
+	{
+		id: "sessions",
+		visible: true
+	}
+];
+var DEFAULT_NAV_ITEMS = [
+	{
+		id: "/",
+		visible: true
+	},
+	{
+		id: "/processes",
+		visible: true
+	},
+	{
+		id: "/config",
+		visible: true
+	},
+	{
+		id: "/logs",
+		visible: true
+	},
+	{
+		id: "/settings",
+		visible: true
+	}
+];
+var DEFAULT_TOPBAR_ITEMS = [
+	{
+		id: "status",
+		visible: true
+	},
+	{
+		id: "theme",
+		visible: true
+	},
+	{
+		id: "kiosk",
+		visible: true
+	}
+];
+var LOG_LEVELS = [
+	"trace",
+	"debug",
+	"info",
+	"success",
+	"warn",
+	"error"
+];
+var DEFAULT_PAGES = {
+	defaultRoute: "/",
+	logs: {
+		visibleLevels: [...LOG_LEVELS],
+		maxLines: 1e3,
+		autoScroll: tru
+
+======================== function updateRuntimeConfig 12536
+function updateRuntimeConfig(patch) {
+	fs$1.mkdirSync(CONFIG_DIR$6, { recursive: true });
+	const next = normalizeRuntimeConfig({
+		...normalizeRuntimeConfig(tryLoadRuntimeConfig() ?? {}),
+		...patch
+	});
+	saveRuntimeConfig(next);
+	return next;
+}
+function tryLoadRuntimeConfig() {
+	if (!fs$1.existsSync(RUNTIME_CONFIG_PATH)) return null;
+	try {
+		const parsed = JSON.parse(fs$1.readFileSync(RUNTIME_CONFIG_PATH, "utf8"));
+		return isObject$5(parsed) ? parsed : null;
+	} catch {
+		return null;
+	}
+}
+function saveRuntimeConfig(config) {
+	const temporaryPath = `${RUNTIME_CONFIG_PATH}.tmp-${String(process.pid)}`;
+	try {
+		fs$1.writeFileSync(temporaryPath, JSON.stringify(config, null, 2), "utf8");
+		fs$1.renameSync(temporaryPath, RUNTIME_CONFIG_PATH);
+	} catch (error) {
+		try {
+			fs$1.unlinkSync(temporaryPath);
+		} catch (cleanupError) {
+			if (!isErrnoCode(cleanupError, "ENOENT")) throw new AggregateError([error, cleanupError], "failed to persist runtime config and remove its temporary file");
+		}
+		throw error;
+	}
+}
+/** True when the raw on-disk object already matches the normalized config
+*  on every known field (so we can skip a needless rewrite). */
+function sameRuntimeConfig(parsed, n) {
+	const parsedTls = isObject$5(parsed.webuiTls) ? parsed.webuiTls.enabled : void 0;
+	return parsed.webuiPort === n.webuiPort && parsed.hookAutoLoad === n.hookAutoLoad && parsed.webuiHost === n.webuiHost && parsedTls === n.webuiTls?.enabled && parsed.trustProxy === n.trustProxy && parsed.logMaxTotalMb === n.logMaxTotalMb && parsed.logRetainDays === n.logRetainDays && parsed.logPerUin === n.logPerUin && JSON.stringify(parsed.updateSource) === JSON.stringify(n.updateSource);
+}
+function parsePortString(raw) {
+	if (typeof raw !== "string" || !raw.trim()) return;
+	const n = Number(raw.trim());
+	if (!Number.isFinite(n)) return;
+	const port = Math.trunc(n);
+	if (port <= 0 || port > 65535) return;
+	return port;
+}
+function normalizeHost(value) {
+	if (typeof value === "string" && value.trim()) return value.trim();
+	return DEFAULT_WEBUI_HOST;
+}
+function normalizePort(value, fallback) {
+	if (typeof value === "number" && Number.isFinite(value)) {
+		const n = Math.trunc(value);
+		if (n > 0 && n <= 65535) return n;
+		return fallback;
+	}
+	if (typeof value === "string" && value.trim()) {
+		const n = Number(value);
+		if (Number.isFinite(n)) {
+			const port = Math.trunc(n);
+			if (port > 0 && port <= 65535) return port;
+		}
+	}
+	return fallback;
+}
+function normalizeRequiredInteger(value, fallback, min, max, field) {
+	if (value === void 0) return fallback;
+	const n = typeof value === "string" && value.trim() ? Number(value.trim()) : value;
+	if (typeof n === "number" && Number.isSafeInteger(n) && n >= min && n <= max) return n;
+	throw new RangeError(`${field} must be an integer in ${String(min)}..${String(max)}`);
+}
+function normalizeRequiredBool(value, fallback, field) {
+	if (value === void 0) return fallback;
+	const parsed = parseBoolValue(value);
+	if (parsed !== void 0) return parsed;
+	th
+
+======================== function readRuntimeConfig 12199
+function readRuntimeConfig() {
+	return normalizeRuntimeConfig(tryLoadRuntimeConfig() ?? {});
+}
+/**
+* Persist a partial update. Merges onto the ON-DISK config (not the env-merged
+* runtime view) so an env override (e.g. SNOWLUMA_WEBUI_PORT) is never baked
+* into runtime.json. Returns the new persisted config (without env overrides).
+*/
+function updateRuntimeConfig(patch) {
+	fs$1.mkdirSync(CONFIG_DIR$6, { recursive: true });
+	const next = normalizeRuntimeConfig({
+		...normalizeRuntimeConfig(tryLoadRuntimeConfig() ?? {}),
+		...patch
+	});
+	saveRuntimeConfig(next);
+	return next;
+}
+function tryLoadRuntimeConfig() {
+	if (!fs$1.existsSync(RUNTIME_CONFIG_PATH)) return null;
+	try {
+		const parsed = JSON.parse(fs$1.readFileSync(RUNTIME_CONFIG_PATH, "utf8"));
+		return isObject$5(parsed) ? parsed : null;
+	} catch {
+		return null;
+	}
+}
+function saveRuntimeConfig(config) {
+	const temporaryPath = `${RUNTIME_CONFIG_PATH}.tmp-${String(process.pid)}`;
+	try {
+		fs$1.writeFileSync(temporaryPath, JSON.stringify(config, null, 2), "utf8");
+		fs$1.renameSync(temporaryPath, RUNTIME_CONFIG_PATH);
+	} catch (error) {
+		try {
+			fs$1.unlinkSync(temporaryPath);
+		} catch (cleanupError) {
+			if (!isErrnoCode(cleanupError, "ENOENT")) throw new AggregateError([error, cleanupError], "failed to persist runtime config and remove its temporary file");
+		}
+		throw error;
+	}
+}
+/** True when the raw on-disk object already matches the normalized config
+*  on every known field (so we can skip a needless rewrite). */
+function sameRuntimeConfig(parsed, n) {
+	const parsedTls = isObject$5(parsed.webuiTls) ? parsed.webuiTls.enabled : void 0;
+	return parsed.webuiPort === n.webuiPort && parsed.hookAutoLoad === n.hookAutoLoad && parsed.webuiHost === n.webuiHost && parsedTls === n.webuiTls?.enabled && parsed.trustProxy === n.trustProxy && parsed.logMaxTotalMb === n.logMaxTotalMb && parsed.logRetainDays === n.logRetainDays && parsed.logPerUin === n.logPerUin && JSON.stringify(parsed.updateSource) === JSON.stringify(n.updateSource);
+}
+function parsePortString(raw) {
+	if (typeof raw !== "string" || !raw.trim()) return;
+	const n = Number(raw.trim());
+	if (!Number.isFinite(n)) return;
+	const port = Math.trunc(n);
+	if (port <= 0 || port > 65535) return;
+	return port;
+}
+function normalizeHost(value) {
+	if (typeof value === "string" && value.trim()) return value.trim();
+	return DEFAULT_WEBUI_HOST;
+}
+function normalizePort(value, fallback) {
+	if (typeof value === "number" && Number.isFinite(value)) {
+		const n = Math.trunc(value);
+		if (n > 0 && n <= 65535) return n;
+		return fallback;
+	}
+	if (typeof value === "string" && value.trim()) {
+		const n = Number(value);
+		if (Number.isFinite(n)) {
+			const port = Math.trunc(n);
+			if (port > 0 && port <= 65535) return port;
+		}
+	}
+	return fallback;
+}
+function normalizeRequiredInteger(value, fallback, min, max, field) {
+	if (value === void 0) return fallback;
+	const n = typeof value === "string" && value.trim() ? Number(value.trim()) : value;
+	if (typeof n === "n
+
+======================== function registerStorageRoutes 12655220
+function registerStorageRoutes(app, deps) {
+	let lastCleanup = null;
+	let mutationQueue = Promise.resolve();
+	const serializeMutation = (operation) => {
+		const result = mutationQueue.then(operation);
+		mutationQueue = result.then(() => void 0, () => void 0);
+		return result;
+	};
+	app.get("/api/system/storage", (c) => {
+		try {
+			return c.json({
+				settings: deps.settings.read(),
+				snapshot: deps.storage.snapshot(),
+				lastCleanup
+			});
+		} catch (error) {
+			deps.reportError("read storage snapshot", error);
+			return c.json({
+				success: false,
+				message: "读取存储信息失败，请检查服务器日志"
+			}, 500);
+		}
+	});
+	app.post("/api/system/storage/settings", async (c) => {
+		let body;
+		try {
+			body = await c.req.json();
+		} catch {
+			return c.json({
+				success: false,
+				message: "请求格式错误"
+			}, 400);
+		}
+		let result;
+		try {
+			result = await serializeMutation(() => deps.settings.update(body));
+		} catch (error) {
+			if (error instanceof StorageSettingsInputError) return c.json({
+				success: false,
+				message: error.message
+			}, 400);
+			if (error instanceof StorageSettingsLockedError) return c.json({
+				success: false,
+				message: "这些设置已由环境变量锁定",
+				lockedFields: error.fields
+			}, 409);
+			deps.reportError("update log storage settings", error);
+			if (error instanceof StorageSettingsTransactionError) {
+				deps.reportError("update log storage settings operation", error.operationError);
+				error.rollbackErrors.forEach((rollbackError, index) => {
+					deps.reportError(`rollback log storage settings step=${String(index + 1)}`, rollbackError);
+				});
+				return c.json({
+					success: false,
+					message: error.rollbackErrors.length > 0 ? "保存失败且回滚不完整，请立即检查服务器日志" : "保存失败，原设置已恢复"
+				}, 500);
+			}
+			return c.json({
+				success: false,
+				message: "保存失败，请检查服务器日志"
+			}, 500);
+		}
+		try {
+			return c.json({
+				success: true,
+				settings: result.settings,
+				status: result.status,
+				snapshot: deps.storage.snapshot()
+			});
+		} catch (error) {
+			deps.reportError("refresh storage snapshot after settings update", error);
+			return c.json({
+				success: false,
+				message: "设置已生效，但刷新存储统计失败，请检查服务器日志",
+				settings: result.settings,
+				status: result.status
+			}, 500);
+		}
+	});
+	app.post("/api/system/storage/cleanup", async (c) => {
+		let body;
+		try {
+			body = await c.req.json();
+		} catch {
+			return c.json({
+				success: false,
+				message: "请求格式错误"
+			}, 400);
+		}
+		let request;
+		try {
+			request = parseCleanupRequest(body);
+		} catch (error) {
+			const message = error instanceof Error ? error.message : "请求格式错误";
+			return c.json({
+				success: false,
+				message
+			}, 400);
+		}
+		let cleanup;
+		try {
+			cleanup = await serializeMutation(() => executeCleanup(deps.storage, request));
+		} catch (error) {
+			if (error instanceof StorageAccountOnlineError) return c.json({
+				success: false,
+				message: "账号在线，必须先下线后才能清理数据库",
+				onlineUins: error.uins
+			}, 409);
+			if (error instanceof StorageManagementInputError) return c.json({
+				success: fal
+
+======================== function loadUiConfig 11912256
+function loadUiConfig() {
+	if (cached) return cached;
+	ensureConfigDir();
+	if (!fs$1.existsSync(UI_CONFIG_PATH)) {
+		const fresh = defaultUiConfig();
+		try {
+			atomicWrite(fresh);
+		} catch (err) {
+			log$11.warn("failed to write initial ui.json: %s", err instanceof Error ? err.message : String(err));
+		}
+		cached = fresh;
+		return fresh;
+	}
+	try {
+		const raw = fs$1.readFileSync(UI_CONFIG_PATH, "utf8");
+		const parsed = JSON.parse(raw);
+		const normalized = normalizeStoredUiConfig(parsed);
+		if (JSON.stringify(parsed) !== JSON.stringify(normalized)) try {
+			atomicWrite(normalized);
+		} catch {}
+		cached = normalized;
+		return normalized;
+	} catch (err) {
+		log$11.warn("ui.json unreadable; using defaults: %s", err instanceof Error ? err.message : String(err));
+		const fresh = defaultUiConfig();
+		cached = fresh;
+		return fresh;
+	}
+}
+/**
+* Persist a client-supplied config. The incoming appearance is normalized and
+* its server-managed background-image fields are forced to the current on-disk
+* truth (the client cannot fake `hasImage`). Returns the stored config.
+*/
+function saveUiConfig(incoming) {
+	const current = loadUiConfig();
+	const v = isObject$5(incoming) ? incoming : {};
+	const next = {
+		version: 1,
+		appearance: isObject$5(v.appearance) ? normalizeAppearance(v.appearance, current.appearance.background) : current.appearance,
+		layout: isObject$5(v.layout) ? normalizeLayout(v.layout) : current.layout,
+		pages: isObject$5(v.pages) ? normalizePages(v.pages) : current.pages ?? defaultPages()
+	};
+	atomicWrite(next);
+	cached = next;
+	return next;
+}
+/** The appearance subset served unauthenticated to the login page. Strips
+*  `customCss` so a broken/hostile rule can never reach the pre-auth page
+*  (and so the operator can always log in to fix it). */
+function publicAppearance() {
+	return {
+		...loadUiConfig().appearance,
+		customCss: ""
+	};
+}
+var IMAGE_MIME = {
+	png: "image/png",
+	jpeg: "image/jpeg",
+	webp: "image/webp"
+};
+/**
+* Identify an image by its magic bytes (never by a client-supplied filename or
+* Content-Type). Returns the canonical MIME, or null if it isn't a supported
+* image. Supported: PNG, JPEG, WebP.
+*/
+function sniffImageMime(bytes) {
+	if (bytes.length >= 8 && bytes[0] === 137 && bytes[1] === 80 && bytes[2] === 78 && bytes[3] === 71 && bytes[4] === 13 && bytes[5] === 10 && bytes[6] === 26 && bytes[7] === 10) return IMAGE_MIME.png;
+	if (bytes.length >= 3 && bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255) return IMAGE_MIME.jpeg;
+	if (bytes.length >= 12 && bytes[0] === 82 && bytes[1] === 73 && bytes[2] === 70 && bytes[3] === 70 && bytes[8] === 87 && bytes[9] === 69 && bytes[10] === 66 && bytes[11] === 80) return IMAGE_MIME.webp;
+	return null;
+}
+/** Write the uploaded image to disk and record its metadata. Returns the config. */
+function writeBackgroundImage(bytes, mime) {
+	fs$1.mkdirSync(UI_ASSETS_DIR, { recursive: true });
+	const tmp = BACKGROUND_IMAGE_PATH + ".tmp";
+	fs$1.writeFileSync(tmp, bytes);
+	fs$1.renameSync(t
+
+======================== function publicAppearance 11914041
+function publicAppearance() {
+	return {
+		...loadUiConfig().appearance,
+		customCss: ""
+	};
+}
+var IMAGE_MIME = {
+	png: "image/png",
+	jpeg: "image/jpeg",
+	webp: "image/webp"
+};
+/**
+* Identify an image by its magic bytes (never by a client-supplied filename or
+* Content-Type). Returns the canonical MIME, or null if it isn't a supported
+* image. Supported: PNG, JPEG, WebP.
+*/
+function sniffImageMime(bytes) {
+	if (bytes.length >= 8 && bytes[0] === 137 && bytes[1] === 80 && bytes[2] === 78 && bytes[3] === 71 && bytes[4] === 13 && bytes[5] === 10 && bytes[6] === 26 && bytes[7] === 10) return IMAGE_MIME.png;
+	if (bytes.length >= 3 && bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255) return IMAGE_MIME.jpeg;
+	if (bytes.length >= 12 && bytes[0] === 82 && bytes[1] === 73 && bytes[2] === 70 && bytes[3] === 70 && bytes[8] === 87 && bytes[9] === 69 && bytes[10] === 66 && bytes[11] === 80) return IMAGE_MIME.webp;
+	return null;
+}
+/** Write the uploaded image to disk and record its metadata. Returns the config. */
+function writeBackgroundImage(bytes, mime) {
+	fs$1.mkdirSync(UI_ASSETS_DIR, { recursive: true });
+	const tmp = BACKGROUND_IMAGE_PATH + ".tmp";
+	fs$1.writeFileSync(tmp, bytes);
+	fs$1.renameSync(tmp, BACKGROUND_IMAGE_PATH);
+	const current = loadUiConfig();
+	const next = {
+		...current,
+		appearance: {
+			...current.appearance,
+			background: {
+				...current.appearance.background,
+				type: "image",
+				hasImage: true,
+				imageMime: mime,
+				imageVersion: current.appearance.background.imageVersion + 1
+			}
+		}
+	};
+	atomicWrite(next);
+	cached = next;
+	return next;
+}
+/** Remove the background image (if any) and clear its metadata. Returns the config. */
+function clearBackgroundImage() {
+	try {
+		if (fs$1.existsSync(BACKGROUND_IMAGE_PATH)) fs$1.unlinkSync(BACKGROUND_IMAGE_PATH);
+	} catch (err) {
+		log$11.warn("failed to remove background image: %s", err instanceof Error ? err.message : String(err));
+	}
+	const current = loadUiConfig();
+	const next = {
+		...current,
+		appearance: {
+			...current.appearance,
+			background: {
+				...current.appearance.background,
+				type: current.appearance.background.type === "image" ? "none" : current.appearance.background.type,
+				hasImage: false,
+				imageMime: ""
+			}
+		}
+	};
+	atomicWrite(next);
+	cached = next;
+	return next;
+}
+/** Read the background image bytes + MIME, or null if none is stored. */
+function readBackgroundImage() {
+	const { background } = loadUiConfig().appearance;
+	if (!background.hasImage) return null;
+	try {
+		return {
+			bytes: fs$1.readFileSync(BACKGROUND_IMAGE_PATH),
+			mime: background.imageMime || "application/octet-stream"
+		};
+	} catch {
+		return null;
+	}
+}
+//#endregion
+//#region src/webui/backup.ts
+init_runtime();
+var BACKUP_APP = "snowluma";
+var MAX_BACKUP_DECODED_BYTES = 32 * 1024 * 1024;
+/** Static allowlist. Per-account `onebot_<uin>.json` are matched by pattern. */
+var BACKUP_FILES = [
+	{
+		name: "runtime.json",
+		binary: false,
+		credential: false
+	},
+	{
+		name: "ui.json",
+		bin
+
+======================== function loadNotificationsConfig 11328380
+function loadNotificationsConfig() {
+	if (cached$1) return cached$1;
+	ensureConfigDir$3();
+	if (!fs$1.existsSync(NOTIFICATIONS_CONFIG_PATH)) {
+		const fresh = defaultNotificationsConfig();
+		try {
+			atomicWrite$3(fresh);
+		} catch (err) {
+			log$16.warn("failed to write initial notifications.json: %s", err instanceof Error ? err.message : String(err));
+		}
+		cached$1 = fresh;
+		return fresh;
+	}
+	enforceSensitiveFileMode(NOTIFICATIONS_CONFIG_PATH);
+	try {
+		const raw = fs$1.readFileSync(NOTIFICATIONS_CONFIG_PATH, "utf8");
+		const parsed = JSON.parse(raw);
+		const normalized = normalizeNotificationsConfig(parsed);
+		if (JSON.stringify(parsed) !== JSON.stringify(normalized)) try {
+			atomicWrite$3(normalized);
+		} catch (err) {
+			log$16.warn("failed to normalize notifications.json on disk: %s", err instanceof Error ? err.message : String(err));
+		}
+		cached$1 = normalized;
+		return normalized;
+	} catch (err) {
+		log$16.warn("notifications.json unreadable; using defaults: %s", err instanceof Error ? err.message : String(err));
+		const fresh = defaultNotificationsConfig();
+		cached$1 = fresh;
+		return fresh;
+	}
+}
+/**
+* Persist a (possibly partial) client-supplied config. A missing `channels` or
+* `debounceSeconds` keeps the current on-disk value — section-level merge, same
+* as `saveUiConfig`. Returns the stored, normalized config.
+*/
+function saveNotificationsConfig(incoming) {
+	const current = loadNotificationsConfig();
+	const v = isObject$5(incoming) ? incoming : {};
+	const next = {
+		version: 1,
+		debounceSeconds: v.debounceSeconds !== void 0 ? clampInt(v.debounceSeconds, 0, DEBOUNCE_SECONDS_MAX, 30) : current.debounceSeconds,
+		channels: Array.isArray(v.channels) ? normalizeChannels(v.channels) : current.channels
+	};
+	atomicWrite$3(next);
+	cached$1 = next;
+	return next;
+}
+//#endregion
+//#region src/notifications/debounce.ts
+var DebounceMachine = class {
+	states = /* @__PURE__ */ new Map();
+	/** Account went offline. `debounceSeconds` is read fresh from config so a
+	*  reload takes effect on the next transition. */
+	onOffline(uin, debounceSeconds) {
+		if (this.states.has(uin)) return { kind: "none" };
+		if (!Number.isFinite(debounceSeconds) || debounceSeconds <= 0) {
+			this.states.set(uin, "offline");
+			return {
+				kind: "emit",
+				event: "offline"
+			};
+		}
+		this.states.set(uin, "pending");
+		return {
+			kind: "schedule",
+			delayMs: debounceSeconds * 1e3
+		};
+	}
+	/** Account came online. */
+	onOnline(uin) {
+		const state = this.states.get(uin);
+		this.states.delete(uin);
+		if (state === "pending") return { kind: "cancel" };
+		if (state === "offline") return {
+			kind: "emit",
+			event: "online"
+		};
+		return { kind: "none" };
+	}
+	/** The offline debounce window elapsed (the armed timer fired). */
+	onTimerElapsed(uin) {
+		if (this.states.get(uin) !== "pending") return { kind: "none" };
+		this.states.set(uin, "offline");
+		return {
+			kind: "emit",
+			event: "offline"
+		};
+	}
+};
+//#endregion
+//#region src/notifications/manager.ts
+init_env()
+
+======================== function loadGlobalConfig NOT FOUND
+======================== function resolveRuntimeEnvOverrides 10620
+function resolveRuntimeEnvOverrides(env) {
+	const out = {};
+	const port = parsePortString(env.SNOWLUMA_WEBUI_PORT);
+	if (port !== void 0) out.webuiPort = port;
+	const host = env.SNOWLUMA_WEBUI_HOST;
+	if (typeof host === "string" && host.trim()) out.webuiHost = host.trim();
+	const tp = env.SNOWLUMA_WEBUI_TRUST_PROXY;
+	if (typeof tp === "string") out.trustProxy = tp;
+	const logMaxTotalMb = parseRequiredIntegerEnv(env.SNOWLUMA_LOG_MAX_TOTAL_MB, 1, MAX_LOG_TOTAL_MB, "SNOWLUMA_LOG_MAX_TOTAL_MB");
+	if (logMaxTotalMb !== void 0) out.logMaxTotalMb = logMaxTotalMb;
+	const logRetainDays = parseRequiredIntegerEnv(env.SNOWLUMA_LOG_RETAIN_DAYS, 0, MAX_LOG_RETAIN_DAYS, "SNOWLUMA_LOG_RETAIN_DAYS");
+	if (logRetainDays !== void 0) out.logRetainDays = logRetainDays;
+	const logPerUin = parseRequiredBoolEnv(env.SNOWLUMA_LOG_PER_UIN, "SNOWLUMA_LOG_PER_UIN");
+	if (logPerUin !== void 0) out.logPerUin = logPerUin;
+	const webuiTls = parseRequiredBoolEnv(env.SNOWLUMA_WEBUI_TLS, "SNOWLUMA_WEBUI_TLS");
+	if (webuiTls !== void 0) out.webuiTls = { enabled: webuiTls };
+	return out;
+}
+function loadRuntimeConfig() {
+	fs$1.mkdirSync(CONFIG_DIR$6, { recursive: true });
+	const parsed = tryLoadRuntimeConfig();
+	const normalized = normalizeRuntimeConfig(parsed ?? {});
+	if (parsed === null || !sameRuntimeConfig(parsed, normalized)) saveRuntimeConfig(normalized);
+	return {
+		...normalized,
+		...resolveRuntimeEnvOverrides(process.env)
+	};
+}
+/**
+* Read the persisted config (normalized, no env overrides, no write). For the
+* settings panel's GET — shows what's actually saved/editable on disk.
+*/
+function readRuntimeConfig() {
+	return normalizeRuntimeConfig(tryLoadRuntimeConfig() ?? {});
+}
+/**
+* Persist a partial update. Merges onto the ON-DISK config (not the env-merged
+* runtime view) so an env override (e.g. SNOWLUMA_WEBUI_PORT) is never baked
+* into runtime.json. Returns the new persisted config (without env overrides).
+*/
+function updateRuntimeConfig(patch) {
+	fs$1.mkdirSync(CONFIG_DIR$6, { recursive: true });
+	const next = normalizeRuntimeConfig({
+		...normalizeRuntimeConfig(tryLoadRuntimeConfig() ?? {}),
+		...patch
+	});
+	saveRuntimeConfig(next);
+	return next;
+}
+function tryLoadRuntimeConfig() {
+	if (!fs$1.existsSync(RUNTIME_CONFIG_PATH)) return null;
+	try {
+		const parsed = JSON.parse(fs$1.readFileSync(RUNTIME_CONFIG_PATH, "utf8"));
+		return isObject$5(parsed) ? parsed : null;
+	} catch {
+		return null;
+	}
+}
+function saveRuntimeConfig(config) {
+	const temporaryPath = `${RUNTIME_CONFIG_PATH}.tmp-${String(process.pid)}`;
+	try {
+		fs$1.writeFileSync(temporaryPath, JSON.stringify(config, null, 2), "utf8");
+		fs$1.renameSync(temporaryPath, RUNTIME_CONFIG_PATH);
+	} catch (error) {
+		try {
+			fs$1.unlinkSync(temporaryPath);
+		} catch (cleanupError) {
+			if (!isErrnoCode(cleanupError, "ENOENT")) throw new AggregateError([error, cleanupError], "failed to persist runtime config and remove its temporary file");
+		}
+		throw error;
+	}
+}
+/** True when the raw on-disk object already matches the norm
+
+======================== function validateTlsPair 11894298
+function validateTlsPair(cert, key) {
+	if (!cert || !cert.toString().trim()) return {
+		ok: false,
+		reason: "certificate is empty"
+	};
+	if (!key || !key.toString().trim()) return {
+		ok: false,
+		reason: "private key is empty"
+	};
+	try {
+		tls$1.createSecureContext({
+			cert,
+			key
+		});
+		return { ok: true };
+	} catch (e) {
+		return {
+			ok: false,
+			reason: `invalid cert/key: ${errorMessage(e)}`
+		};
+	}
+}
+/** Load + validate config/cert.pem + config/key.pem from `configDir`. */
+function resolveTlsContext(configDir) {
+	const certPath = path$1.join(configDir, "cert.pem");
+	const keyPath = path$1.join(configDir, "key.pem");
+	if (!fs$1.existsSync(certPath) || !fs$1.existsSync(keyPath)) return {
+		ok: false,
+		reason: "cert.pem or key.pem missing in config dir"
+	};
+	let cert;
+	let key;
+	try {
+		cert = fs$1.readFileSync(certPath);
+		key = fs$1.readFileSync(keyPath);
+	} catch (e) {
+		return {
+			ok: false,
+			reason: `failed to read cert/key: ${errorMessage(e)}`
+		};
+	}
+	const valid = validateTlsPair(cert, key);
+	if (!valid.ok) return {
+		ok: false,
+		reason: valid.reason
+	};
+	return {
+		ok: true,
+		cert,
+		key
+	};
+}
+/** Resolve the configured pair for an enabled listener or abort startup. */
+function requireTlsContext(configDir) {
+	const resolved = resolveTlsContext(configDir);
+	if (!resolved.ok || !resolved.cert || !resolved.key) throw new Error(`TLS listener cannot start: ${resolved.reason ?? "certificate pair is unusable"}`);
+	return {
+		cert: resolved.cert,
+		key: resolved.key
+	};
+}
+//#endregion
+//#region src/webui/listener-exposure.ts
+/** TCP bind-host accepted by WebUI Listener Exposure (settings, restore, boot). */
+function isValidBindHost(value) {
+	const host = value.trim();
+	if (!host || host !== value || host.length > 253 || /[\s/?#@]/u.test(host)) return false;
+	if (host.includes(":")) return isIP(host) === 6;
+	if (/^[\d.]+$/.test(host)) return isIP(host) === 4;
+	return (host.endsWith(".") ? host.slice(0, -1) : host).split(".").every((label) => /^(?!-)[A-Za-z0-9-]{1,63}(?<!-)$/.test(label));
+}
+function checkListenerExposure(input) {
+	if (!isValidBindHost(input.webuiHost)) return {
+		ok: false,
+		code: "invalid-bind-host"
+	};
+	if (input.tlsEnabled && !input.pairOk) return {
+		ok: false,
+		code: "tls-pair-required"
+	};
+	return { ok: true };
+}
+//#endregion
+//#region src/webui/system-settings.ts
+init_coerce();
+function coerceSettingsPatch(body) {
+	if (!isObject$5(body)) return {
+		ok: false,
+		error: "body must be an object"
+	};
+	const patch = {};
+	if ("webuiPort" in body) {
+		const p = body.webuiPort;
+		if (typeof p !== "number" || !Number.isInteger(p) || p <= 0 || p > 65535) return {
+			ok: false,
+			error: "webuiPort must be an integer in 1..65535"
+		};
+		patch.webuiPort = p;
+	}
+	if ("webuiHost" in body) {
+		if (typeof body.webuiHost !== "string" || !body.webuiHost.trim()) return {
+			ok: false,
+			error: "webuiHost must be a non-empty string"
+		};
+		patch.webuiHost = body.webuiHost.trim();
+	}
+	if ("tlsEnabled" in body) {
+		if (typeof bo
+

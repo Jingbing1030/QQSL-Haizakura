@@ -1,0 +1,501 @@
+======================== config/:uin GET
+/refresh", processAction("refresh", (pid) => hookManager.refreshProcess(pid)));
+	app.get("/api/config/:uin", (c) => {
+		const uin = c.req.param("uin");
+		if (!UIN_REGEX.test(uin)) return c.json({ message: "invalid uin" }, 400);
+		const config = loadOneBotConfig(uin);
+		return c.json({ config });
+	});
+	app.post("/api/config/:uin", async (c) => {
+		const uin = c.req.param("uin");
+		if (!UIN_REGEX.test(uin)) return c.json({
+			success: false,
+			message: "invalid uin"
+		}, 400);
+		let body;
+		try {
+			body = await c.req.json();
+		} catch {
+			return c.json({
+				success: false,
+				saved: false,
+				applied: false,
+				message: "请求格式错误"
+			}, 400);
+		}
+		let nextConfig;
+		try {
+			assertValidOneBotConfig(body);
+			nextConfig = body;
+			let previousConfig = null;
+			try {
+				previousConfig = loadOneBotConfig(uin);
+			} catch (err) {
+				log$3.warn("could not read prior OneBot config for uin=%s before save: %s", uin, err instanceof Error ? err.message : String(err));
+			}
+			validateOneBotAccessTokenChanges(previousConfig, nextConfig, {
+				clientIp: getSecurityClientIp(c),
+				uin
+			});
+			saveOneBotConfig(uin, nextConfig);
+		} catch (err) {
+			const message = err instanceof Error ? err.message : String(err);
+			if (err instanceof OneBotConfigValidationError || err instanceof OneBotAccessTokenPolicyError) {
+				log$3.warn("reject invalid config for uin=%s: %s", uin, message);
+			
+
+======================== config/:uin POST
+	return c.json({
+					success: false,
+					saved: false,
+					applied: false,
+					message
+				}, 400);
+			}
+			log$3.error("persist config for uin=%s failed: %s", uin, message);
+			return c.json({
+				success: false,
+				saved: false,
+				applied: false,
+				message: "配置保存失败，请检查服务器日志"
+			}, 500);
+		}
+		try {
+			const apply = await oneBotManager.reloadConfig(uin, nextConfig);
+			const message = !apply.online ? "配置保存成功，当前会话未在线，将在下次连接时生效。" : apply.applied ? "配置保存成功，已热重载当前会话。" : "配置已保存，但部分网络节点未能应用；旧节点已尽力恢复，请查看错误详情。";
+			log$3.info("Updated OneBot config for UIN=%s saved=true online=%s applied=%s failures=%d", uin, String(apply.online), String(apply.applied), apply.errors.length);
+			return c.json({
+				success: true,
+				saved: true,
+				applied: apply.applied,
+				online: apply.online,
+				errors: apply.errors,
+				adapters: apply.adapters,
+				config: body,
+				reloaded: apply.online && apply.applied,
+				message
+			});
+		} catch (err) {
+			const message = err instanceof Error ? err.message : String(err);
+			log$3.error("config saved but apply crashed for uin=%s: %s", uin, message);
+			return c.json({
+				success: true,
+				saved: true,
+				applied: false,
+				online: oneBotManager.getInstance(uin) !== null,
+				reloaded: false,
+				errors: [{
+					name: "network-manager",
+					phase: "reload",
+					message,
+					at: Date.now()
+				}],
+				config: body,
+				message: "配置已保存，但热重载失
+
+======================== notifications routes
+			}],
+				config: body,
+				message: "配置已保存，但热重载失败，请检查服务器日志。"
+			});
+		}
+	});
+	app.get("/api/notifications/config", (c) => c.json({ config: loadNotificationsConfig() }));
+	app.post("/api/notifications/config", async (c) => {
+		const declaredLen = Number(c.req.header("content-length"));
+		if (Number.isFinite(declaredLen) && declaredLen > 512 * 1024) return c.json({
+			success: false,
+			message: "配置过大"
+		}, 413);
+		let body;
+		try {
+			body = await c.req.json();
+		} catch {
+			return c.json({
+				success: false,
+				message: "请求格式错误"
+			}, 400);
+		}
+		try {
+			const config = saveNotificationsConfig(body);
+			return c.json({
+				success: true,
+				config
+			});
+		} catch (err) {
+			log$3.warn("save notifications config failed: %s", err instanceof Error ? err.message : String(err));
+			return c.json({
+				success: false,
+				message: "保存失败，请检查服务器日志"
+			}, 500);
+		}
+	});
+	app.get("/api/notifications/recent", (c) => {
+		if (!notificationManager) return c.json({ recent: [] });
+		const limitRaw = Number(c.req.query("limit"));
+		const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(Math.trunc(limitRaw), 100) : 100;
+		return c.json({ recent: notificationManager.getRecent(limit) });
+	});
+	app.post("/api/notifications/test", async (c) => {
+		if (!notificationManager) return c.json({
+			success: false,
+			message: "通知子系统不可用"
+		}, 503);
+		let body;
+		try {
+			body = await c.req.json();
+		} catch {
+			return c.json({
+				success: false,
+				message: "请求格式错误"
+			}, 400);
+		}
+		const channelId = typeof body.channelId === "string" ? body.channelId : "";
+		if (!channelId) return c.json({
+			success: false,
+			message: "缺少 channelId"
+		}, 400);
+		const result = await notificationManager.testSend(channelId);
+		if (!result.found) return c.json({
+			success: false,
+			message: "渠道不存在"
+		}, 404);
+		return c.json({
+			success: result.ok,
+			status: result.status,
+			message: result.ok ? "测试发送成功" : `测试发送失败：${result.error ?? (result.status ? `HTTP ${result.status}` : "未知错误")}`
+		});
+	});
+	app.get("/api/global-config", (c) => c.json({ config: loadGlobalSettings() }));
+	app.post("/api/global-config", async (c) => {
+		const declaredLen = Number(c.req.header("content-length"));
+
+======================== global-config routes
+sult.status ? `HTTP ${result.status}` : "未知错误")}`
+		});
+	});
+	app.get("/api/global-config", (c) => c.json({ config: loadGlobalSettings() }));
+	app.post("/api/global-config", async (c) => {
+		const declaredLen = Number(c.req.header("content-length"));
+		if (Number.isFinite(declaredLen) && declaredLen > 512 * 1024) return c.json({
+			success: false,
+			message: "配置过大"
+		}, 413);
+		let body;
+		try {
+			body = await c.req.json();
+		} catch {
+			return c.json({
+				success: false,
+				message: "请求格式错误"
+			}, 400);
+		}
+		try {
+			const config = saveGlobalSettings(body);
+			oneBotManager.reloadGlobalSettings();
+			return c.json({
+				success: true,
+				config
+			});
+		} catch (err) {
+			log$3.warn("save global config failed: %s", err instanceof Error ? err.message : String(err));
+			if (err instanceof RangeError) return c.json({
+				success: false,
+				message: err.message
+			}, 400);
+			return c.json({
+				success: false,
+				message: "保存失败，请检查服务器日志"
+			}, 500);
+		}
+	});
+	app.get("/api/ui", (c) => c.json({ config: loadUiConfig() }));
+	app.get("/api/ui/public", (c) => c.json({ appearance: publicAppearance() }));
+	app.post("/api/ui", async (c) => {
+		const declaredLen = Number(c.req.header("content-length"));
+		if (Number.isFinite(declaredLen) && declaredLen > 256 * 1024) return c.json({
+			success: false,
+			message: "配置过大"
+		}, 413);
+		let body;
+		try {
+			body = await c.req.json();
+		} catch {
+			return c.json({
+				success: false,
+				message: "请求格式错误"
+			}, 400);
+		}
+		try {
+			const config = saveUiConfig(body);
+			return c.json({
+				success: true,
+				config
+			});
+		} catch (err) {
+			log$3.warn("save ui.json failed: %s", err instanceof Error ? err.message : String(err));
+			return c.json({
+				success: false,
+				message: "保存失败，请检查服务器日志"
+			}, 400);
+		}
+	});
+	app.post("/api/ui/background", async (c) => {
+		const declaredLen = Number(c.req.header("content-length"));
+		if (Number.isFinite(declaredLen) && declaredLen > 6291456) return c.json({
+			success: false,
+			message: "图片过大（上限 5MB）"
+		}, 413);
+		let file;
+		try {
+			file = (await c.req.parseBody())["file"];
+		} catch {
+			return c.json({
+				success: false,
+				message: "上传解析失败"
+			}, 400);
+		}
+		if (!(file instanceof File)) return c.json({
+			success: false,
+			message: "缺少图片文件"
+		}, 400);
+		if (file.size > 5242880) return c.json({
+			success: false,
+			message: "图片过大（上限 5MB）"
+		}, 413);
+		const bytes =
+
+======================== coerceLogStorageSettings
+function coerceLogStorageSettingsPatch(body) {
+	if (!isObject$5(body)) throw new StorageSettingsInputError("body must be an object");
+	const keys = Object.keys(body);
+	if (keys.length === 0) throw new StorageSettingsInputError("at least one setting is required");
+	const unknown = keys.filter((key) => !SETTINGS_FIELD_SET.has(key));
+	if (unknown.length > 0) throw new StorageSettingsInputError(`unknown setting: ${unknown.join(", ")}`);
+	const patch = {};
+	if ("logMaxTotalMb" in body) {
+		const value = body.logMaxTotalMb;
+		if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 1 || value > MAX_LOG_TOTAL_MB) throw new StorageSettingsInputError(`logMaxTotalMb must be an integer in 1..${MAX_LOG_TOTAL_MB}`);
+		patch.logMaxTotalMb = value;
+	}
+	if ("logRetainDays" in body) {
+		const value = body.logRetainDays;
+		if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0 || value > MAX_LOG_RETAIN_DAYS) throw new StorageSettingsInputError(`logRetainDays must be an integer in 0..${MAX_LOG_RETAIN_DAYS}`);
+		patch.logRetainDays = value;
+	}
+	if ("logPerUin" in body) {
+		if (typeof body.logPerUin !== "boolean") throw new StorageSettingsInputError("logPerUin must be a boolean");
+		patch.logPerUin = body.logPerUin;
+	}
+	return patch;
+}
+function settingsState(runtime, envOverrides, liveEffective) {
+	const saved = settingsFromRuntime(runtime);
+	const envOverridesList = SETTINGS_FIELDS.filter((field) => field in envOverrides);
+	return {
+		saved,
+		effective: liveEffective ?? {
+			...saved,
+			...settingsPatchFromRuntime(envOverrides)
+		},
+		envOverrides: envOverridesList
+	};
+}
+function settingsFromStatus(status) {
+	const maxTotalMb = status.maxTotalBytes / (1024 * 1024);
+	if (!Number.isSafeInteger(maxTotalMb)) throw new Error("live log storage limit is not an integer number of megabytes");
+	return {
+		logMaxTotalMb: maxTotalMb,
+		logRetainDays: status.retainDays,
+		logPerUin: status.perUinEnabled
+	};
+}
+function settingsFromRuntime(runtime) {
+	return {
+		logMaxTotalMb: runtime.logMaxTotalMb ?? 1024,
+		logRetainDays: runtime.logRetainDays ?? 7,
+		logPerUin: runtime.logPerUin ?? false
+	};
+}
+function settingsPatchFromRuntime(runtime) {
+	const patch = {};
+	if (runtime.logMaxTotalMb !== void 0) patch.logMaxTotalMb = runtime.logMaxTotalMb;
+	if (runtime.logRetainDays !== void 0) patch.logRetainDays = runtime.logRetainDays;
+	if (runtime.logPerUin !== void 0) patch.logPerUin = runtime.logPerUin;
+	return patch;
+}
+function toPolicy(settings) {
+	return {
+		maxTotalMb: settings.logMaxTotalMb,
+		retainDays: settings.logRetainDays,
+		perUinEnabled: settings.logPerUin
+	};
+}
+function assertApplied(status, policy) {
+	const expectedBytes = policy.maxTotalMb * 1024 * 1024;
+	if (status.state === "warning" || status.state === "degraded" || status.lastError !== void 0 || status.maxTotalBytes !== expectedBytes || status.retainDays !== policy.retainDays || status.perUinEnabled !== policy.perUinEnabled) throw new Error(status.lastError ?? "log storage policy di
+
+======================== parseCleanupRequest
+function parseCleanupRequest(body) {
+	if (!isObject$5(body) || typeof body.scope !== "string") throw new StorageManagementInputError("scope is required");
+	if (body.scope === "logs" || body.scope === "temporary") {
+		assertExactKeys(body, ["scope"]);
+		return { scope: body.scope };
+	}
+	if (body.scope === "account") {
+		assertExactKeys(body, [
+			"scope",
+			"category",
+			"uin"
+		]);
+		const category = parseCategory(body.category);
+		if (typeof body.uin !== "string" || !isRealUin(body.uin)) throw new StorageManagementInputError("invalid UIN");
+		return {
+			scope: "account",
+			category,
+			uin: body.uin
+		};
+	}
+	if (body.scope === "allAccounts") {
+		assertExactKeys(body, [
+			"scope",
+			"category",
+			"confirmation"
+		]);
+		const category = parseCategory(body.category);
+		if (body.confirmation !== "清理全部账号") throw new StorageManagementInputError("all-account cleanup requires confirmation");
+		return {
+			scope: "allAccounts",
+			category,
+			confirmation: ALL_ACCOUNTS_CONFIRMATION
+		};
+	}
+	throw new StorageManagementInputError(`unsupported cleanup scope: ${body.scope}`);
+}
+async function executeCleanup(storage, request) {
+	if (request.scope === "logs") return storage.clearLogs();
+	if (request.scope === "temporary") return storage.clearTemporary();
+	if (request.scope === "account") return storage.clearAccountData(request.category, request.uin);
+	return storage.clearAllAccountData(request.category);
+}
+function parseCategory(value) {
+	if (value === "messages" || value === "media" || value === "reactions") return value;
+	throw new StorageManagementInputError("unsupported account storage category");
+}
+function assertExactKeys(body, allowed) {
+	const allowedSet = new Set(allowed);
+	const unknown = Object.keys(body).filter((key) => !allowedSet.has(key));
+	const missing = allowed.filter((key) => !(key in body));
+	if (unknown.length > 0 || missing.length > 0) throw new StorageManagementInputError("cleanup request has unexpected or missing fields");
+}
+function accountScope(request) {
+	if (request.scope === "account") return "single";
+	if (request.scope === "allAccounts") return "all";
+	return "global";
+}
+function cleanupFailureItem(failure) {
+	if ("uin" in failure) return `${failure.uin}/${failure.file}`;
+	if ("file" in failure) return failure.file;
+	return failure.item;
+}
+//#endregion
+//#region ../../node_modules/.pnpm/hono@4.13.13/node_modules/hono/dist/middleware/body-limit/index.js
+var ERROR_MESSAGE = "Payload Too Large";
+/**
+* Body Limit Middleware for Hono.
+*
+
+======================== normalizeAppearance
+function normalizeAppearance(value, imageState = DEFAULT_IMAGE_STATE) {
+	const v = isObject$5(value) ? value : {};
+	return {
+		mode: oneOf(v.mode, [
+			"light",
+			"dark",
+			"system"
+		], DEFAULT_APPEARANCE.mode),
+		accentMode: oneOf(v.accentMode, ["preset", "custom"], DEFAULT_APPEARANCE.accentMode),
+		accentPreset: idOr(v.accentPreset, DEFAULT_APPEARANCE.accentPreset, 32),
+		accentCustom: hexOr(v.accentCustom, DEFAULT_APPEARANCE.accentCustom),
+		accentScope: oneOf(v.accentScope, ["sidebar", "global"], DEFAULT_APPEARANCE.accentScope),
+		darkIntensity: oneOf(v.darkIntensity, ["soft", "black"], DEFAULT_APPEARANCE.darkIntensity),
+		palette: oneOf(v.palette, [
+			"default",
+			"catppuccin-latte",
+			"catppuccin-frappe",
+			"catppuccin-macchiato",
+			"catppuccin-mocha",
+			"rose-pine",
+			"rose-pine-moon",
+			"rose-pine-dawn",
+			"nord",
+			"everforest-dark",
+			"everforest-light"
+		], DEFAULT_APPEARANCE.palette),
+		sidebarStyle: oneOf(v.sidebarStyle, [
+			"follow",
+			"panel",
+			"accent"
+		], DEFAULT_APPEARANCE.sidebarStyle),
+		background: normalizeBackground(v.background, imageState),
+		fontSans: idOr(v.fontSans, DEFAULT_APPEARANCE.fontSans),
+		fontSansCustom: fontFamilyOr(v.fontSansCustom, DEFAULT_APPEARANCE.fontSansCustom),
+		fontMono: idOr(v.fontMono, DEFAULT_APPEARANCE.fontMono),
+		fontMonoCustom: fontFamilyOr(v.fontMonoCustom, DEFAULT_APPEARANCE.fontMonoCustom),
+		uiScale: clampNum(v.uiScale, .9, 1.2, DEFAULT_APPEARANCE.uiScale),
+		radius: clampNum(v.radius, 0, 2, DEFAULT_APPEARANCE.radius),
+		density: oneOf(v.density, ["cozy", "compact"], DEFAULT_APPEARANCE.density),
+		reduceMotion: boolOr(v.reduceMotion, DEFAULT_APPEARANCE.reduceMotion),
+		disableMotion: boolOr(v.disableMotion, DEFAULT_APPEARANCE.disableMotion),
+		customPointerSystem: boolOr(v.customPointerSystem, DEFAULT_APPEARANCE.customPointerSystem),
+		customContextMenu: boolOr(v.customContextMenu, DEFAULT_APPEARANCE.customContextMenu),
+		highContrast: boolOr(v.highContrast, DEFAULT_APPEARANCE.highContrast),
+		sidebarPinned: boolOr(v.sidebarPinned, DEFAULT_APPEARANCE.sidebarPinned),
+		timeFormat: oneOf(v.timeFormat, ["12h", "24h"], DEFAULT_APPEARANCE.timeFormat),
+		pollInterval: clampNum(v.pollInterval, 0, 6e4, DEFAULT_APPEARANCE.pollInterval),
+		customCss: typeof v.customCss === "string" ? v.customCss.slice(0, 5e4) : DEFAULT_APPEARANCE.customCss,
+		cssVars: normalizeCssVars(v.cssVars)
+	};
+}
+function normalizeLayout(value) {
+	const layout = isObject$5(value) ? value : {};
+	return {
+		overviewBlocks: normalizeLayoutItems(layout.overviewBlocks, DEFAULT_OVERVIEW_BLOCKS),
+		overviewMobile: normalizeLayoutItems(layout.overviewMobile, DEFAULT_OVERVIEW_MOBILE),
+		navItems: normalizeLayoutItems(layout.navItems, DEFAULT_NAV_ITEMS),
+		topbarItems: normalizeLayoutItems(layout.topbarItems, DEFAULT_TOPBAR_ITEMS)
+	};
+}
+function normalizeHighlightRules(value) {
+	if (!Array.isArray(value)) return [];
+	const out = [];
+	for (const raw of value) {
+		if (!isObject$5(raw) || typeof raw.keyword !== "string") continue;
+		const keyword = raw.keyword.trim().slice(0, 50);
+		if (!keyword) continue;
+		const color = typeof raw.color === "string" ? raw.color.slice(0, 32) : "";
+		out.push({
+			keyword,
+			color
+		});
+		if (out.length >= 20) break;
+	}
+	return out;
+}
+function normalizePages(value) {
+	const v = isObject$5(value) ? value : {};
+	const logs = isObject$5(v.logs) ? v.logs : {};
+	const levels = Array.isArray(logs.visibleLevels) ? LOG_LEVELS.filter((l) => logs.visibleLevels.includes(l)) : DEFAULT_PAGES.logs.visibleLevels;
+	return {
+		defaultRoute: idOr(v.defaultRoute, DEFAULT_PAGES.defaultRoute),
+		logs: {
+			visibleLevels: levels.length > 0 ? levels : [...LOG_LEVELS],
+			maxLines: clampInt(logs.maxLines, 100, 5e3, DEFAULT_PAGES.logs.maxLines),
+			autoScroll: boolOr(logs.autoScroll, DEFAULT_PAGES.logs.autoScroll),
+			wrap: boolOr(logs.wrap, DEFAULT_PAGES.logs.wrap),
+			highlightRules: normalizeHighlightRules(logs.highlightRules),
+			preset: oneOf(logs.preset, [
+				"dev",
+				"ops",
+				"mi
+

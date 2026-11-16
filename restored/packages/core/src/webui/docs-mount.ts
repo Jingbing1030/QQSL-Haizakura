@@ -612,6 +612,15 @@ function hzDocsGetDoc(key) {
 
 /** 分组顺序与中文标签 */
 var hzDocsGroupOrder = ["", "guide", "protocol", "webui", "advanced", "dev", "internals"];
+/** 分组标题的 5 语言版本。缺项回退 zh-cn。 */
+var hzDocsGroupLabelsAll = {
+	"zh-cn": { "": "总览", guide: "使用指南", protocol: "协议", webui: "WebUI", advanced: "进阶", dev: "开发", internals: "逆向分析（内部）" },
+	"zh-tw": { "": "總覽", guide: "使用指南", protocol: "協定", webui: "WebUI", advanced: "進階", dev: "開發", internals: "逆向分析（內部）" },
+	ja: { "": "概要", guide: "利用ガイド", protocol: "プロトコル", webui: "WebUI", advanced: "応用", dev: "開発", internals: "リバース解析（内部）" },
+	"zh-pseudo": { "": "総覧", guide: "使用指南", protocol: "協議", webui: "WebUI", advanced: "進階", dev: "開発", internals: "逆解析（内部）" },
+	en: { "": "Overview", guide: "Guide", protocol: "Protocol", webui: "WebUI", advanced: "Advanced", dev: "Development", internals: "Reverse engineering (internal)" }
+};
+
 var hzDocsGroupLabels = {
 	"": "总览",
 	guide: "使用指南",
@@ -622,7 +631,57 @@ var hzDocsGroupLabels = {
 	internals: "逆向分析（内部）"
 };
 
+var hzDocsLangs = ["zh-cn", "zh-tw", "ja", "zh-pseudo", "en"];
+var hzDocsLangDefault = "zh-cn";
+
+/** 从语料 key 里剥出语言前缀。无前缀 = 默认语言（向后兼容旧语料）。 */
+function hzDocsLangOf(key) {
+	var slash = key.indexOf("/");
+	if (slash === -1) return hzDocsLangDefault;
+	var head = key.slice(0, slash);
+	return hzDocsLangs.indexOf(head) === -1 ? hzDocsLangDefault : head;
+}
+
+/** 去掉语言前缀后的纯路径（用于分组与相对链接计算）。 */
+function hzDocsPathOf(key) {
+	var lang = hzDocsLangOf(key);
+	return lang === hzDocsLangDefault && hzDocsLangs.indexOf(key.slice(0, key.indexOf("/"))) === -1
+		? key
+		: key.slice(lang.length + 1);
+}
+
+/** 把 log 参数规范到语料里真实存在的 key，带语言回退。 */
+function hzDocsResolveLangKey(pathKey, lang) {
+	var corpus = hzDocsDecodeCorpus();
+	var want = hzDocsLangs.indexOf(lang) === -1 ? hzDocsLangDefault : lang;
+	var candidates = [
+		want + "/" + pathKey,
+		pathKey,
+		hzDocsLangDefault + "/" + pathKey
+	];
+	for (var i = 0; i < candidates.length; i++) {
+		if (Object.prototype.hasOwnProperty.call(corpus, candidates[i])) return candidates[i];
+	}
+	return null;
+}
+
+/** 列出某语言下可用的文档（纯路径）。 */
+function hzDocsKeysForLang(lang) {
+	var corpus = hzDocsDecodeCorpus();
+	var want = hzDocsLangs.indexOf(lang) === -1 ? hzDocsLangDefault : lang;
+	var out = [];
+	for (var key of Object.keys(corpus)) {
+		if (key.slice(0, 6) === "intern" ) continue;
+		var kLang = hzDocsLangOf(key);
+		if (kLang !== want) continue;
+		var pure = hzDocsPathOf(key);
+		if (out.indexOf(pure) === -1) out.push(pure);
+	}
+	return out.sort();
+}
+
 function hzDocsGroupOf(key) {
+	key = hzDocsPathOf(key);
 	var slash = key.indexOf("/");
 	if (slash === -1) return "";
 	var top = key.slice(0, slash);
@@ -647,9 +706,16 @@ function hzDocsNavGroups() {
 		var name = hzDocsGroupOrder[g];
 		var keys = buckets.get(name);
 		if (!keys || !keys.length) continue;
+		var labels = {};
+		for (var li = 0; li < hzDocsLangs.length; li++) {
+			var lg = hzDocsLangs[li];
+			var tbl = hzDocsGroupLabelsAll[lg] || {};
+			labels[lg] = tbl[name] || name;
+		}
 		groups.push({
 			name: name,
 			label: hzDocsGroupLabels[name] || name,
+			labels: labels,
 			docs: keys.map((k) => ({ key: k, title: hzDocsGetDoc(k).title }))
 		});
 	}
@@ -691,6 +757,10 @@ function hzDocsStyle() {
 		"body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.75 -apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans CJK SC','Microsoft YaHei',sans-serif}",
 		".top{position:sticky;top:0;z-index:5;display:flex;gap:16px;align-items:center;padding:10px 20px;background:var(--card);border-bottom:1px solid var(--line)}",
 		".brand{font-weight:700;color:var(--fg);text-decoration:none}",
+		".langbar{display:flex;gap:4px;margin-left:auto;flex-wrap:wrap}",
+		".langbar .lang{padding:2px 8px;border-radius:6px;font-size:12px;text-decoration:none;color:var(--muted);border:1px solid transparent}",
+		".langbar .lang:hover{background:rgba(128,128,128,.12);color:var(--fg)}",
+		".langbar .lang.on{background:rgba(128,128,128,.18);color:var(--fg);border-color:rgba(128,128,128,.28);font-weight:600}",
 		".top .meta{color:var(--muted);font-size:12.5px}",
 		".top .sp{margin-left:auto}",
 		".top a.raw{font-size:12.5px;color:var(--accent);text-decoration:none;border:1px solid var(--line);padding:3px 10px;border-radius:999px}",
@@ -742,10 +812,41 @@ function hzDocsStyle() {
 	].join("\n");
 }
 
+var hzDocsLangNames = {
+	"ja": "日本語",
+	"zh-pseudo": "中國語",
+	"zh-cn": "简体中文",
+	"zh-tw": "繁體中文",
+	"en": "English"
+};
+
+
+/** 文档页顶部的语言切换器。用链接实现，无需 JS，直接改 URL 前缀。 */
+function hzDocsLangSwitcher(activeLang, activePath) {
+	var order = ["ja", "zh-pseudo", "zh-cn", "zh-tw", "en"];
+	var out = ['<nav class="langbar" aria-label="语言">'];
+	for (var i = 0; i < order.length; i++) {
+		var code = order[i];
+		var link = activePath
+			? "/docs/" + code + "/" + encodeURI(activePath)
+			: "/docs/" + code;
+		var cls = code === activeLang ? "lang on" : "lang";
+		out.push(
+			'<a class="' + cls + '" href="' + hzDocsEscapeHtml(link) + '"' +
+			(code === activeLang ? ' aria-current="true"' : "") + ">" +
+			hzDocsEscapeHtml(hzDocsLangNames[code] || code) + "</a>"
+		);
+	}
+	out.push("</nav>");
+	return out.join("");
+}
+
 function hzDocsShell(opts) {
 	var title = opts.title ? opts.title + " · Haizakura 文档" : "Haizakura 文档";
+	var shellLang = opts.lang || hzDocsLangDefault;
+	var htmlLang = shellLang === "zh-pseudo" ? "zh-Hant" : shellLang;
 	return (
-		"<!doctype html>\n<html lang=\"zh-CN\">\n<head>\n" +
+		"<!doctype html>\n<html lang=\"" + hzDocsEscapeHtml(htmlLang) + "\">\n<head>\n" +
 		'<meta charset="utf-8">\n' +
 		'<meta name="viewport" content="width=device-width,initial-scale=1">\n' +
 		'<meta name="robots" content="noindex,nofollow">\n' +
@@ -755,6 +856,7 @@ function hzDocsShell(opts) {
 		'<header class="top">\n' +
 		'<a class="brand" href="/docs">Haizakura 文档</a>\n' +
 		'<span class="meta">' + hzDocsEscapeHtml(opts.crumb || "内置离线文档") + "</span>\n" +
+		hzDocsLangSwitcher(shellLang, opts.activePath || "") + "\n" +
 		(opts.raw ? '<span class="sp"></span><a class="raw" href="' + hzDocsEscapeHtml(opts.raw) + '">查看原始 Markdown</a>' : "") +
 		"\n</header>\n" +
 		'<div class="wrap">\n' + (opts.nav === false ? "" : hzDocsNavHtml(opts.activeKey)) + "\n" +
@@ -767,7 +869,7 @@ function hzDocsShell(opts) {
 // 7. 页面生成
 // ---------------------------------------------------------------------------
 
-function hzDocsIndexPage() {
+function hzDocsIndexPage(pageLang) {
 	var groups = hzDocsNavGroups();
 	var total = 0;
 	for (var g = 0; g < groups.length; g++) total += groups[g].docs.length;
@@ -778,12 +880,21 @@ function hzDocsIndexPage() {
 		"断网也能查。</p>" +
 		"<p>共 " + total + " 篇 · " + (hzDocsAuthRequired() ? "已启用访问口令" : "本实例未启用访问口令") + "</p></div>"
 	);
+	var idxL = pageLang || hzDocsLangDefault;
+	var idxVisible = {};
+	var idxKeys = hzDocsKeysForLang(idxL);
+	for (var ik = 0; ik < idxKeys.length; ik++) idxVisible[idxKeys[ik]] = true;
 	for (var i = 0; i < groups.length; i++) {
 		var group = groups[i];
-		out.push("<h2>" + hzDocsEscapeHtml(group.label) + "</h2>");
+		var shown = [];
+		for (var q = 0; q < group.docs.length; q++) {
+			if (idxVisible[hzDocsPathOf(group.docs[q].key)]) shown.push(group.docs[q]);
+		}
+		if (!shown.length) continue;
+		out.push("<h2>" + hzDocsEscapeHtml((group.labels && group.labels[idxL]) || group.label) + "</h2>");
 		out.push('<div class="cards">');
-		for (var d = 0; d < group.docs.length; d++) {
-			var doc = group.docs[d];
+		for (var d = 0; d < shown.length; d++) {
+			var doc = shown[d];
 			var meta = hzDocsDecodeCorpus()[doc.key] || "";
 			var lines = meta.split("\n").length;
 			out.push(
@@ -794,11 +905,22 @@ function hzDocsIndexPage() {
 		}
 		out.push("</div>");
 	}
-	return hzDocsShell({ title: "文档索引", crumb: "索引", content: out.join("\n") });
+	var idxLang = pageLang || hzDocsLangDefault;
+  	// 索引页只列出该语言下真实可用的文档
+  	var langKeys = hzDocsKeysForLang(idxLang);
+  	var visible = {};
+  	for (var lk = 0; lk < langKeys.length; lk++) visible[langKeys[lk]] = true;
+  	return hzDocsShell({
+  		title: idxLang === "en" ? "Documentation index" : "文档索引",
+  		crumb: idxLang === "en" ? "Index" : "索引",
+  		lang: idxLang,
+  		content: out.join("\n")
+  	});
 }
 
-function hzDocsDocPage(key) {
+function hzDocsDocPage(key, langOverride) {
 	var doc = hzDocsGetDoc(key);
+	var pageLang = langOverride || hzDocsLangOf(key);
 	var content = "";
 	if (doc.headings.length > 1) {
 		var toc = ['<details class="toc"><summary>本页目录（' + doc.headings.length + " 节）</summary><ol>"];
@@ -815,8 +937,10 @@ function hzDocsDocPage(key) {
 	content += doc.html;
 	return hzDocsShell({
 		title: doc.title,
-		crumb: key,
+		crumb: hzDocsPathOf(key),
 		activeKey: key,
+		lang: pageLang,
+		activePath: hzDocsPathOf(key),
 		raw: "/docs/raw/" + encodeURI(key),
 		content: content
 	});
@@ -977,6 +1101,15 @@ function hzDocsHandleDoc(c) {
 		var rest = c.req.path.slice(HZ_DOCS_BASE.length);
 		if (rest.charAt(0) === "/") rest = rest.slice(1);
 
+		// /docs/<lang>/<path> —— 语言前缀可省略，省略即默认语言
+		var docLang = hzDocsLangDefault;
+		var slashIdx = rest.indexOf("/");
+		var head = slashIdx === -1 ? rest : rest.slice(0, slashIdx);
+		if (hzDocsLangs.indexOf(head) !== -1) {
+			docLang = head;
+			rest = slashIdx === -1 ? "" : rest.slice(slashIdx + 1);
+		}
+
 		var corpus = hzDocsDecodeCorpus();
 		if (!Object.keys(corpus).length) {
 			return c.html(
@@ -1009,13 +1142,18 @@ function hzDocsHandleDoc(c) {
 		}
 
 		var resolved = hzDocsResolvePath(rest);
+		// 把语言前缀拼回 key，使页面能显示正确的语言状态与内容
+		var langKey = function (pure) {
+			var k = hzDocsResolveLangKey(hzDocsPathOf(pure), docLang);
+			return k || pure;
+		};
 		switch (resolved.kind) {
 			case "index":
-				return c.html(hzDocsIndexPage(), 200, hzDocsNoStore);
+				return c.html(hzDocsIndexPage(docLang), 200, hzDocsNoStore);
 			case "doc":
-				return c.html(hzDocsDocPage(resolved.key), 200, hzDocsNoStore);
+				return c.html(hzDocsDocPage(langKey(resolved.key), docLang), 200, hzDocsNoStore);
 			case "dir":
-				return c.html(hzDocsDirPage(resolved.key, resolved.docs), 200, hzDocsNoStore);
+				return c.html(hzDocsDirPage(resolved.key, resolved.docs, docLang), 200, hzDocsNoStore);
 			case "traversal":
 			case "hidden":
 			case "invalid":
@@ -1069,16 +1207,25 @@ function hzDocsRegisterRoutes(app) {
  * the same corpus as data. Both live under /api/docs/* and reuse hzDocsGate, so
  * they obey the same auth policy as the HTML pages.
  */
+function hzDocsLangQuery(c) {
+	var q = c.req.query("lang") || "";
+	return hzDocsLangs.indexOf(q) === -1 ? hzDocsLangDefault : q;
+}
+
 function hzDocsJsonNav(c) {
 	var gate = hzDocsGate(c);
 	if (gate) return gate;
+	var lang = hzDocsLangQuery(c);
 	var groups = hzDocsNavGroups();
 	var payload = [];
 	for (var i = 0; i < groups.length; i++) {
 		var group = groups[i];
 		var docs = [];
 		for (var d = 0; d < group.docs.length; d++) {
-			var entry = group.docs[d];
+			var pureKey = hzDocsPathOf(group.docs[d].key);
+			var resolved = hzDocsResolveLangKey(pureKey, lang);
+			if (!resolved) continue;
+			var entry = { key: resolved, title: hzDocsGetDoc(resolved).title };
 			// 每篇文档的内嵌标题层级，便于前端渲染可折叠的三级目录；
 			// 只保留 h2/h3，h1 是文章标题本身。
 			var headings = [];
@@ -1093,19 +1240,26 @@ function hzDocsJsonNav(c) {
 			}
 			docs.push({ key: entry.key, title: entry.title, headings: headings });
 		}
-		payload.push({ label: group.label, docs: docs });
+		payload.push({
+			name: group.name,
+			label: (group.labels && group.labels[lang]) || group.label,
+			docs: docs
+		});
 	}
-	return c.json({ groups: payload }, 200, hzDocsNoStore);
+	return c.json({ lang: lang, groups: payload }, 200, hzDocsNoStore);
 }
 
 function hzDocsJsonDoc(c) {
 	var gate = hzDocsGate(c);
 	if (gate) return gate;
 	var key = c.req.query("key") || "";
+	var lang = hzDocsLangQuery(c);
 	var corpus = hzDocsDecodeCorpus();
-	if (corpus[key] === void 0) return c.json({ error: "not found" }, 404, hzDocsNoStore);
-	var doc = hzDocsGetDoc(key);
-	return c.json({ key: doc.key, title: doc.title, html: doc.html, headings: doc.headings }, 200, hzDocsNoStore);
+	var resolved = hzDocsResolveLangKey(hzDocsPathOf(key), lang);
+	if (!resolved) return c.json({ error: "not found" }, 404, hzDocsNoStore);
+	var key2 = resolved;
+	var doc = hzDocsGetDoc(key2);
+	return c.json({ key: hzDocsPathOf(doc.key), lang: hzDocsLangOf(doc.key), title: doc.title, html: doc.html, headings: doc.headings }, 200, hzDocsNoStore);
 }
 
 var hzDocsOrigRegisterStaticFrontend = registerStaticFrontend;

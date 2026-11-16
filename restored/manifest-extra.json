@@ -43,6 +43,13 @@
       "insert": "after:src/webui/request-security.ts",
       "mode": "inline",
       "label": "src/webui/docs-mount.ts"
+    },
+    {
+      "id": "cache-headers",
+      "file": "packages/core/src/webui/cache-headers.ts",
+      "insert": "after:src/webui/request-security.ts",
+      "mode": "inline",
+      "label": "src/webui/cache-headers.ts"
     }
   ]
 }
