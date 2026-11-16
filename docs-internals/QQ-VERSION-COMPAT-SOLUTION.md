@@ -175,76 +175,89 @@ RTTI 差异只是 `wifiphoto` 迁移），所以 3.2.32 的逻辑能用在 3.2.3
 
 ---
 
-## 九、一键补丁脚本（可直接用）
+## 九、一键补丁脚本（实测通过）
+
+位置：`tools/hz-fix-compat`
 
 ```bash
 #!/bin/bash
-# fix-haizakura-qq-compat.sh
-# 让 Haizakura 支持新版 QQ（20 字节补丁）
+# hz-fix-compat —— 让 Haizakura 兼容新版 QQ（20 字节补丁）
+# 原理：payload 用 wrapper.node 的 GNU build ID 选择 RTTI 偏移表。
+#       新版 QQ 的 build ID 不同 → 匹配失败 → MSFService 挂钩失败。
+#       把 wrapper.node 的 build ID 改成 payload 支持的值即可。
 set -e
 
 PAYLOAD=/app/runtime/native/snowluma-linux-arm64.so
 WRAPPER=/opt/QQ/resources/app/wrapper.node
-BACKUP="$WRAPPER.orig-$(date +%Y%m%d-%H%M%S)"
+LOGDIR=/app/data/logs
+
+# 用 Python 文件（避免 shell 引号地狱）
+PROBE=$(mktemp /tmp/hzprobe.XXXXXX.py)
+cat > "$PROBE" <<'PYEOF'
+import re, sys
+NOTE = rb'\x04\x00\x00\x00\x14\x00\x00\x00\x03\x00\x00\x00GNU\x00(.{20})'
+mode = sys.argv[1]
+path = sys.argv[2]
+d = open(path, "rb").read()
+ids = [m.group(1).hex() for m in re.finditer(NOTE, d, re.S)]
+if mode == "show":
+    for i, x in enumerate(ids):
+        print(x)
+elif mode == "supported":
+    # payload 的第 2 个 note 是它支持的 wrapper.node build ID
+    print(ids[1] if len(ids) > 1 else (ids[0] if ids else "NONE"))
+elif mode == "current":
+    print(ids[0] if ids else "NONE")
+elif mode == "patch":
+    want = bytes.fromhex(sys.argv[3])
+    out = bytearray(d)
+    n = 0
+    for m in re.finditer(NOTE, bytes(out), re.S):
+        off = m.start(1)
+        if bytes(out[off:off+20]) != want:
+            out[off:off+20] = want
+            n += 1
+    open(path, "wb").write(bytes(out))
+    print(n)
+PYEOF
 
 echo "① 读取 payload 支持的 build ID"
-SUPPORTED=$(python3 - <<'PY'
-import re
-d=open("/app/runtime/native/snowluma-linux-arm64.so","rb").read()
-ids=[]
-for m in re.finditer(rb'\x04\x00\x00\x00\x14\x00\x00\x00\x03\x00\x00\x00GNU\x00(.{20})', d, re.S):
-    ids.append(m.group(1).hex())
-# 第 1 个是 payload 自己的，后面的是它支持的 wrapper build ID
-print(ids[1] if len(ids)>1 else ids[0])
-PY
-)
+SUPPORTED=$(python3 "$PROBE" supported "$PAYLOAD")
 echo "   payload 支持: $SUPPORTED"
 
 echo "② 读取当前 wrapper.node 的 build ID"
-CURRENT=$(python3 - <<'PY'
-import re
-d=open("/opt/QQ/resources/app/wrapper.node","rb").read()
-m=re.search(rb'\x04\x00\x00\x00\x14\x00\x00\x00\x03\x00\x00\x00GNU\x00(.{20})', d, re.S)
-print(m.group(1).hex() if m else "NONE")
-PY
-)
-echo "   当前:        $CURRENT"
+CURRENT=$(python3 "$PROBE" current "$WRAPPER")
+echo "   当前:         $CURRENT"
 
 if [ "$CURRENT" = "$SUPPORTED" ]; then
-  echo "③ 已是兼容值，无需补丁"
+  echo "③ 已是兼容值，无需修改"
+  rm -f "$PROBE"
   exit 0
 fi
 
-echo "③ 备份 → $BACKUP"
+BACKUP="$WRAPPER.orig-$(date +%Y%m%d-%H%M%S)"
 cp "$WRAPPER" "$BACKUP"
+echo "③ 已备份 → $BACKUP"
 
-echo "④ 补丁（只改 build ID 那 20 字节）"
-python3 - "$SUPPORTED" <<'PY'
-import re, sys
-want=bytes.fromhex(sys.argv[1])
-p="/opt/QQ/resources/app/wrapper.node"
-d=bytearray(open(p,"rb").read())
-n=0
-for m in re.finditer(rb'\x04\x00\x00\x00\x14\x00\x00\x00\x03\x00\x00\x00GNU\x00(.{20})', bytes(d), re.S):
-    off=m.start(1)
-    if bytes(d[off:off+20])!=want:
-        d[off:off+20]=want; n+=1
-open(p,"wb").write(bytes(d))
-print(f"   替换 {n} 处")
-PY
+N=$(python3 "$PROBE" patch "$WRAPPER" "$SUPPORTED")
+echo "④ 替换 $N 处（只改 build ID 那 20 字节）"
+rm -f "$PROBE"
 
-echo "⑤ 重启 Haizakura runtime（不重启 QQ）"
-supervisorctl restart snowluma
+echo "⑤ 重启 Haizakura runtime（不重启 QQ 进程）"
+supervisorctl restart snowluma >/dev/null 2>&1
+sleep 28
 
-echo "⑥ 等待并验证"
-sleep 30
-if grep -q "reporting is available" /app/data/logs/*.log 2>/dev/null; then
-  echo "   ✅ 成功！"
-  grep "reporting is available" /app/data/logs/*.log | tail -1
-else
-  echo "   ❌ 未成功，检查日志"
-  grep -E "reporting|pipe" /app/data/logs/*.log | tail -5
-fi
+# 日志由 supervisor 转发到容器 stdout，容器内部读不到。
+# 因此这里给出明确的核对命令，由外部执行。
+echo "   ✓ 补丁已应用，等待 hook 生效"
+sleep 6
+echo ""
+echo "   请用下面任一方式核对（容器内查不到日志，日志在容器 stdout）："
+echo "     sudo docker logs <容器名> --since 2m | grep \"reporting is available\""
+echo ""
+echo "   期望看到： Client private-message reporting is available: PID=..."
+echo "   若仍是 unavailable status=-1，回滚："
+echo "     cp $BACKUP $WRAPPER && supervisorctl restart snowluma"
 ```
 
 **回滚**：`cp <backup> /opt/QQ/resources/app/wrapper.node && supervisorctl restart snowluma`
