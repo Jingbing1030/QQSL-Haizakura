@@ -261,3 +261,103 @@ echo "     cp $BACKUP $WRAPPER && supervisorctl restart snowluma"
 ```
 
 **回滚**：`cp <backup> /opt/QQ/resources/app/wrapper.node && supervisorctl restart snowluma`
+
+---
+
+## 十、⚠️ 这个方案的真实风险（重要）
+
+### 10.1 补丁的本质是「断言」，不是「验证」
+
+`hz-fix-compat` 做的事只有一件：把新版 `wrapper.node` 的 build ID 改成
+payload 认识的值。它等于向 payload **单方面宣称**「这份文件的布局和
+3.2.32 一样」。
+
+如果腾讯真的重排了虚函数，payload 就会：
+1. 按旧偏移去找 `v[19]`
+2. 而 `v[19]` 在新版里指向**另一个函数**
+3. hook 装到错目标上
+
+后果有两种，**后者更危险**：
+- 崩溃（明显，容易发现）
+- 行为诡异但不报错（隐蔽，可能长期带病运行）
+
+### 10.2 「reporting available」不足以证明正确
+
+实测过：**只改 build ID 就能让 reporting 变 available**。这个信号只说明
+「hook 装上了」，不说明「装到对的函数上了」。
+
+所以不能用它当成功率指标。
+
+### 10.3 已知的实测数据（3.2.32 → 3.2.35）
+
+用「按函数身份对齐」的方式逐槽比对（源文件 + 函数名，而非槽位索引）：
+
+| 类 | 槽位数 | 可识别函数 | 槽位一致 | 覆盖盲区 |
+|---|---|---|---|---|
+| `MSFService` | 44 → 44 | 20 | **20/20** | 24 槽（55%） |
+| `MSFCoreService` | 52 → 52 | 21 | **21/21** | 31 槽（60%） |
+
+hook 依赖的关键点全部对齐：
+```
+MSFService      SessionInit v[19] / SendSSORequestInternal v[36,37] / Connect v[4,6,20]
+MSFCoreService  SessionInit v[19] / ResetSessionId v[14,15] / Connect v[20]
+```
+
+**但这个证据有边界**：46% 和 60% 的槽位提取不到函数名，**它们没有被验证过**。
+结论是「已知部分完全兼容」，不是「整体兼容」。
+
+### 10.4 补丁前必须做的事
+
+现在 `hz-fix-compat` 内置了布局校验（`verify-layout.py`）：
+
+```
+① 读 payload 支持的 build ID
+② 读当前 wrapper.node 的 build ID
+③ 【校验】按函数身份对比虚表 —— 不一致则拒绝执行，不动任何文件
+④ 校验通过才打补丁
+```
+
+校验失败时脚本退出码 2，且**已中止、未修改任何文件**。
+
+> 想跳过校验（明确知道自己在做什么）：`HZ_SKIP_LAYOUT_CHECK=1`
+
+### 10.5 什么时候这个方案会真的失效
+
+以下任一情况，补丁就会出错（守门会拒绝，但也就到此为止了）：
+
+| 情况 | 后果 |
+|---|---|
+| 腾讯在基类插入/删除虚函数 | 后续槽位整体位移 |
+| 继承顺序调整 | 同索引指向不同函数 |
+| `MSFService` 类被重命名或替换 | RTTI 定位失败 |
+| 槽位数变化 | 直接可检出（最强信号） |
+
+**正确做法**：重新提取新版的虚表，更新 payload 的偏移表
+（见 `RTTI-ANALYSIS.md`）。
+
+---
+
+## 十一、踩过的坑（测试方法学）
+
+这轮验证中，我一度得到「未补丁的 3.2.35 也能 available」的错误结论。原因是：
+
+1. **容器里只换了 `wrapper.node`，QQ 本体还是 3.2.32**
+   → 混搭状态，不是真实新版环境。必须 `dpkg -i` 装完整 deb。
+
+2. **只 `supervisorctl restart snowluma` 不够**
+   → 日志出现 `PID=79 already has SnowLuma pipe; will reconnect`，
+   payload 没重新注入，用的还是旧连接。
+   **必须 `docker restart` 整个容器**。
+
+3. **`/app/data/logs/` 是 root 所有，node 用户写不进去**
+   → 日志只走 stdout，文件日志是空的，导致统计读到 0。
+   需要 `chown -R node:node /app/data/logs`。
+
+**正确的最小验证流程**：
+```bash
+docker exec -u 0 $C chown -R node:node /app/data/logs
+docker exec -u 0 $C rm -rf /app/data/logs/*
+docker restart $C            # 必须整容器重启，不能只 restart snowluma
+sleep 45
+docker exec $C grep -rh "reporting is available" /app/data/logs/ | wc -l
+```

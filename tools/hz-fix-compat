@@ -1,28 +1,38 @@
 #!/bin/bash
-# hz-fix-compat —— 让 Haizakura 兼容新版 QQ（20 字节补丁）
-# 原理：payload 用 wrapper.node 的 GNU build ID 选择 RTTI 偏移表。
-#       新版 QQ 的 build ID 不同 → 匹配失败 → MSFService 挂钩失败。
-#       把 wrapper.node 的 build ID 改成 payload 支持的值即可。
+# hz-fix-compat —— 让 Haizakura 兼容新版 QQ
+#
+# ## 它做什么
+# payload 用 wrapper.node 的 GNU build ID 选择 RTTI 偏移表。新版 QQ 的 build ID
+# 与 payload 内嵌值不同 → 匹配失败 → MSFService 挂钩失败（reporting 一直 -1）。
+# 把 wrapper.node 的 build ID 改成 payload 支持的值即可。
+#
+# ## ⚠️ 为什么必须先校验布局
+# 这个补丁的本质是【向 payload 断言「新版的布局和旧版一样」】。若腾讯真的
+# 插入/删除/重排了虚函数，旧偏移就会指向【别的函数】—— hook 挂错目标，
+# 可能崩溃，也可能行为诡异而不报错（后者更危险）。
+#
+# 实测：只改 build ID 就能让 reporting 变成 available，所以
+# 「hook 成功」这个信号【不足以】证明偏移正确。因此本脚本在补丁前
+# 强制跑一次按函数身份的虚表对比，布局不一致就拒绝执行。
 set -e
 
 PAYLOAD=/app/runtime/native/snowluma-linux-arm64.so
 WRAPPER=/opt/QQ/resources/app/wrapper.node
-LOGDIR=/app/data/logs
+BASELINE_VTABLE=${HZ_BASELINE_VTABLE:-/opt/haizakura/baseline/wrapper-vtable.json}
+TOOLS_DIR=${HZ_TOOLS_DIR:-/opt/haizakura/tools}
+SKIP_VERIFY=${HZ_SKIP_LAYOUT_CHECK:-0}
 
-# 用 Python 文件（避免 shell 引号地狱）
-PROBE=$(mktemp /tmp/hzprobe.XXXXXX.py)
-cat > "$PROBE" <<'PYEOF'
+PYPROBE=$(mktemp /tmp/hzprobe.XXXXXX.py)
+trap 'rm -f "$PYPROBE"' EXIT
+
+cat > "$PYPROBE" <<'PYEOF'
 import re, sys
 NOTE = rb'\x04\x00\x00\x00\x14\x00\x00\x00\x03\x00\x00\x00GNU\x00(.{20})'
-mode = sys.argv[1]
-path = sys.argv[2]
+mode, path = sys.argv[1], sys.argv[2]
 d = open(path, "rb").read()
 ids = [m.group(1).hex() for m in re.finditer(NOTE, d, re.S)]
-if mode == "show":
-    for i, x in enumerate(ids):
-        print(x)
-elif mode == "supported":
-    # payload 的第 2 个 note 是它支持的 wrapper.node build ID
+if mode == "supported":
+    # payload 内嵌多个 note：第 1 个是自己的，后面的是它支持的 wrapper.node
     print(ids[1] if len(ids) > 1 else (ids[0] if ids else "NONE"))
 elif mode == "current":
     print(ids[0] if ids else "NONE")
@@ -39,40 +49,104 @@ elif mode == "patch":
     print(n)
 PYEOF
 
+echo "════════════════════════════════════════════════════════"
+echo "  Haizakura × 新版 QQ 兼容性修复"
+echo "════════════════════════════════════════════════════════"
+
+echo
 echo "① 读取 payload 支持的 build ID"
-SUPPORTED=$(python3 "$PROBE" supported "$PAYLOAD")
+SUPPORTED=$(python3 "$PYPROBE" supported "$PAYLOAD")
 echo "   payload 支持: $SUPPORTED"
 
+echo
 echo "② 读取当前 wrapper.node 的 build ID"
-CURRENT=$(python3 "$PROBE" current "$WRAPPER")
+CURRENT=$(python3 "$PYPROBE" current "$WRAPPER")
 echo "   当前:         $CURRENT"
 
 if [ "$CURRENT" = "$SUPPORTED" ]; then
-  echo "③ 已是兼容值，无需修改"
-  rm -f "$PROBE"
+  echo
+  echo "   ✓ 已是兼容值，无需修改"
   exit 0
 fi
 
-BACKUP="$WRAPPER.orig-$(date +%Y%m%d-%H%M%S)"
+# ──────────────────────────────────────────────────────────
+# ③ 布局校验（补丁前必做）
+# ──────────────────────────────────────────────────────────
+echo
+echo "③ 校验虚表布局（防止 hook 挂到错函数）"
+
+if [ "$SKIP_VERIFY" = "1" ]; then
+  echo "   ⚠️  HZ_SKIP_LAYOUT_CHECK=1，已跳过校验"
+  echo "       你确认过新版布局与旧版一致，风险自负。"
+elif [ ! -f "$TOOLS_DIR/verify-layout.py" ]; then
+  echo "   ⚠️  未找到 $TOOLS_DIR/verify-layout.py，无法校验"
+  echo "       若坚持继续，请设 HZ_SKIP_LAYOUT_CHECK=1"
+  exit 3
+elif [ ! -f "$BASELINE_VTABLE" ]; then
+  echo "   ⚠️  未找到布局基线 $BASELINE_VTABLE，无法校验"
+  echo "       若坚持继续，请设 HZ_SKIP_LAYOUT_CHECK=1"
+  exit 3
+else
+  # 需要新版 wrapper.node 的带名虚表。若已有现成的就直接用，
+  # 否则现场提取（需要 dump-vtable.py 与 t7 提取脚本）
+  NEWVT=$(mktemp /tmp/hznewvt.XXXXXX.json)
+  if [ -f "${HZ_NEW_VTABLE:-}" ]; then
+    cp "$HZ_NEW_VTABLE" "$NEWVT"
+    echo "   用现成的新版虚表: $HZ_NEW_VTABLE"
+  elif [ -f "$TOOLS_DIR/extract-vtable-names.py" ]; then
+    echo "   现场提取新版虚表（约 1-2 分钟）..."
+    python3 "$TOOLS_DIR/extract-vtable-names.py" "$WRAPPER" >/dev/null 2>&1 || true
+    [ -f /tmp/hz-vtable-names.json ] && cp /tmp/hz-vtable-names.json "$NEWVT"
+  fi
+
+  if [ ! -s "$NEWVT" ]; then
+    echo "   ⚠️  无法获得新版虚表（缺 extract-vtable-names.py 或提取失败）"
+    echo "       若坚持继续，请设 HZ_SKIP_LAYOUT_CHECK=1"
+    exit 3
+  fi
+
+  set +e
+  python3 "$TOOLS_DIR/verify-layout.py" \
+      --old-names "$BASELINE_VTABLE" --new-names "$NEWVT" 2>&1 | sed 's/^/   /'
+  VERDICT=$?
+  set -e
+
+  if [ "$VERDICT" -ne 0 ]; then
+    echo
+    echo "   ❌ 布局校验未通过 —— 已中止，未修改任何文件"
+    echo "      新版 QQ 的虚表结构与基线不同，用旧偏移会 hook 到错函数。"
+    echo "      正确做法：重新提取新版虚表并更新 payload 的偏移表"
+    echo "      （见 docs-internals/RTTI-ANALYSIS.md）。"
+    exit 2
+  fi
+  echo "   ✅ 布局校验通过"
+  rm -f "$NEWVT"
+fi
+
+# ──────────────────────────────────────────────────────────
+# ④ 打补丁
+# ──────────────────────────────────────────────────────────
+echo
+BACKUP="$WRAPPER.bak-$(date +%Y%m%d-%H%M%S)"
 cp "$WRAPPER" "$BACKUP"
-echo "③ 已备份 → $BACKUP"
+echo "④ 已备份 → $BACKUP"
+N=$(python3 "$PYPROBE" patch "$WRAPPER" "$SUPPORTED")
+echo "   替换 $N 处（只改 build ID 那 20 字节，其余不动）"
+echo "   新 build ID: $(python3 "$PYPROBE" current "$WRAPPER")"
 
-N=$(python3 "$PROBE" patch "$WRAPPER" "$SUPPORTED")
-echo "④ 替换 $N 处（只改 build ID 那 20 字节）"
-rm -f "$PROBE"
-
-echo "⑤ 重启 Haizakura runtime（不重启 QQ 进程）"
+echo
+echo "⑤ 重启 Haizakura runtime（不重启 QQ 进程，登录状态保留）"
 supervisorctl restart snowluma >/dev/null 2>&1
-sleep 28
+sleep 8
+echo "   ✓ 已重启"
 
-# 日志由 supervisor 转发到容器 stdout，容器内部读不到。
-# 因此这里给出明确的核对命令，由外部执行。
-echo "   ✓ 补丁已应用，等待 hook 生效"
-sleep 6
-echo ""
-echo "   请用下面任一方式核对（容器内查不到日志，日志在容器 stdout）："
-echo "     sudo docker logs <容器名> --since 2m | grep \"reporting is available\""
-echo ""
-echo "   期望看到： Client private-message reporting is available: PID=..."
-echo "   若仍是 unavailable status=-1，回滚："
+echo
+echo "⑥ 请核对 hook 是否生效（容器内看不到日志，日志在 stdout）："
+echo "     docker logs <容器名> --since 2m | grep 'reporting is available'"
+echo "   期望看到: Client private-message reporting is available: PID=..."
+echo
+echo "   ⚠️ 注意：reporting 变 available 只说明 hook 装上了，"
+echo "      不证明挂钩目标正确 —— 那由第 ③ 步的布局校验保证。"
+echo
+echo "   若仍有问题，回滚："
 echo "     cp $BACKUP $WRAPPER && supervisorctl restart snowluma"
