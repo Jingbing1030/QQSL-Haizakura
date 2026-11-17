@@ -602,4 +602,57 @@ curl -s -o /dev/null -w '%{http_code}\n' -X POST $BASE/get_version_info \
 > { "status": "failed", "retcode": 1404, "data": null, "wording": "unknown action" }
 > ```
 >
-> `_get_supported_actions` 同樣不存在。**需要動
+> `_get_supported_actions` 同樣不存在。**需要動作清單時請改用 WebUI 的
+> `GET /api/debug/actions`**（見 `webui/api.md`），它回傳全部 222 個動作的
+> 完整文件。
+
+### 實測結果（2026-11-13，執行實例）
+
+| 請求 | 結果 |
+| --- | --- |
+| `POST /get_version_info` 無 token | HTTP `401`，`retcode 1401`，`unauthorized` |
+| `POST /get_version_info` 帶 token | `{"app_name":"Haizakura","app_version":"2.4.0-node","protocol_version":"v11"}` |
+| `GET /` 帶 token | `{"status":"ok","retcode":0,"data":{"online":true}}` |
+| `POST /get_supported_actions` | `retcode 1404`，`unknown action` ❌ |
+| `POST /get_status` | `{"online":true,"good":true,"time":3793}` |
+| `POST /can_send_image` | `{"yes":true}` |
+| `POST /get_login_info` | `{"user_id":<uin>,"nickname":"HaizakuraBot"}` |
+
+### SSE 驗證
+
+```bash
+curl -N -H "Authorization: Bearer $TOKEN" http://127.0.0.1:3000/_events
+```
+
+---
+
+## 10. 常見問題
+
+| 現象 | 原因 | 處理 |
+| --- | --- | --- |
+| `retcode 1401 unauthorized` | token 不匹配或未傳 | 檢查 `Authorization: Bearer` |
+| `retcode 1404 not found` | 路徑不在 `path` 前綴下 | 核對 `path` 設定 |
+| `1404` + `SSE is disabled` | 未開 `enableSse` | 打開開關並重載 |
+| WS 握手 `400 Bad path` | 路徑與 `path`/role 規則不符 | 見 §6.2 |
+| 收不到事件 | 連線 role 為 `Api` | 改用 `Event` / `Universal` |
+| 自己發的訊息不推送 | `reportSelfMessage: false` | 設 `true` |
+| 連接埠不生效 | `port <= 0` 的條目被丟棄 | 設合法連接埠（1–65535） |
+| 設定不生效 | 檔名不是 `onebot_<純數字>.json` | 見 §2.1 |
+| 事件裡 `message` 是字串 | `messageFormat: "string"` | 改為 `"array"` |
+
+---
+
+## 11. 聲明
+
+| 項目 | 狀態 |
+| --- | --- |
+| 設定欄位、預設值、驗證範圍 | **已核實**：來自 `config.ts` 原始碼 |
+| 驗證三種方式與 `1401` 回應 | **已核實**：原始碼 + 實機驗證 |
+| HTTP 三種請求寫法、`echo`、錯誤碼 | **已核實**：`http-server-adapter.ts` |
+| role 語意、路徑分類、心跳間隔 | **已核實**：WS 配接器原始碼 |
+| SSE 幀格式、重連、8 MiB 上限 | **已核實**：`http-sse-connections.ts` |
+| 訊息段 16/9 種、空文字佔位符 | **已核實**：codec 與 parser 原始碼 |
+| 本文範例的連線位址/連接埠 | 範例值，**未**在你的環境實測 |
+
+> 未實測項：反向 WS / 反向 HTTP / SSE 三種方式未在真機建立過連線，
+> 上述行為均來自原始碼閱讀。

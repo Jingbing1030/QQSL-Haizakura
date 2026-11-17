@@ -148,6 +148,41 @@ const authListeners = new Set();
  * @param {(reason: 'unauthorized'|'consent'|'password') => void} handler
  * @returns {() => void} 取消注册
  */
+/* ------------------------------------------------------------------ *
+ * 401 去抖
+ *
+ * 单次 401 不足以判定会话失效：页面首次加载时令牌可能还在写入途中，
+ * 或者几个请求几乎同时发出、服务端只认了其中一个。此前每遇 401 就
+ * 立刻清 localStorage，结果是并发请求互相把令牌删掉，之后永久 401。
+ * ------------------------------------------------------------------ */
+
+let authFailureCount = 0;
+let authFailureToken = null;
+const AUTH_FAILURE_THRESHOLD = 2;
+
+/** 请求成功后调用：当前令牌有效，清掉失败计数。 */
+export function resetAuthFailure() {
+  authFailureCount = 0;
+  authFailureToken = null;
+}
+
+/**
+ * 遇到 401 时判断该不该清令牌。
+ * @param {string|null} usedToken 发起该请求时用的令牌
+ * @returns {boolean} true = 判定会话确实失效
+ */
+function shouldClearToken(usedToken) {
+  const now = readToken();
+  // 当前令牌已与本次请求用的不同 → 期间有别的流程更新过，不动
+  if (now && usedToken && now !== usedToken) return false;
+  if (authFailureToken !== usedToken) {
+    authFailureToken = usedToken;
+    authFailureCount = 0;
+  }
+  authFailureCount += 1;
+  return authFailureCount >= AUTH_FAILURE_THRESHOLD;
+}
+
 export function onAuthIssue(handler) {
   authListeners.add(handler);
   return () => authListeners.delete(handler);
@@ -207,6 +242,8 @@ export async function request(endpoint, options = {}) {
 
   const finalHeaders = { ...headers };
   const token = readToken();
+  // 记下本次实际用的令牌：401 判断「是否同一令牌连续失败」要用它
+  const usedToken = token || null;
   if (token) finalHeaders[TOKEN_HEADER] = token;
 
   let payloadBody;
@@ -268,12 +305,23 @@ export async function request(endpoint, options = {}) {
     }
   }
 
+  if (response.ok) {
+    // 拿到 2xx 说明令牌是有效的，清掉 401 计数
+    resetAuthFailure();
+  }
+
   if (!response.ok) {
     const serverMessage = extractMessage(payload);
 
-    // 401：会话失效
+    // 401：认证失败。
+    //
+    // ⚠️ **绝不在这里清 localStorage 的令牌。**
+    // 页面首次加载时 app 可能还没把令牌写进去，此时发出的请求必然 401；
+    // 如果组件因为「自己没用上令牌」就把它删掉，就会把 app 即将写入
+    // （或刚写入）的有效令牌一并清除，之后永久 401、无法自愈。
+    // 令牌的生命周期归 app 所有，组件只读不写。
+    // 这里只上报状态，让 UI 显示「未授权 + 重试」即可。
     if (response.status === 401) {
-      writeToken(null);
       notifyAuthIssue('unauthorized');
       throw new ApiError(serverMessage || STRINGS.unauthorized, {
         status: 401,

@@ -397,12 +397,89 @@ function findAppearanceRoot() {
  * 于是浮动兜底分支永远走不到，反倒会把语言小节插进登录页、日志页这类无关页面。
  * 这里只认真正像设置页的锚点，一个都没有时交给浮动兜底条。
  */
-function findSettingsRoot() {
-  const main = document.querySelector('main');
-  if (main) return main;
-  const byClass = document.querySelector('[class*="settings"], [class*="Settings"]');
-  if (byClass) return byClass;
+/**
+ * 当前路由是不是设置页。
+ *
+ * 语言选择器**只应出现在设置页** —— 之前只看「有没有 <main>」，
+ * 结果每个页面都被插了一条语言栏。改成同时看路径与 DOM 特征。
+ */
+function isSettingsRoute() {
+  try {
+    const p = (location.pathname || '').replace(/\/+$/, '') || '/';
+    if (p === '/settings') return true;
+    // 命中设置页的间接特征：页面上有「外观」这个分区标题
+    const nodes = document.querySelectorAll('h1,h2,h3,h4,span,div,button');
+    for (let i = 0; i < nodes.length && i < 400; i++) {
+      const t = (nodes[i].textContent || '').trim();
+      if (t === '外观' || t === '外觀' || t === 'Appearance' || t === '外観') {
+        // 排除浮层/菜单里的同名文字：要求它有个像设置页的祖先
+        if (nodes[i].closest('main,section,form,[class*="settings"],[class*="Settings"]')) return true;
+      }
+    }
+  } catch (_) { /* 忽略 */ }
+  return false;
+}
+
+
+/**
+ * 设法拿到「外观」面板的容器。
+ *
+ * 新设置页是 tab 式：只有活动 tab 的内容在 DOM 里。
+ * 如果当前不在外观 tab，就主动点一下它的按钮 —— 这样挂载点才会出现。
+ * 只在设置页、且只会点一次，避免和用户操作打架。
+ */
+let clickedAppearance = false;
+function ensureAppearancePanel() {
+  // 已经有挂载点，直接返回
+  const slot = document.querySelector('[data-hz-slot="language"]');
+  if (slot) return slot;
+
+  // 找「外观」导航按钮（tab）
+  const labels = ['外观', '外觀', 'Appearance', '外観'];
+  const candidates = document.querySelectorAll(
+    '.hz-settings__nav-item, [role="tab"], nav button, [class*="nav"] button, button'
+  );
+  for (const btn of candidates) {
+    const t = (btn.textContent || '').trim();
+    if (!labels.some((L) => t === L || t.startsWith(L))) continue;
+    // 已经在这个 tab 上就不重复点
+    const active = btn.classList.contains('is-active') || btn.classList.contains('active') ||
+                   btn.getAttribute('aria-selected') === 'true';
+    if (!active && !clickedAppearance) {
+      clickedAppearance = true;
+      try { btn.click(); } catch (_) { /* 忽略 */ }
+      return null;   // 让下一次调度再取
+    }
+    if (active) break;
+  }
+
+  const after = document.querySelector('[data-hz-slot="language"]');
+  if (after) return after;
+
+  // 退一步：设置宿主里任何带「外观」标题的卡片
+  const host = document.querySelector('.hz-settings-host');
+  if (host) {
+    for (const el of host.querySelectorAll('h1,h2,h3,h4,legend,div,span')) {
+      if (el.closest('button,nav,[role="tablist"],[class*="nav"]')) continue;
+      if (el.children.length > 0) continue;
+      const t = (el.textContent || '').trim();
+      if (labels.some((L) => t === L)) {
+        const card = el.closest('section,fieldset,article,[class*="card"],[class*="panel"]');
+        if (card) return card;
+        if (el.parentElement) return el.parentElement;
+      }
+    }
+  }
   return null;
+}
+
+function findSettingsRoot() {
+  if (!isSettingsRoute()) return null;
+  // 优先拿「外观」面板（必要时主动切 tab）
+  const panel = ensureAppearancePanel();
+  if (panel) return panel;
+  // 面板还没出来：先回到设置宿主，下一次调度（点击 tab 之后）会再试
+  return document.querySelector('.hz-settings-host') || null;
 }
 
 /* ------------------------------------------------------------------ *
@@ -410,17 +487,36 @@ function findSettingsRoot() {
  * ------------------------------------------------------------------ */
 
 function mountFloating() {
+  if (!isSettingsRoute()) {
+    const stale = document.getElementById(FALLBACK_ID);
+    if (stale && stale.parentNode) stale.parentNode.removeChild(stale);
+    return false;
+  }
   if (document.getElementById(FALLBACK_ID)) return true;
+
+  // 目标容器：外观面板 > 设置宿主 > main。（**绝不挂到 body**）
+  const anchor =
+    ensureAppearancePanel() ||
+    document.querySelector('.hz-settings-host') ||
+    document.querySelector('main');
+  if (!anchor) return false;
+
   const bar = document.createElement('div');
   bar.className = 'hz-lang-fallback';
   bar.id = FALLBACK_ID;
   bar.setAttribute(SKIP_MARK, '');
+  bar.style.cssText =
+    'margin:14px 0;padding:12px 14px;border:1px solid var(--border,rgba(0,0,0,.12));' +
+    'border-radius:calc(var(--radius,.75rem)*.7);display:flex;flex-direction:column;gap:8px';
+
   const label = document.createElement('span');
   label.className = 'hz-lang-fallback__label';
   label.textContent = labelTitle();
+  label.style.cssText = 'font-size:13px;font-weight:500';
   bar.appendChild(label);
-  bar.appendChild(buildLanguagePicker({ compact: true, id: PICKER_ID }));
-  document.body.appendChild(bar);
+  bar.appendChild(buildLanguagePicker({ compact: false, id: PICKER_ID }));
+
+  anchor.appendChild(bar);
   setMode('floating');
   return true;
 }
@@ -430,6 +526,11 @@ function mountFloating() {
  * @returns {'theme-card'|'appearance-section'|'appearance-root'|'settings-root'|null} 实际用的策略
  */
 export function mountLanguageSection() {
+  // 不在设置页：把之前插进去的界面收走，直接返回
+  if (!isSettingsRoute()) {
+    unmountLanguageSection();
+    return false;
+  }
   if (typeof document === 'undefined') return null;
   ensureStyle();
   if (alreadyMounted()) return getPickerMode() || 'theme-card';
@@ -534,6 +635,18 @@ export function startSettingsLanguage() {
       if (fb) fb.textContent = labelTitle();
       syncPicker(document);
     });
+
+    // 路由变化：离开设置页就收走语言 UI
+    try {
+      let lastPath = location.pathname;
+      setInterval(() => {
+        if (location.pathname !== lastPath) {
+          lastPath = location.pathname;
+          if (!isSettingsRoute()) unmountLanguageSection();
+          else scheduleMount();
+        }
+      }, 600);
+    } catch (_) { /* 忽略 */ }
 
     // SPA 重渲染后补插
     mo = new MutationObserver(() => {

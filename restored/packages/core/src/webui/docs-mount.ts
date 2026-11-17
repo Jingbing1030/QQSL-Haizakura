@@ -812,6 +812,74 @@ function hzDocsStyle() {
 	].join("\n");
 }
 
+
+/** 文档站自身的界面文案（5 语言）。缺项回退 zh-cn。 */
+var hzDocsUi = {
+	"zh-cn": { brand: "Haizakura 文档", error: "错误", index: "文档索引", crumb: "内置离线文档", raw: "查看原始 Markdown",
+	           toc: "本页目录", tocUnit: "节", total: "共", passOn: "已启用访问口令",
+	           passOff: "本实例未启用访问口令", back: "返回文档索引",
+	           needLogin: "需要登录后才能查看文档", indexFail: "文档索引渲染失败",
+	           seeLog: "请查看服务器日志。", notFound: "文档不存在", noSuch: "没有找到 {name}",
+	           emptyCorpus: "文档语料为空", emptyHint: "内嵌语料解码失败或被裁剪，请查看服务器日志。",
+	           badPath: "非法路径", badPathHint: "路径包含不允许的片段。",
+	           noPath: "缺少文档路径", noPathHint: "用法：/docs/raw/<文档路径>.md",
+	           dir: "目录", docs: "文档", docTitle: "Haizakura 内置文档",
+	           docIntro: "本页由 WebUI 直接提供，", docIntroB: "不依赖外网",
+	           docIntroC: "；文档随构建一起打进运行时，断网也能查。" },
+	"zh-tw": { brand: "Haizakura 文件", error: "錯誤", index: "文件索引", crumb: "內建離線文件", raw: "檢視原始 Markdown",
+	           toc: "本頁目錄", tocUnit: "節", total: "共", passOn: "已啟用存取口令",
+	           passOff: "本實例未啟用存取口令", back: "返回文件索引",
+	           needLogin: "需要登入後才能檢視文件", indexFail: "文件索引渲染失敗",
+	           seeLog: "請查看伺服器日誌。", notFound: "文件不存在", noSuch: "沒有找到 {name}",
+	           emptyCorpus: "文件語料為空", emptyHint: "內嵌語料解碼失敗或被裁剪，請查看伺服器日誌。",
+	           badPath: "非法路徑", badPathHint: "路徑包含不允許的片段。",
+	           noPath: "缺少文件路徑", noPathHint: "用法：/docs/raw/<文件路徑>.md",
+	           dir: "目錄", docs: "文件", docTitle: "Haizakura 內建文件",
+	           docIntro: "本頁由 WebUI 直接提供，", docIntroB: "不依賴外網",
+	           docIntroC: "；文件隨建置一起打進執行環境，斷網也能查。" },
+	ja: { brand: "Haizakura ドキュメント", error: "エラー", index: "ドキュメント索引", crumb: "内蔵オフラインドキュメント", raw: "生の Markdown を表示",
+	      toc: "このページの目次", tocUnit: "節", total: "全", passOn: "アクセス口令が有効です",
+	      passOff: "このインスタンスではアクセス口令が無効です", back: "ドキュメント索引に戻る",
+	      needLogin: "ドキュメントを表示するにはログインが必要です", indexFail: "ドキュメント索引の描画に失敗しました",
+	      seeLog: "サーバーログを確認してください。", notFound: "ドキュメントがありません", noSuch: "見つかりません: {name}",
+	      emptyCorpus: "ドキュメント本体が空です", emptyHint: "内蔵コーパスの展開に失敗したか、切り詰められています。サーバーログを確認してください。",
+	      badPath: "不正なパス", badPathHint: "パスに許可されない要素が含まれています。",
+	      noPath: "ドキュメントパスがありません", noPathHint: "使い方: /docs/raw/<パス>.md",
+	      dir: "ディレクトリ", docs: "ドキュメント", docTitle: "Haizakura 内蔵ドキュメント",
+	      docIntro: "このページは WebUI が直接配信しており、", docIntroB: "外部ネットワークに依存しません",
+	      docIntroC: "。ドキュメントはビルド時にランタイムへ同梱されるため、オフラインでも参照できます。" },
+	"zh-pseudo": { brand: "Haizakura 文書", error: "錯誤", index: "文書索引", crumb: "内蔵離線文書", raw: "原始 Markdown 表示",
+	               toc: "本頁目次", tocUnit: "節", total: "計", passOn: "閲覧口令有効也",
+	               passOff: "本実例者閲覧口令無効也", back: "文書索引帰還",
+	               needLogin: "文書閲覧者登録必要也", indexFail: "文書索引描画失敗",
+	               seeLog: "伺服器記録参照。", notFound: "文書不存在", noSuch: "発見不能 {name}",
+	               emptyCorpus: "文書語料空也", emptyHint: "内蔵語料解碼失敗或裁剪為、伺服器記録参照。",
+	               badPath: "非法経路", badPathHint: "経路者不許可片段含也。",
+	               noPath: "文書経路欠落", noPathHint: "用法：/docs/raw/<文書経路>.md",
+	               dir: "目録", docs: "文書", docTitle: "Haizakura 内蔵文書",
+	               docIntro: "本頁者 WebUI 直接提供也、", docIntroB: "外部網非依拠",
+	               docIntroC: "；文書者建構時運行時同梱故、離線閲覧可能也。" },
+	en: { brand: "Haizakura documentation", error: "Error", index: "Documentation index", crumb: "Bundled offline documentation", raw: "View raw Markdown",
+	      toc: "On this page", tocUnit: "sections", total: "Total", passOn: "access passphrase enabled",
+	      passOff: "no access passphrase on this instance", back: "Back to the documentation index",
+	      needLogin: "Sign in to view the documentation", indexFail: "Documentation index failed to render",
+	      seeLog: "Check the server log.", notFound: "Document not found", noSuch: "No such document: {name}",
+	      emptyCorpus: "Documentation corpus is empty", emptyHint: "The embedded corpus failed to decode or was trimmed. Check the server log.",
+	      badPath: "Invalid path", badPathHint: "The path contains a disallowed segment.",
+	      noPath: "Document path missing", noPathHint: "Usage: /docs/raw/<path>.md",
+	      dir: "Directory", docs: "Documents", docTitle: "Haizakura bundled documentation",
+	      docIntro: "Served directly by the WebUI, ", docIntroB: "with no external network",
+	      docIntroC: ". The documentation ships inside the runtime at build time, so it works offline." }
+};
+
+/** 取某语言的界面文案，缺项回退默认语言。 */
+function hzDocsT(lang, key) {
+	var tbl = hzDocsUi[lang] || hzDocsUi[hzDocsLangDefault];
+	var v = tbl[key];
+	if (v === void 0) v = hzDocsUi[hzDocsLangDefault][key];
+	return v === void 0 ? key : v;
+}
+
 var hzDocsLangNames = {
 	"ja": "日本語",
 	"zh-pseudo": "中國語",
@@ -842,7 +910,8 @@ function hzDocsLangSwitcher(activeLang, activePath) {
 }
 
 function hzDocsShell(opts) {
-	var title = opts.title ? opts.title + " · Haizakura 文档" : "Haizakura 文档";
+	var brand = hzDocsT(opts.lang, "brand");
+	var title = opts.title ? opts.title + " · " + brand : brand;
 	var shellLang = opts.lang || hzDocsLangDefault;
 	var htmlLang = shellLang === "zh-pseudo" ? "zh-Hant" : shellLang;
 	return (
@@ -854,10 +923,10 @@ function hzDocsShell(opts) {
 		"<style>\n" + hzDocsStyle() + "</style>\n" +
 		"</head>\n<body>\n" +
 		'<header class="top">\n' +
-		'<a class="brand" href="/docs">Haizakura 文档</a>\n' +
-		'<span class="meta">' + hzDocsEscapeHtml(opts.crumb || "内置离线文档") + "</span>\n" +
+		'<a class="brand" href="/docs">' + hzDocsEscapeHtml(brand) + "</a>\n" +
+		'<span class="meta">' + hzDocsEscapeHtml(opts.crumb || hzDocsT(opts.lang, "crumb")) + "</span>\n" +
 		hzDocsLangSwitcher(shellLang, opts.activePath || "") + "\n" +
-		(opts.raw ? '<span class="sp"></span><a class="raw" href="' + hzDocsEscapeHtml(opts.raw) + '">查看原始 Markdown</a>' : "") +
+		(opts.raw ? '<span class="sp"></span><a class="raw" href="' + hzDocsEscapeHtml(opts.raw) + '">" + hzDocsEscapeHtml(hzDocsT(opts.lang, "raw")) + "</a>' : "") +
 		"\n</header>\n" +
 		'<div class="wrap">\n' + (opts.nav === false ? "" : hzDocsNavHtml(opts.activeKey)) + "\n" +
 		'<main class="doc">\n' + opts.content + "\n</main>\n</div>\n" +
@@ -875,10 +944,9 @@ function hzDocsIndexPage(pageLang) {
 	for (var g = 0; g < groups.length; g++) total += groups[g].docs.length;
 	var out = [];
 	out.push(
-		'<div class="hero"><h2>Haizakura 内置文档</h2>' +
-		"<p>本页由 WebUI 直接提供，<strong>不依赖外网</strong>；文档随构建一起打进运行时，" +
-		"断网也能查。</p>" +
-		"<p>共 " + total + " 篇 · " + (hzDocsAuthRequired() ? "已启用访问口令" : "本实例未启用访问口令") + "</p></div>"
+		'<div class="hero"><h2>' + hzDocsEscapeHtml(hzDocsT(idxLang, "docTitle")) + '</h2>' +
+		"<p>" + hzDocsEscapeHtml(hzDocsT(idxLang, "docIntro")) + "<strong>" + hzDocsEscapeHtml(hzDocsT(idxLang, "docIntroB")) + "</strong>" + hzDocsEscapeHtml(hzDocsT(idxLang, "docIntroC")) + "</p>" +
+		"<p>" + hzDocsEscapeHtml(hzDocsT(idxLang, "total")) + " " + total + " · " + hzDocsEscapeHtml(hzDocsAuthRequired() ? hzDocsT(idxLang, "passOn") : hzDocsT(idxLang, "passOff")) + "</p></div>"
 	);
 	var idxL = pageLang || hzDocsLangDefault;
 	var idxVisible = {};
@@ -923,7 +991,7 @@ function hzDocsDocPage(key, langOverride) {
 	var pageLang = langOverride || hzDocsLangOf(key);
 	var content = "";
 	if (doc.headings.length > 1) {
-		var toc = ['<details class="toc"><summary>本页目录（' + doc.headings.length + " 节）</summary><ol>"];
+		var toc = ['<details class="toc"><summary>' + hzDocsEscapeHtml(hzDocsT(pageLang, "toc")) + "（" + doc.headings.length + " " + hzDocsEscapeHtml(hzDocsT(pageLang, "tocUnit")) + "）</summary><ol>"];
 		for (var h = 0; h < doc.headings.length; h++) {
 			var item = doc.headings[h];
 			toc.push(
@@ -946,14 +1014,25 @@ function hzDocsDocPage(key, langOverride) {
 	});
 }
 
-function hzDocsErrorPage(status, heading, detail) {
+function hzDocsErrorPage(status, headingKey, detailKey, lang, detailVars) {
+	var L = lang || hzDocsLangDefault;
+	var heading = hzDocsT(L, headingKey);
+	var detail = detailKey ? hzDocsT(L, detailKey) : "";
+	if (detail && detailVars) {
+		for (var dk in detailVars) {
+			if (Object.prototype.hasOwnProperty.call(detailVars, dk)) {
+				detail = detail.replace("{" + dk + "}", detailVars[dk]);
+			}
+		}
+	}
 	return hzDocsShell({
 		title: heading,
-		crumb: "错误 " + status,
+		lang: L,
+		crumb: hzDocsT(L, "error") + " " + status,
 		content:
 			'<div class="err"><h1>' + hzDocsEscapeHtml(heading) + "</h1>" +
 			"<p>" + hzDocsEscapeHtml(detail) + "</p>" +
-			'<p><a href="/docs">返回文档索引</a></p></div>'
+			'<p><a href="/docs">" + hzDocsEscapeHtml(hzDocsT(pageLang, "back")) + "</a></p></div>'
 	});
 }
 
@@ -1002,7 +1081,7 @@ function hzDocsUnauthorized(c) {
 		crumb: "401",
 		nav: false,
 		content:
-			'<div class="err"><h1>需要登录后才能查看文档</h1>' +
+			'<div class="err"><h1>" + hzDocsEscapeHtml(hzDocsT(hzDocsLangDefault, "needLogin")) + "</h1>' +
 			"<p>本实例通过 <code>SNOWLUMA_DOCS_REQUIRE_AUTH=1</code> 打开了文档鉴权。" +
 			"正常情况下从 WebUI 侧栏点「文档」即可直接进入 —— 页面会自动读取同源的 WebUI 登录令牌。</p>" +
 			"<p>若你是在无痕窗口或别的浏览器里直接打开本页，请改用带令牌的地址：</p>" +
@@ -1089,7 +1168,7 @@ function hzDocsHandleIndex(c) {
 		return c.html(hzDocsIndexPage(), 200, hzDocsNoStore);
 	} catch (error) {
 		hzDocsLog.error("GET /docs failed: %s", error instanceof Error ? error.stack || error.message : String(error));
-		return c.html(hzDocsErrorPage(500, "文档索引渲染失败", "请查看服务器日志。"), 500, hzDocsNoStore);
+		return c.html(hzDocsErrorPage(500, "indexFail", "seeLog", hzDocsLangQuery(c)), 500, hzDocsNoStore);
 	}
 }
 
@@ -1113,7 +1192,7 @@ function hzDocsHandleDoc(c) {
 		var corpus = hzDocsDecodeCorpus();
 		if (!Object.keys(corpus).length) {
 			return c.html(
-				hzDocsErrorPage(500, "文档语料为空", "内嵌语料解码失败或被裁剪，请查看服务器日志。"),
+				hzDocsErrorPage(500, "emptyCorpus", "emptyHint", docLang),
 				500,
 				hzDocsNoStore
 			);
@@ -1124,15 +1203,15 @@ function hzDocsHandleDoc(c) {
 			var rawKey = rest.slice(3);
 			if (rawKey.charAt(0) === "/") rawKey = rawKey.slice(1);
 			if (!rawKey) {
-				return c.html(hzDocsErrorPage(400, "缺少文档路径", "用法：/docs/raw/<文档路径>.md"), 400, hzDocsNoStore);
+				return c.html(hzDocsErrorPage(400, "noPath", "noPathHint", docLang), 400, hzDocsNoStore);
 			}
 			var rawResolved = hzDocsResolvePath(rawKey);
 			if (rawResolved.kind === "traversal" || rawResolved.kind === "hidden" || rawResolved.kind === "invalid") {
 				hzDocsLog.warn("rejected /docs/raw path %s (%s)", rawKey, rawResolved.kind);
-				return c.html(hzDocsErrorPage(400, "非法路径", "路径包含不允许的片段。"), 400, hzDocsNoStore);
+				return c.html(hzDocsErrorPage(400, "badPath", "badPathHint", docLang), 400, hzDocsNoStore);
 			}
 			if (rawResolved.kind !== "doc") {
-				return c.html(hzDocsErrorPage(404, "文档不存在", "没有找到 " + rawKey), 404, hzDocsNoStore);
+				return c.html(hzDocsErrorPage(404, "notFound", "noSuch", docLang, { name: rawKey }), 404, hzDocsNoStore);
 			}
 			var markdown = corpus[rawResolved.key];
 			return c.text(markdown === void 0 ? "" : markdown, 200, {

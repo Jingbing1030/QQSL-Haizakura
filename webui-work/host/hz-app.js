@@ -1,138 +1,203 @@
 /**
- * hz-app.js —— 真正的入口引导（浏览器加载这一个）。
+ * hz-app.js —— 浏览器入口。
  *
- * 分工：
- *   hz-i18n-boot.js  语言内核 + DOM 翻译 + 设置页语言选择器（子代理写的，已充分测试）
- *   hz-pages.js      路由 → 页面注册表（沿用现有样式令牌）
- *   hz-hotload.js    组件热加载
- *   本文件            把三者串起来 + 路由接管
+ * 设计要点（踩过的坑都记在这里）：
  *
- * 用法：index.html 末尾加
- *   <script type="module" src="/assets/hz-app.js"></script>
+ * ⚠️ 不要隐藏 #root！
+ *   原界面的侧栏（aside）与顶栏（header）都在 #root 里，那是用户唯一的
+ *   导航入口。第一版把 #root 整个 display:none，结果页面能显示但无法
+ *   切页 —— 导航被自己扣掉了。
+ *
+ *   正确做法：**只替换 <main> 的内容**，保留 aside / header 不动。
+ *   这样导航、用户菜单、主题切换都还在，只有内容区换成新组件。
+ *
+ * ⚠️ 渲染失败不能白屏：先在离屏容器里挂载成功，再替换内容。
  */
 import { boot as bootI18n } from './hz-i18n-boot.js';
 import { getLang, onLangChange } from './hz-i18n-core.js';
 import { translateNow } from './hz-i18n-dom.js';
-import { getPage, listPages } from './hz-pages.js';
-import { register as hlRegister, unregister as hlUnregister } from './hz-hotload.js';
+import { mountRoute, unmountRoute } from './hz-pages.js';
 
-/** 由新插件页接管的路径。其余路径仍走原 React 页面。 */
-const OWNED = ['/', '/processes', '/logs', '/debug'];
-
-/** 可热加载的页面；改这些文件后无需刷新。 */
-const HOT = {
-  '/': './overview-plugin.js',
-  '/processes': './processes-plugin.js',
-  '/logs': './logs-plugin.js',
-  '/debug': './debug-plugin.js',
-};
-
-let currentRoute = null;
+/** 由插件页接管内容区的路径。 */
+const OWNED = ['/', '/processes', '/logs', '/debug', '/settings', '/config'];
 
 const pathNow = () => location.pathname.replace(/\/+$/, '') || '/';
 
-/** 路由宿主：懒建，挂在 #root 之后。 */
-function ensureHost() {
-  let h = document.getElementById('hz-route-host');
-  if (h?.isConnected) return h;
-  h = document.createElement('div');
-  h.id = 'hz-route-host';
-  h.setAttribute('data-hz-route-host', '1');
-  document.body.appendChild(h);
-  return h;
+let currentRoute = null;      // 当前接管的路径
+let offscreen = null;         // 离屏试挂载容器
+
+/** 找内容区容器：原界面的 <main> 里那个 overflow-hidden 的 div。 */
+function findContentHost() {
+  const main = document.querySelector('main');
+  if (!main) return null;
+  // main 里第一个有实际尺寸的子容器就是内容区
+  for (const child of main.children) {
+    const r = child.getBoundingClientRect();
+    if (r.width > 0 && r.height > 0) return child;
+  }
+  return main.children[0] || main;
+}
+
+/** 离屏容器：试挂载用，成功后才往页面上放。 */
+function ensureOffscreen() {
+  if (offscreen && offscreen.isConnected) return offscreen;
+  offscreen = document.createElement('div');
+  offscreen.id = 'hz-offscreen';
+  offscreen.style.cssText =
+    'position:absolute;left:-99999px;top:0;width:1200px;height:800px;overflow:hidden';
+  document.body.appendChild(offscreen);
+  return offscreen;
+}
+
+/** 顶部错误条（只在自己渲染失败时出现，不影响原界面）。 */
+function showBanner(text, onRetry) {
+  let bar = document.getElementById('hz-banner');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'hz-banner';
+    bar.style.cssText =
+      'position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:99999;' +
+      'padding:10px 16px;font:13px/1.5 system-ui,sans-serif;background:#7f1d1d;color:#fff;' +
+      'border-radius:10px;display:flex;gap:12px;align-items:center;box-shadow:0 6px 20px rgba(0,0,0,.3)';
+    document.body.appendChild(bar);
+  }
+  bar.textContent = '';
+  const span = document.createElement('span');
+  span.textContent = text;
+  bar.appendChild(span);
+  if (onRetry) {
+    const btn = document.createElement('button');
+    btn.textContent = '重试';
+    btn.style.cssText =
+      'padding:3px 10px;border:1px solid rgba(255,255,255,.5);border-radius:6px;' +
+      'background:transparent;color:#fff;cursor:pointer;font:inherit';
+    btn.onclick = onRetry;
+    bar.appendChild(btn);
+  }
+}
+
+function hideBanner() {
+  document.getElementById('hz-banner')?.remove();
 }
 
 /**
- * 应用当前路由。
+ * 应用路由。
  *
- * 接管时隐藏 #root（原 React 树）、显示我们的宿主；
- * 交还时反向操作。这样两套界面不会重叠。
+ * 只在 OWNED 路径且挂载成功时替换内容区；其余情况一律交还原界面。
  */
 async function applyRoute() {
   const p = pathNow();
   if (p === currentRoute) return;
 
-  const host = ensureHost();
-  const root = document.getElementById('root');
-  const owned = OWNED.includes(p);
+  // 用户主动关掉过新界面
+  let optedOut = false;
+  try { optedOut = sessionStorage.getItem('hz-plugin-pages-off') === '1'; } catch { /* noop */ }
 
-  // 离开上一个自有路由时卸载它
-  if (currentRoute && OWNED.includes(currentRoute) && currentRoute !== p) {
-    hlUnregister('page:' + currentRoute);
+  const host = findContentHost();
+
+  // 离开上一个自有路由：把它挂的那份卸掉，交还原内容
+  if (currentRoute && OWNED.includes(currentRoute)) {
+    unmountRoute(currentRoute);
   }
   currentRoute = p;
 
-  if (!owned) {
-    host.style.display = 'none';
-    if (root) root.style.display = '';
+  if (!OWNED.includes(p) || optedOut || !host) {
+    // 清掉我们可能留下的容器
+    document.getElementById('hz-route-host')?.remove();
+    if (offscreen) { offscreen.textContent = ''; }
+    if (optedOut && OWNED.includes(p)) hideBanner();
     return;
   }
 
-  if (root) root.style.display = 'none';
-  host.style.display = '';
-  host.textContent = '';
+  // ── 先在离屏容器里挂载：成功才动页面 ──
+  const stage = ensureOffscreen();
+  stage.textContent = '';
 
-  let page;
   try {
-    page = await getPage(p);
+    await mountRoute(p, stage, {});
+    if (stage.childElementCount === 0) throw new Error('挂载后没有内容');
+
+    // 成功：把内容区替换成我们的宿主
+    // 记下原内容，便于交还时恢复（SPA 会自己重渲染，通常不需要，但留着更稳）
+    host.style.display = 'none';
+
+    let mine = document.getElementById('hz-route-host');
+    if (!mine) {
+      mine = document.createElement('div');
+      mine.id = 'hz-route-host';
+      mine.setAttribute('data-hz-route-host', '1');
+      host.parentNode.insertBefore(mine, host.nextSibling);
+    }
+    mine.style.display = '';
+    // 把离屏里挂好的节点搬过来（保持同一个 DOM，不重挂）
+    mine.textContent = '';
+    while (stage.firstChild) mine.appendChild(stage.firstChild);
+
+    hideBanner();
   } catch (err) {
-    page = null;
-    console.error('[haizakura] 页面加载失败', err);
+    // 失败：原内容区保持原样，只在底部提示
+    if (offscreen) offscreen.textContent = '';
+    document.getElementById('hz-route-host')?.remove();
+    host.style.display = '';
+    showBanner('新版界面加载失败，已保留原界面 · ' + (err?.message ?? String(err)), () => {
+      hideBanner();
+      currentRoute = null;
+      applyRoute();
+    });
+    console.error('[haizakura] 页面挂载失败', err);
   }
-
-  if (!page) {
-    const d = document.createElement('div');
-    d.className = 'hz-state hz-state--error';
-    d.textContent = `没有为 ${p} 注册页面`;
-    host.appendChild(d);
-    return;
-  }
-
-  hlRegister('page:' + p, host, page, {});
 }
 
-/** 挂路由监听。 */
+/** 让出控制权，永久使用原界面。 */
+function fallbackToReact() {
+  try { sessionStorage.setItem('hz-plugin-pages-off', '1'); } catch { /* noop */ }
+  document.getElementById('hz-route-host')?.remove();
+  const host = findContentHost();
+  if (host) host.style.display = '';
+  hideBanner();
+  currentRoute = null;
+}
+
 function watchRoute() {
-  window.addEventListener('popstate', applyRoute);
+  window.addEventListener('popstate', () => { currentRoute = null; applyRoute(); });
   for (const fn of ['pushState', 'replaceState']) {
     const orig = history[fn];
     history[fn] = function (...args) {
       const r = orig.apply(this, args);
-      // 让 React 先把 DOM 更新完，再决定是否接管
-      setTimeout(applyRoute, 0);
+      setTimeout(() => { currentRoute = null; applyRoute(); }, 30);
       return r;
     };
   }
 }
 
-/** 主引导。 */
 async function main() {
-  // ① 语言：内核 + DOM 翻译 + 设置页选择器
-  try {
-    bootI18n();
-  } catch (err) {
-    console.warn('[haizakura] i18n 引导失败', err);
-  }
+  try { bootI18n(); } catch (err) { console.warn('[haizakura] i18n 引导失败', err); }
 
-  // ② 语言切换后重译并重挂自有路由（让新语言的文案生效）
   onLangChange(() => {
     translateNow();
-    const p = currentRoute;
-    currentRoute = null;          // 强制重挂
-    if (p && OWNED.includes(p)) applyRoute();
+    if (currentRoute && OWNED.includes(currentRoute)) {
+      currentRoute = null;
+      applyRoute();
+    }
   });
 
-  // ③ 路由接管
   watchRoute();
   await applyRoute();
 
-  // ④ 热加载（显式开启才启用）
-  const wantHot = new URLSearchParams(location.search).has('hot') ||
-                  localStorage.getItem('haizakura_hotload') === '1';
+  // React 首屏渲染比我们晚，稍后再试一次
+  let tries = 0;
+  const t = setInterval(() => {
+    if (document.querySelector('main')) { currentRoute = null; applyRoute(); clearInterval(t); }
+    if (++tries >= 10) clearInterval(t);
+  }, 600);
+
+  const wantHot =
+    new URLSearchParams(location.search).has('hot') ||
+    localStorage.getItem('haizakura_hotload') === '1';
   if (wantHot) {
-    const [{ watchManifest }] = await Promise.all([import('./hz-hotload.js')]);
+    const { watchManifest } = await import('./hz-hotload.js');
     watchManifest();
-    console.log('[haizakura] 组件热加载已启用（打开 ?hot 或设 localStorage.haizakura_hotload=1）');
+    console.log('[haizakura] 组件热加载已启用');
   }
 }
 
@@ -142,5 +207,11 @@ if (document.readyState === 'loading') {
   main();
 }
 
-// 调试用
-window.__hz = { applyRoute, listPages, getLang };
+window.__hz = {
+  applyRoute, fallbackToReact, getLang,
+  reenable() {
+    try { sessionStorage.removeItem('hz-plugin-pages-off'); } catch { /* noop */ }
+    currentRoute = null;
+    applyRoute();
+  },
+};

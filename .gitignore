@@ -10,3 +10,6 @@ __pycache__/
 webui-work/reference/
 webui-work/docs-source/
 webui-work/.frozen/
+
+# 构建产物（可由源码重生）
+restored/dist/
