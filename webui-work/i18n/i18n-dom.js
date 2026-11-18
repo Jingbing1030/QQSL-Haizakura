@@ -230,6 +230,30 @@ const nodeKeys = new WeakMap();
 /** 元素 → Map<属性名, { key, groups }> */
 const attrKeys = new WeakMap();
 
+/**
+ * 把某个捕获到的实参再翻一次。
+ *
+ * 原件里有很多「把中文当参数拼进另一段中文」的写法，例如
+ * `${标题} loaded`、`${数量} 个活动传输`。如果只填槽位而不翻实参，
+ * 结果就是一句半中半外的文字。这里对每个实参做一次反向查找，
+ * 命中就用译文代替；未命中（数字、型号、专有名词）则原样保留。
+ */
+function renderArg(value, lang) {
+  if (typeof value !== 'string' || !value) return value;
+  if (!HAS_CJK.test(value)) return value;
+  const hit = lookupKey(value);
+  if (!hit) return value;
+  const table = MESSAGES[lang] || {};
+  const base = MESSAGES[DEFAULT_LANG] || {};
+  let target = table[hit.key];
+  if (target === undefined) target = base[hit.key];
+  if (target === undefined || target.charAt(0) === '$') return value;
+  if (hit.groups && hit.groups.length) {
+    target = fillPattern(target, hit.groups.map((g) => renderArg(g, lang)));
+  }
+  return target;
+}
+
 function render(key, groups, lang) {
   const table = MESSAGES[lang] || {};
   const base = MESSAGES[DEFAULT_LANG] || {};
@@ -238,7 +262,8 @@ function render(key, groups, lang) {
   if (target === undefined) return null;
   if (groups && groups.length) {
     const slots = targetSlotCount(target);
-    target = fillPattern(target, groups.slice(0, Math.max(slots, groups.length)));
+    const args = groups.slice(0, Math.max(slots, groups.length));
+    target = fillPattern(target, args.map((g) => renderArg(g, lang)));
   }
   return target;
 }
@@ -277,15 +302,29 @@ function translateTextNode(node, lang, rootEl) {
   let key = null;
   let groups = null;
 
-  if (cached) {
+  /**
+   * 缓存只有在两种情形下才可信：
+   *   1. `original === cached.source`  —— 内容没变（重扫时的常态）；
+   *   2. `original === cached.written` —— 内容就是我们上一次写进去的译文。
+   * 否则说明 React 把节点内容换成了**新的中文原文**（例如
+   * 「本进程 211.7 MB」→「本进程 999.9 MB」）。此时继续用缓存里的
+   * `groups` 会渲染出**旧的运行时数值**，必须重新查表取新的捕获组。
+   */
+  const cacheFresh = cached && (original === cached.source || (cached.written != null && original === cached.written));
+
+  if (cacheFresh) {
     key = cached.key;
     groups = cached.groups;
   } else {
     const hit = lookupKey(original);
-    if (!hit) return false;
+    if (!hit) {
+      // 已经翻不动了（例如 React 写入了不认识的文本），丢掉过期缓存
+      if (cached) nodeKeys.delete(node);
+      return false;
+    }
     key = hit.key;
     groups = hit.groups || null;
-    nodeKeys.set(node, { key, groups, written: null });
+    nodeKeys.set(node, { key, groups, written: null, source: original });
   }
 
   const next = render(key, groups, lang);
@@ -301,13 +340,13 @@ function translateTextNode(node, lang, rootEl) {
     markNode(node);
     return false;
   }
-  // 已经写过同样的内容就跳过（重扫时的常见情形），避免无谓的 characterData 记录
-  if (cached && cached.written === value) {
-    markNode(node);
-    return false;
-  }
+  // ⚠️ 不能用「上次写过什么」来跳过：
+  // React 重新渲染时会把文本节点改回中文原文，
+  // 此时 original 已经变回原文、value 仍是译文，两者不等，必须重写。
+  // （真正的「不需要写」已经被上面的 value === original 拦住。）
   node.nodeValue = value;
-  if (cached) cached.written = value;
+  const entry = nodeKeys.get(node);
+  if (entry) entry.written = value;
   markNode(node);
   return true;
 }
@@ -340,15 +379,21 @@ function translateAttributes(el, lang, rootEl) {
     const cached = cache.get(name);
     let key = null;
     let groups = null;
-    if (cached) {
+    // 与文本节点同理：只有「内容未变」或「内容正是我们写进去的译文」时缓存才可信，
+    // 否则 React 换了新的动态数值，必须重新查表拿新的捕获组。
+    const cacheFresh = cached && (raw === cached.source || (cached.written != null && raw === cached.written));
+    if (cacheFresh) {
       key = cached.key;
       groups = cached.groups;
     } else {
       const hit = lookupKey(raw);
-      if (!hit) continue;
+      if (!hit) {
+        if (cached) cache.delete(name);
+        continue;
+      }
       key = hit.key;
       groups = hit.groups || null;
-      cache.set(name, { key, groups });
+      cache.set(name, { key, groups, source: raw });
     }
     const next = render(key, groups, lang);
     if (next === null) continue;
@@ -356,12 +401,13 @@ function translateAttributes(el, lang, rootEl) {
     const trail = raw.match(/\s*$/)[0];
     const body = raw.slice(lead.length, raw.length - trail.length);
     const rebuilt = body === raw ? next : lead + next + trail;
-    const cacheEntry = cache.get(name);
     if (rebuilt !== raw) {
-      // 已经写过同样的值就跳过：避免每次重扫都产生一条 attribute mutation
-      if (cacheEntry && cacheEntry.written === rebuilt) continue;
+      // 只按「现值 vs 译文」判断是否需要写。
+      // 不能再拿 written 来跳过：React 换掉动态数值后，译文串虽然和上次不同，
+      // 但如果我们误判成「写过」就会把中文原文留在 DOM 上（本文件旧版即有此 bug）。
       el.setAttribute(name, rebuilt);
-      if (cacheEntry) cacheEntry.written = rebuilt;
+      const entry = cache.get(name);
+      if (entry) entry.written = rebuilt;
       changed = true;
     }
   }
@@ -376,7 +422,8 @@ function translateAttributes(el, lang, rootEl) {
         const cached = cache.get('value');
         let key = null;
         let groups = null;
-        if (cached) {
+        const cacheFresh = cached && (raw === cached.source || (cached.written != null && raw === cached.written));
+        if (cacheFresh) {
           key = cached.key;
           groups = cached.groups;
         } else {
@@ -384,14 +431,16 @@ function translateAttributes(el, lang, rootEl) {
           if (hit) {
             key = hit.key;
             groups = hit.groups || null;
-            cache.set('value', { key, groups });
+            cache.set('value', { key, groups, source: raw });
+          } else if (cached) {
+            cache.delete('value');
           }
         }
         if (key) {
           const next = render(key, groups, lang);
-          const entry = cache.get('value');
-          if (next !== null && next !== raw && !(entry && entry.written === next)) {
+          if (next !== null && next !== raw) {
             el.setAttribute('value', next);
+            const entry = cache.get('value');
             if (entry) entry.written = next;
             changed = true;
           }
