@@ -167,41 +167,50 @@ void ElfImage::parse_symbols() {
   if (syment == 0) syment = sizeof(Elf64Sym);
   require(syment >= sizeof(Elf64Sym), "ELF dynamic symbol entry size is unsupported");
 
-  // The symbol count is not in the dynamic section; derive it from the GNU hash
-  // table when present, otherwise scan until the string table ends.
+  // The symbol count is not recorded in the dynamic section, so it has to be
+  // inferred.  The most reliable signal is the gap between the symbol table and
+  // the string table: linkers lay them out adjacently and DT_STRSZ tells us the
+  // second one's length, so the difference is exact.
+  //
+  // The GNU hash chain cannot be used on its own for this.  Each bucket's chain
+  // ends with a terminator bit, and a table with several buckets has several
+  // terminators, so stopping at the first one under-counts.  Walking to the
+  // string table also happens to be the correct bound for the chain array, which
+  // is why it works for both.
   uint64_t symcount = 0;
+  if (strtab > symtab && (strtab - symtab) % syment == 0) {
+    symcount = (strtab - symtab) / syment;
+  }
+
+  // Keep the hash table parsed for symbol lookup, but only let it decide the
+  // count when the gap above was unusable.
   if (const auto hash = dynamic_value(elf::kDtGnuHash)) {
-    // Layout: nbuckets, symoffset, bloom_size, bloom_shift, bloom[...], buckets[], chain[]
+    // Layout: nbuckets, symoffset, bloom_size, bloom_shift, bloom[], buckets[], chain[]
     const uint8_t* h = at(*hash, 16);
     gnu_nbuckets_ = rd32(h + 0);
     gnu_symoffset_ = rd32(h + 4);
     gnu_bloom_size_ = rd32(h + 8);
     gnu_bloom_shift_ = rd32(h + 12);
-
-    const size_t bloom_bytes = static_cast<size_t>(gnu_bloom_size_) * 8;
-    const uint8_t* buckets = at(*hash + 16 + bloom_bytes,
-                                static_cast<size_t>(gnu_nbuckets_) * 4);
-    uint32_t max_bucket = 0;
-    for (uint32_t i = 0; i < gnu_nbuckets_; ++i) {
-      max_bucket = std::max(max_bucket, rd32(buckets + i * 4));
-    }
-    if (max_bucket >= gnu_symoffset_) {
-      // Walk the chain of the bucket that reaches furthest to find the end.
-      const uint8_t* chains = buckets + static_cast<size_t>(gnu_nbuckets_) * 4;
-      uint32_t idx = max_bucket;
-      for (;;) {
-        const uint32_t value = rd32(chains + static_cast<size_t>(idx - gnu_symoffset_) * 4);
-        if (value & 1u) {  // end of chain
-          ++idx;
-          break;
-        }
-        ++idx;
-      }
-      symcount = idx;
-    } else {
-      symcount = gnu_symoffset_;
-    }
     has_gnu_hash_ = true;
+    if (symcount == 0) {
+      // Fall back to walking every chain to the end of the array.
+      const size_t bloom_bytes = static_cast<size_t>(gnu_bloom_size_) * 8;
+      const uint8_t* chains = at(*hash + 16 + bloom_bytes,
+                                 static_cast<size_t>(gnu_nbuckets_) * 4) +
+                              static_cast<size_t>(gnu_nbuckets_) * 4;
+      uint64_t limit = 0;
+      if (strtab > *hash) {
+        limit = strtab - *hash - 16 - static_cast<uint64_t>(bloom_bytes) -
+                static_cast<uint64_t>(gnu_nbuckets_) * 4;
+      }
+      uint64_t consumed = 0;
+      uint32_t count = gnu_symoffset_;
+      while (consumed + 4 <= limit) {
+        consumed += 4;
+        ++count;
+      }
+      symcount = count;
+    }
   }
 
   if (symcount == 0) {
@@ -214,13 +223,18 @@ void ElfImage::parse_symbols() {
     }
   }
 
-  symbols_.reserve(symcount);
+  // symbols_ must be indexed by the ELF symbol index, because a relocation names
+  // its symbol by number.  Skipping entries that happen to be nameless shifts
+  // every following index and produces "references symbol index N out of range"
+  // on perfectly ordinary libraries -- the index is valid, our array was short.
+  symbols_.assign(symcount, DynSymbol{});
   for (uint64_t i = 0; i < symcount; ++i) {
     const uint8_t* s = at(symtab + i * syment, sizeof(Elf64Sym));
-    DynSymbol sym{};
-    sym.name = "";
+    DynSymbol& sym = symbols_[i];
     const uint32_t name_off = rd32(s + 0);
-    sym.name = std::string(reinterpret_cast<const char*>(at(strtab + name_off, 1)));
+    if (name_off != 0 && name_off < strsz) {
+      sym.name = std::string(reinterpret_cast<const char*>(at(strtab + name_off, 1)));
+    }
     sym.value = rd64(s + 8);
     sym.size = rd64(s + 16);
     sym.bind = s[4] >> 4;
@@ -228,8 +242,7 @@ void ElfImage::parse_symbols() {
     sym.shndx = rd16(s + 6);
     sym.defined = sym.shndx != elf::kShnUndef && sym.value != 0;
     sym.is_ifunc = sym.type == 10;  // STT_GNU_IFUNC
-    symbol_index_.emplace(sym.name, symbols_.size());
-    symbols_.push_back(std::move(sym));
+    if (!sym.name.empty()) symbol_index_.emplace(sym.name, i);
   }
 }
 

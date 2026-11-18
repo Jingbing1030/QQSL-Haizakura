@@ -237,6 +237,39 @@ nt::MSFService  (vtable 0x87173e8, 44 slots)
 是一个共享的 vtable 指针和名字指针——纯按字数数下去会把它算成虚表的一部分。
 所以扫描在**第一个非可执行槽**处停下。
 
+
+### 符号索引必须与 ELF 原始编号对齐（2026-11 修）
+
+注入一个引用了多个外部函数的 `.so` 时报：
+
+```
+relocation references symbol index 3 out of range (1 symbols)
+```
+
+两个独立缺陷叠在一起：
+
+**① `symbols_` 不能跳过无名条目。** 重定位按**编号**引用符号，原来的实现
+只把有名字的符号塞进数组，于是第 n 项不再是第 n 号符号。改成
+`symbols_.assign(symcount, ...)` 后按原索引写入，有没有名字都占位。
+
+**② 符号总数不能只看 GNU hash 的 `max_bucket`。** 原来的逻辑是
+`max_bucket < symoffset` 就直接取 `symoffset`，理由是"桶全空"。但
+**桶全空 ≠ 没有符号** —— 符号仍然躺在 chain 数组里。一个 10 个符号的 `.so`
+因为唯一的桶恰好为空，被算成 1 个符号。
+
+可靠的做法是量 `SYMTAB` 和 `STRTAB` 之间的空隙：
+`(strtab - symtab) / syment`。链接器把两者紧挨着放，这个除法是精确的
+（实测 12 个符号，readelf 也是 12）。
+
+**两个 bug 在 x86_64 上一样存在**，只是此前没拿"引用多个外部函数"的 `.so`
+测过。修完后 arm64 真机（QQ 3.2.32，pid 78）注入验证通过：
+
+```
+INJECT: {"base":"0xfbed8ee9f000","size":"0x21000"}
+证据:   aarch64 constructor ran in pid=78
+UNLOAD: true
+```
+
 ## 未实现
 
 - TLS 重定位（`TLS_DTPMOD` / `TLS_TPOFF` / `TPREL`）
