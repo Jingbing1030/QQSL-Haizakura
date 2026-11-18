@@ -26,7 +26,16 @@ function defaultProcessName$1() {
 	return process.platform === "win32" ? "QQ.exe" : "qq";
 }
 function resolveHookNativePath(ext) {
-	return resolveRuntimeNativePath(`snowluma-${process.platform}-${process.arch}.${ext}`);
+	// The hook addon is now built from this repository's own C++ sources, so it
+	// carries its own name.  Keep the old snowluma-* lookup as a fallback: a
+	// runtime tree populated by an earlier deployment still has that file, and
+	// failing to find the addon would break injection entirely.
+	for (const name of [`haizakura-hook-${process.platform}-${process.arch}.${ext}`,
+	                    `snowluma-${process.platform}-${process.arch}.${ext}`]) {
+		const resolved = resolveRuntimeNativePath(name);
+		if (resolved) return resolved;
+	}
+	return null;
 }
 function getNativeHookAddon() {
 	if (nativeAddon) return nativeAddon;
@@ -56,11 +65,15 @@ async function listHookProcesses() {
 	const addon = getNativeHookAddon();
 	if (!addon) throw new Error(getNativeHookLoadError() ?? "hook native addon is not available");
 	if (typeof addon.getAllMainProcessAsync !== "function") throw new Error("Hook native addon lacks getAllMainProcessAsync; update the native artifacts");
-	return [...new Set(await addon.getAllMainProcessAsync())].filter((pid) => Number.isInteger(pid) && pid > 0).sort((a, b) => a - b).map((pid) => ({
-		pid,
-		name: defaultProcessName$1(),
-		path: ""
-	}));
+	// The addon returns process records, not bare pids.  Accept either shape so a
+	// rebuilt addon and an older one both work; the records carry a real name and
+	// executable path, which the pid-only form has to invent.
+	const records = await addon.getAllMainProcessAsync();
+	return [...records]
+		.map((entry) => typeof entry === "number" ? { pid: entry, name: defaultProcessName$1(), path: "" }
+			: { pid: entry.pid, name: entry.name || defaultProcessName$1(), path: entry.exe || entry.path || "" })
+		.filter((entry) => Number.isInteger(entry.pid) && entry.pid > 0)
+		.sort((a, b) => a.pid - b.pid);
 }
 async function injectHookProcess(pid) {
 	const addon = getNativeHookAddon();
