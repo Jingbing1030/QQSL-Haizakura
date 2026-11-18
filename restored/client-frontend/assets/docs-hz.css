@@ -227,3 +227,12 @@
   flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
   width:.9rem;font-size:.7rem;color:currentColor;opacity:.75;
 }
+
+/* 文档加载失败时的重试按钮（错误提示里唯一的操作） */
+.hz-doc-err{display:flex;flex-direction:column;gap:.7rem;align-items:flex-start}
+.hz-doc-retry{display:inline-flex;align-items:center;justify-content:center;height:2rem;padding:0 .85rem;
+  font-size:.8125rem;font-weight:500;color:var(--primary-foreground,#fff);background:var(--primary);
+  border:0;border-radius:calc(var(--radius,.75rem)*.55);cursor:pointer;
+  transition:background-color .14s ease,opacity .14s ease}
+.hz-doc-retry:hover{opacity:.88}
+.hz-doc-retry:focus-visible{outline:none;box-shadow:0 0 0 3px color-mix(in oklab,var(--primary) 35%,transparent)}
