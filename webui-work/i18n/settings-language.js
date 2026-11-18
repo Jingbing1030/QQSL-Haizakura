@@ -147,13 +147,31 @@ const CSS = `
 .hz-lang-fallback__label{font-size:11px;font-weight:600;letter-spacing:.02em;color:var(--muted-foreground);padding-inline:.25rem;}
 `;
 
+/* 语言切换的过渡效果 —— 与前端既有动效语言一致（150ms ease-out）。 */
+const ANIM_CSS = `
+.hz-lang-btn{transition:background-color .15s cubic-bezier(.16,1,.3,1),
+  border-color .15s cubic-bezier(.16,1,.3,1),
+  color .15s cubic-bezier(.16,1,.3,1),
+  box-shadow .15s cubic-bezier(.16,1,.3,1),
+  transform .15s cubic-bezier(.16,1,.3,1)}
+.hz-lang-btn:active{transform:scale(.97)}
+.hz-lang-btn--on,.hz-lang-btn[aria-pressed="true"]{box-shadow:0 1px 2px rgba(0,0,0,.06)}
+/* 文字换语言时的淡入，避免「整页闪一下」 */
+.hz-lang-fade{animation:hz-lang-in .18s cubic-bezier(.16,1,.3,1)}
+@keyframes hz-lang-in{from{opacity:.55}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){
+  .hz-lang-btn{transition:none}
+  .hz-lang-fade{animation:none}
+}
+`;
+
 function ensureStyle() {
   if (typeof document === 'undefined') return;
   if (document.getElementById(STYLE_ID)) return;
   const style = document.createElement('style');
   style.id = STYLE_ID;
   style.setAttribute(SKIP_MARK, '');
-  style.textContent = CSS;
+  style.textContent = CSS + ANIM_CSS;
   (document.head || document.documentElement).appendChild(style);
 }
 
@@ -270,27 +288,18 @@ function buildLanguageSection() {
   const row = document.createElement('div');
   row.className = 'flex items-center justify-between gap-4 px-5 py-4';
 
+  // 卡片头已经有标题与说明，行里只放按钮 —— 否则同一段文字会连着出现两遍。
   const left = document.createElement('div');
   left.className = 'min-w-0';
-
-  const label = document.createElement('div');
-  label.className = 'text-[13px] font-medium';
-  label.id = PICKER_ID + '-label';
-  label.textContent = rowLabel();
-
-  const hint = document.createElement('div');
-  hint.className = 'text-muted-foreground text-[12px] leading-relaxed mt-0.5';
-  hint.id = PICKER_ID + '-hint';
-  hint.textContent = rowHint();
-
-  left.appendChild(label);
-  left.appendChild(hint);
+  left.id = PICKER_ID + '-label';
+  left.setAttribute('aria-hidden', 'true');
 
   const right = document.createElement('div');
   right.className = 'shrink-0';
   const group = buildLanguagePicker({});
-  group.setAttribute('aria-labelledby', label.id);
-  group.setAttribute('aria-describedby', hint.id);
+  // 用卡片头做无障碍标签
+  card.setAttribute('role', 'group');
+  group.setAttribute('aria-label', labelTitle());
   right.appendChild(group);
 
   row.appendChild(left);
@@ -321,11 +330,25 @@ function norm(s) {
   return (s || '').replace(/\s+/g, ' ').trim();
 }
 
-/** 所有可能作为卡片标题的标题元素。 */
+/**
+ * 所有可能作为卡片标题的元素。
+ *
+ * ⚠️ 原版设置页的卡片标题**不是** <h1>~<h4>，而是
+ * `div.font-semibold.tracking-tight.text-[15px]`。只查标题标签会一个都找不到，
+ * 于是 `findThemeCard()` 返回 null，语言卡片根本无法挂载。
+ * 这里同时收录标题标签与原版的标题 div（限制长度避开长段文本）。
+ */
 function headingElements() {
   const out = [];
-  const list = document.querySelectorAll('h1, h2, h3, h4, [role="heading"]');
-  for (const el of list) out.push(el);
+  for (const el of document.querySelectorAll('h1, h2, h3, h4, [role="heading"]')) out.push(el);
+  for (const el of document.querySelectorAll('div,span')) {
+    if (el.children.length) continue;
+    const cls = typeof el.className === 'string' ? el.className : '';
+    if (!/font-semibold|font-medium|font-bold/.test(cls)) continue;
+    const t = norm(el.textContent);
+    if (!t || t.length > 24) continue;
+    out.push(el);
+  }
   return out;
 }
 
@@ -337,16 +360,21 @@ const CARD_TAGS = /^(SECTION|FIELDSET|ARTICLE|DIV|LI)$/;
  */
 function nearestCard(el, allowDiv) {
   let n = el.parentElement || (el.parentNode && el.parentNode.nodeType === 1 ? el.parentNode : null);
+  let semantic = null;
   while (n && n !== document.body && n.nodeType === 1) {
     const tag = n.tagName;
-    if (tag === 'SECTION' || tag === 'FIELDSET' || tag === 'ARTICLE') return n;
-    if (allowDiv && CARD_TAGS.test(tag)) {
-      const cls = typeof n.className === 'string' ? n.className : '';
-      if (/card/i.test(cls)) return n;
+    const cls = typeof n.className === 'string' ? n.className : '';
+    // ① 最优：带 card 类名的容器（原版卡片就是 div.ui-card）
+    if (CARD_TAGS.test(tag) && /card|panel/i.test(cls)) return n;
+    // ② 次优：语义化容器，但要排除 display:contents 的透明包装
+    if (!semantic && (tag === 'SECTION' || tag === 'FIELDSET' || tag === 'ARTICLE')) {
+      let transparent = false;
+      try { transparent = getComputedStyle(n).display === 'contents'; } catch (_) { /* 忽略 */ }
+      if (!transparent) semantic = n;
     }
     n = n.parentElement || null;
   }
-  return null;
+  return allowDiv ? (semantic || null) : (semantic || null);
 }
 
 /**
@@ -443,6 +471,50 @@ function findAppearanceRoot() {
  * 语言选择器**只应出现在设置页** —— 之前只看「有没有 <main>」，
  * 结果每个页面都被插了一条语言栏。改成同时看路径与 DOM 特征。
  */
+/**
+ * 当前是否停在设置页的「外观」分区。
+ *
+ * ⚠️ 这是修掉「切到别的设置分区就冒出浮窗」的关键。
+ *
+ * 之前只判断 `pathname === '/settings'`，但设置页是 tab 式的：
+ * 切到「存储管理」后「外观」面板整个不在 DOM 里，所有定位策略都会失败，
+ * 于是降级链走到最后的 mountFloating()，凭空多出一条浮窗。
+ *
+ * 语言是「外观」里的一个设置项，用户不在这个分区时它就不该存在。
+ */
+function isAppearanceTab() {
+  try {
+    if (!isSettingsRoute()) return false;
+    // 已经挂上了 → 说明就在这个分区
+    if (document.getElementById(PICKER_ID + '-section')) return true;
+    // 没有的话看 DOM 里有没有「外观」面板的特征
+    const want = ['外观', '外觀', 'Appearance', '外観'];
+    // 导航按钮的选中态是最可靠的信号
+    const navBtns = document.querySelectorAll('nav button, [role="tab"]');
+    for (const b of navBtns) {
+      const t = (b.textContent || '').trim();
+      if (!want.some((w) => t === w || t.startsWith(w))) continue;
+      const cls = typeof b.className === 'string' ? b.className : '';
+      const active =
+        b.getAttribute('aria-selected') === 'true' ||
+        b.getAttribute('aria-current') === 'true' ||
+        // 原版选中态实测为：
+        //   bg-accent text-foreground ring-1 ring-primary/20
+        // 未选中为：
+        //   text-muted-foreground hover:bg-accent/50 hover:text-foreground
+        // ⚠️ 切勿用 /bg-accent/ 子串判断：未选中的 hover:bg-accent/50 也会命中。
+        /(^|\s)bg-accent(\s|$)/.test(cls) ||
+        /(^|\s)text-foreground(\s|$)/.test(cls) ||
+        cls.includes('ring-primary');
+      if (active) return true;
+    }
+    // 退一步：能找到语言卡的落点也算在
+    const theme = findThemeCard();
+    if (theme) return true;
+  } catch (_) { /* 忽略 */ }
+  return false;
+}
+
 function isSettingsRoute() {
   try {
     const p = (location.pathname || '').replace(/\/+$/, '') || '/';
@@ -483,8 +555,10 @@ function ensureAppearancePanel() {
     const t = (btn.textContent || '').trim();
     if (!labels.some((L) => t === L || t.startsWith(L))) continue;
     // 已经在这个 tab 上就不重复点
+    const bcls = typeof btn.className === 'string' ? btn.className : '';
     const active = btn.classList.contains('is-active') || btn.classList.contains('active') ||
-                   btn.getAttribute('aria-selected') === 'true';
+                   btn.getAttribute('aria-selected') === 'true' ||
+                   /(^|\s)bg-accent(\s|$)/.test(bcls) || bcls.includes('ring-primary');
     if (!active && !clickedAppearance) {
       clickedAppearance = true;
       try { btn.click(); } catch (_) { /* 忽略 */ }
@@ -527,6 +601,8 @@ function findSettingsRoot() {
  * ------------------------------------------------------------------ */
 
 function mountFloating() {
+  // 已废弃：语言项不再以浮窗形式出现。保留函数体避免外部引用报错。
+  if (true) return false;
   if (!isSettingsRoute()) {
     const stale = document.getElementById(FALLBACK_ID);
     if (stale && stale.parentNode) stale.parentNode.removeChild(stale);
@@ -566,8 +642,9 @@ function mountFloating() {
  * @returns {'theme-card'|'appearance-section'|'appearance-root'|'settings-root'|null} 实际用的策略
  */
 export function mountLanguageSection() {
-  // 不在设置页：把之前插进去的界面收走，直接返回
-  if (!isSettingsRoute()) {
+  // 不在设置页、或不在「外观」分区：把之前插进去的收走，直接返回。
+  // 绝不降级到浮窗 —— 那会让每个设置分区都多出一条语言栏。
+  if (!isAppearanceTab()) {
     unmountLanguageSection();
     return false;
   }
@@ -611,8 +688,9 @@ export function mountLanguageSection() {
   }
 
   // 5) 兜底：浮动条
-  mountFloating();
-  return 'floating';
+  // 不再降级到浮窗：语言是「外观」的设置项，找不到落点就什么都不做。
+  // （原版设置页结构稳定，正常情况一定会命中 theme-card 分支。）
+  return null;
 }
 
 /** 移除已插入的 UI（用于卸载或重新定位）。 */

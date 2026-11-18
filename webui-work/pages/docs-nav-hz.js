@@ -9,6 +9,11 @@ var E=e(a(),1);
  * 目录树已从侧栏移除，浏览改为正文底部的「上一篇 / 下一篇」。
  * =========================================================================== */
 
+/** 当前界面语言（与 i18n 内核共用同一个 localStorage 键）。 */
+function hzCurLang(){
+	try{return localStorage.getItem("haizakura_lang")||"zh-cn"}catch(err){return "zh-cn"}
+}
+
 function hzToken(){try{return localStorage.getItem("snowluma_token")||""}catch(err){return ""}}
 
 export function hzFetchJson(url){
@@ -17,17 +22,23 @@ export function hzFetchJson(url){
 	return fetch(url,{headers:headers}).then(function(r){return r.ok?r.json():null}).catch(function(){return null});
 }
 
+var docCache={};
 var navPromise=null;
+var navLang=null;
 export function hzNav(){
-	if(!navPromise)navPromise=hzFetchJson("/api/docs/nav");
+	// 语言变了要重新取 —— 不同语言返回不同的文档树
+	var want=hzCurLang();
+	if(navLang!==want){navPromise=null;navLang=want;docCache={};}
+	if(!navPromise)navPromise=hzFetchJson("/api/docs/nav?lang="+encodeURIComponent(want));
 	return navPromise;
 }
 
-var docCache={};
 export function hzDoc(key){
 	if(!key)return Promise.resolve(null);
-	if(!docCache[key])docCache[key]=hzFetchJson("/api/docs/doc?key="+encodeURIComponent(key));
-	return docCache[key];
+	var lang=hzCurLang();
+	var ck=lang+"|"+key;
+	if(!docCache[ck])docCache[ck]=hzFetchJson("/api/docs/doc?key="+encodeURIComponent(key)+"&lang="+encodeURIComponent(lang));
+	return docCache[ck];
 }
 
 /** 把分组结构摊平成一条阅读顺序的线性列表（上一篇/下一篇按此顺序走）。 */

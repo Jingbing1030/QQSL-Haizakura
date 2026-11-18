@@ -31,6 +31,15 @@ async function main() {
   // ② 语言切换后重译整棵树
   onLangChange(() => {
     translateNow();
+    // 文字换语言时给内容区一个很短的淡入 —— 否则整块文字会「啪」地一变，
+    // 看起来像页面重载。180ms 是前端既有动效语言里最短的一档。
+    try {
+      const main = document.querySelector('main');
+      if (main && !main.classList.contains('hz-lang-fade')) {
+        main.classList.add('hz-lang-fade');
+        setTimeout(() => main.classList.remove('hz-lang-fade'), 220);
+      }
+    } catch { /* 忽略 */ }
   });
 
   // ③ React 首屏渲染比我们晚，DOM 变化由 MutationObserver 处理
