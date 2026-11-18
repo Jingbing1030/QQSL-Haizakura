@@ -160,13 +160,16 @@ class Elf {
 
       // The slot count runs to the next vtable in the same section; without the
       // symbol size that is the only bound available.
-      uint64_t next = relro->addr + relro->size;
-      for (uint64_t probe = off + 16; probe + 8 <= rsize; probe += 8) {
-        if (type_info_by_blob.count(hz::rd64(rbase + probe)) != 0) {
-          next = relro->addr + probe;
-          break;
-        }
+      // A vtable ends at its first non-code slot.  Everything after it in
+      // .data.rel.ro is unrelated data -- commonly a type_info object, whose
+      // first two words are a shared vtable pointer and a name pointer, and
+      // which looks like a vtable continuation if you only count words.
+      uint64_t end = vtable;
+      for (uint64_t probe = off + 8; probe + 8 <= rsize; probe += 8) {
+        if (!inside_executable(hz::rd64(rbase + probe))) break;
+        end = relro->addr + probe + 8;
       }
+      const uint64_t next = end;
       const size_t slots = next > vtable ? static_cast<size_t>((next - vtable) / 8) : 0;
 
       const std::string_view view(it->second);
@@ -201,6 +204,18 @@ class Elf {
   }
 
   const uint8_t* file_base() const { return file_.data(); }
+
+  // Read 8 bytes at a runtime address, going through whichever section maps it.
+  // Returns 0 when the address is not covered, which callers treat as unreadable.
+  uint64_t read_vaddr(uint64_t address) const {
+    for (const Shdr& s : sections_) {
+      if (address < s.addr || address + 8 > s.addr + s.size) continue;
+      const uint64_t off = s.offset + (address - s.addr);
+      if (off + 8 > file_.size()) continue;
+      return hz::rd64(file_.data() + off);
+    }
+    return 0;
+  }
 
  private:
   // Minimal Itanium demangling: strip the length prefixes so `N2nt10MSFServiceE`
@@ -323,8 +338,12 @@ int main(int argc, char** argv) {
     std::fprintf(stderr, "usage: %s <wrapper.node> [--slots|--internal]\n", argv[0]);
     return 2;
   }
+  // --slots [filter]  resolves each slot of every internal vtable to the function
+  // it points at.  The filter is a substring match on the class name, because the
+  // full list is 22000 entries and nobody wants to scroll it.
   const bool show_slots = argc >= 3 && std::strcmp(argv[2], "--slots") == 0;
   const bool show_internal = argc >= 3 && std::strcmp(argv[2], "--internal") == 0;
+  const std::string slot_filter = (show_slots && argc >= 4) ? argv[3] : "";
 
   try {
     Elf elf(argv[1]);
@@ -358,24 +377,33 @@ int main(int argc, char** argv) {
     }
 
     if (show_slots) {
+      const auto internal = elf.internal_vtables();
       std::printf("\n== slots ==\n");
-      for (const auto& t : tables) {
-        if (t.size < 24) continue;
-        std::printf("\n%s  (0x%llx)\n", t.className.c_str(),
-                    static_cast<unsigned long long>(t.address));
-        const uint64_t slots = (t.size - 16) / 8;
-        for (uint64_t i = 0; i < slots; ++i) {
-          const uint64_t entry_addr = t.address + 16 + i * 8;
-          const uint64_t* entry = reinterpret_cast<const uint64_t*>(
-              elf.file_base() + entry_addr);
-          const std::string fn = elf.symbol_at(*entry);
-          std::printf("  [%2llu] 0x%-12llx %s\n",
-                      static_cast<unsigned long long>(i),
-                      static_cast<unsigned long long>(*entry),
+      size_t shown = 0;
+      for (const auto& t : internal) {
+        if (!slot_filter.empty() && t.className.find(slot_filter) == std::string::npos) continue;
+        std::printf("\n%s  (vtable 0x%llx, %zu slots)\n", t.className.c_str(),
+                    static_cast<unsigned long long>(t.vtable), t.slotCount);
+        for (size_t i = 0; i < t.slotCount; ++i) {
+          const uint64_t target = elf.read_vaddr(t.vtable + i * 8);
+          if (target == 0) {
+            std::printf("  [%2zu] (unreadable)\n", i);
+            continue;
+          }
+          const std::string fn = elf.symbol_at(target);
+          std::printf("  [%2zu] 0x%-12llx %s\n", i,
+                      static_cast<unsigned long long>(target),
                       fn.empty() ? "(unknown)" : fn.c_str());
         }
+        ++shown;
+        if (shown >= 8) {
+          std::printf("\n... stopping after 8 classes; pass a filter to narrow\n");
+          break;
+        }
       }
+      if (shown == 0) std::printf("  no class matched the filter\n");
     }
+
     return 0;
   } catch (const std::exception& e) {
     std::fprintf(stderr, "error: %s\n", e.what());

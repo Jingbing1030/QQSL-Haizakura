@@ -208,6 +208,35 @@ msf::MSFSessionImpl            0x88b4368   type_info 0x88b4498   31 槽
 哪些类消失了、哪些槽数变了，一眼就能看出来，比读一行
 `RTTI chain unresolved` 有用得多。
 
+
+### `--slots [class-filter]`
+
+把每个槽位解析成它指向的函数地址。QQ 的内部函数没有符号名，所以显示
+`(unknown)` 是正常的——能不能命名并不重要，**槽位数和排列**才是。
+
+```
+nt::MSFService  (vtable 0x87173e8, 44 slots)
+  [ 0] 0x138f56c      (unknown)
+  [ 1] 0x138f7e4      (unknown)
+  ...
+```
+
+完整的槽位统计（QQ 3.2.32 aarch64）：
+
+| 类 | vtable 数量与槽数 |
+|---|---|
+| `nt::MSFService` | 44 / 61 主表，另有 9、1、4 |
+| `nt::MSFCoreService` | 52 / 61 主表，另有 9、1、4、10 |
+| `msf::internal::TaskManager` | 6 |
+| `msf::MSFSessionImpl` | 30 / 6 |
+
+`9 / 1 / 4` 这组在两个类里一模一样，是虚继承基类子对象的固定排布。
+写 hook 时要改主表里的槽，不是这些基类子表。
+
+**边界判定有个坑**：vtable 之后紧跟的常常是 type_info 对象，而它头两个字
+是一个共享的 vtable 指针和名字指针——纯按字数数下去会把它算成虚表的一部分。
+所以扫描在**第一个非可执行槽**处停下。
+
 ## 未实现
 
 - TLS 重定位（`TLS_DTPMOD` / `TLS_TPOFF` / `TPREL`）
