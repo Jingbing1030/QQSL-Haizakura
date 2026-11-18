@@ -172,6 +172,42 @@ IKernelMSFService    MISSING
 
 精确指出了被破坏的两处，其余四项不受影响——这正是排查时需要的信息。
 
+
+### `hook_vtable_list <wrapper.node> [--slots|--internal]`
+
+列出目标模块里的 vtable 和它们所属的类。
+
+默认只看 `.dynsym` 里导出的 `_ZTV`——在 QQ 3.2.32 上只有 16 个，全是
+tinyxml2 / boost / std 的东西，MSF 一个都不在里面。**因为 QQ 不导出内部类。**
+
+`--internal` 换一条路：扫 `.data.rel.ro`，找所有「某个槽位的值等于一个合法
+type_info 地址」的位置。vtable 的布局是
+
+```
+[-2] offset-to-top
+[-1] pointer to type_info      ← 扫的就是这个
+[ 0] first virtual function
+```
+
+所以命中位置的下一个字才是 vtable 起点。这条路在同一个 QQ 上找出
+**22292** 个 vtable，载荷要找的目标全部在内：
+
+```
+nt::MSFService                 0x87173e8   type_info 0x87177e0   45 槽
+nt::MSFCoreService             0x8718f60   type_info 0x87193f8   53 槽
+msf::internal::TaskManager     0x88b4aa0   type_info 0x88b4ad0    8 槽
+msf::MSFSessionImpl            0x88b4368   type_info 0x88b4498   31 槽
+```
+
+一个类出现多条记录是正常的——每个基类子对象有自己的虚表。
+这也正是 hook 不能写死单一地址、必须按「类名 + 槽位语义」定位的原因。
+
+`--slots` 把每个槽位解析到它指向的函数名（能解析的话）。
+
+**QQ 升级后的用法**：升级前存一份，升级后再存一份，`diff` 两份清单。
+哪些类消失了、哪些槽数变了，一眼就能看出来，比读一行
+`RTTI chain unresolved` 有用得多。
+
 ## 未实现
 
 - TLS 重定位（`TLS_DTPMOD` / `TLS_TPOFF` / `TPREL`）

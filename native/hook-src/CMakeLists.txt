@@ -90,6 +90,11 @@ target_include_directories(hook_target_probe PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 add_executable(hook_compat test/hook_compat.cc src/common.cc)
 target_include_directories(hook_compat PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
+# Enumerates every vtable in a target module with the class it belongs to, so two
+# builds can be diffed when a hook stops matching.
+add_executable(hook_vtable_list test/hook_vtable_list.cc src/common.cc)
+target_include_directories(hook_vtable_list PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
 enable_testing()
 add_executable(hook_selftest test/selftest.cc
   src/common.cc
