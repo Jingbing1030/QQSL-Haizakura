@@ -1269,11 +1269,18 @@ function hzDocsRegisterRoutes(app) {
 	}
 	if (app[HZ_DOCS_ROUTE_FLAG]) return true;
 	app[HZ_DOCS_ROUTE_FLAG] = true;
-	app.get(HZ_DOCS_BASE, hzDocsHandleIndex);
-	app.get(HZ_DOCS_BASE + "/", hzDocsHandleIndex);
-	app.get(HZ_DOCS_BASE + "/*", hzDocsHandleDoc);
+	// ⚠️ 不注册 /docs 页面路由。
+	//
+	// SPA 自己就有 `/docs` 路由（加载 docs-page-hz.js，嵌在侧栏布局里）。
+	// 服务端如果也接管 /docs，直接访问或刷新就会跳出 SPA、变成独立 HTML 页，
+	// 和从导航点进去的观感不一致 —— 用户会以为是「奇怪的页面」。
+	// 所以这里只留 API，页面完全交给 SPA。
+	//
+	// 例外：/docs/raw/* 是原文件下载（带 .md 后缀，SPA 路由匹配不到），
+	// 保留它是安全的。
 	app.get("/api/docs/nav", hzDocsJsonNav);
 	app.get("/api/docs/doc", hzDocsJsonDoc);
+	app.get(HZ_DOCS_BASE + "/raw/*", hzDocsHandleDoc);
 	return true;
 }
 

@@ -241,36 +241,76 @@ export function syncPicker(root) {
 
 /** 构建「语言」小节（带标题 + 说明 + 按钮组）。 */
 function buildLanguageSection() {
-  const section = document.createElement('section');
-  section.id = PICKER_ID + '-section';
-  section.setAttribute(SKIP_MARK, '');
+  // 完全照搬原版设置卡片的类名，这样它和「排版与界面」「顶栏」等
+  // 卡片长得一模一样，是设置项的一部分而不是外挂。
+  const card = document.createElement('div');
+  card.className = 'ui-card rounded-xl border border-border/60 bg-card text-card-foreground overflow-hidden';
+  card.id = PICKER_ID + '-section';
+
+  /* ── 卡片头：标题 + 说明 ── */
+  const head = document.createElement('div');
+  head.className = 'flex flex-col p-5 gap-1 pb-4';
+
+  const title = document.createElement('div');
+  title.className = 'font-semibold tracking-tight flex items-center gap-2 text-[15px]';
+  title.textContent = labelTitle();
+
+  const desc = document.createElement('div');
+  desc.className = 'text-muted-foreground text-[12px] leading-relaxed';
+  desc.textContent = labelHint();
+
+  head.appendChild(title);
+  head.appendChild(desc);
+  card.appendChild(head);
+
+  /* ── 卡片体：一行「界面语言」+ 按钮组 ── */
+  const body = document.createElement('div');
+  body.className = 'divide-y divide-border/60 border-t border-border/60';
 
   const row = document.createElement('div');
-  row.className = 'hz-lang-row';
+  row.className = 'flex items-center justify-between gap-4 px-5 py-4';
 
-  const label = document.createElement('p');
-  label.className = 'hz-lang-row__label';
+  const left = document.createElement('div');
+  left.className = 'min-w-0';
+
+  const label = document.createElement('div');
+  label.className = 'text-[13px] font-medium';
   label.id = PICKER_ID + '-label';
-  label.textContent = labelTitle();
+  label.textContent = rowLabel();
 
-  const hint = document.createElement('p');
-  hint.className = 'hz-lang-row__hint';
+  const hint = document.createElement('div');
+  hint.className = 'text-muted-foreground text-[12px] leading-relaxed mt-0.5';
   hint.id = PICKER_ID + '-hint';
-  hint.textContent = labelHint();
+  hint.textContent = rowHint();
 
-  const head = document.createElement('div');
-  head.className = 'min-w-0';
-  head.appendChild(label);
-  head.appendChild(hint);
+  left.appendChild(label);
+  left.appendChild(hint);
 
+  const right = document.createElement('div');
+  right.className = 'shrink-0';
   const group = buildLanguagePicker({});
   group.setAttribute('aria-labelledby', label.id);
   group.setAttribute('aria-describedby', hint.id);
+  right.appendChild(group);
 
-  row.appendChild(head);
-  row.appendChild(group);
-  section.appendChild(row);
-  return section;
+  row.appendChild(left);
+  row.appendChild(right);
+  body.appendChild(row);
+  card.appendChild(body);
+
+  return card;
+}
+
+
+
+/** 行标题（左侧小字）。 */
+function rowLabel() {
+  return t('settings.language.row') || '界面语言';
+}
+
+/** 行说明。 */
+function rowHint() {
+  return t('settings.language.row_hint') || '文档与界面会一起切换。';
 }
 
 /* ------------------------------------------------------------------ *

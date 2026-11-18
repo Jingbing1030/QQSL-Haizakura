@@ -1483,6 +1483,7 @@ export const MESSAGES = {
     "extra.448": "高级用户可注入自定义样式，登录后全局生效（登录页不受影响）。",
     "extra.449": "默认（本地系统）",
     "extra.450": "默认（系统等宽）",
+    "servererr.initial_connection_timeout": "首次连接超时（60 秒）：组件已加载，但通信通道尚未就绪，可重试连接或卸载组件",
   },
   "ja": {
     "nav.overview": "総覧",
@@ -2942,6 +2943,7 @@ export const MESSAGES = {
     "extra.448": "上級ユーザーはカスタムスタイルを注入でき、ログイン後にグローバルに有効になります（ログインページは影響を受けません）。",
     "extra.449": "既定（ローカルシステム）",
     "extra.450": "既定（システム等幅）",
+    "servererr.initial_connection_timeout": "初回接続がタイムアウトしました（60 秒）：コンポーネントは読み込まれましたが、通信チャネルがまだ準備できていません。再接続するか、コンポーネントをアンロードしてください",
   },
   "zh-pseudo": {
     "nav.overview": "総覧",
@@ -4401,6 +4403,7 @@ export const MESSAGES = {
     "extra.448": "高級用戶者自定様式注入可、登録後全局有効（登録頁無影響）。",
     "extra.449": "既定（本機系統）",
     "extra.450": "既定（系統等寛）",
+    "servererr.initial_connection_timeout": "初回接続超時（60 秒）：元件既読込、然通信通道未就緒、再接続或元件卸載可也",
   },
   "zh-tw": {
     "nav.overview": "總覽",
@@ -5860,6 +5863,7 @@ export const MESSAGES = {
     "extra.448": "高階使用者可注入自訂樣式，登入後全域生效（登入頁不受影響）。",
     "extra.449": "預設（本機系統）",
     "extra.450": "預設（系統等寬）",
+    "servererr.initial_connection_timeout": "首次連線逾時（60 秒）：元件已載入，但通訊通道尚未就緒，可重試連線或解除安裝元件",
   },
   "en": {
     "nav.overview": "Overview",
@@ -7319,6 +7323,7 @@ export const MESSAGES = {
     "extra.448": "Advanced users can inject custom styles, which take effect globally after signing in (the sign-in page is unaffected).",
     "extra.449": "Default (local system)",
     "extra.450": "Default (system monospace)",
+    "servererr.initial_connection_timeout": "Initial connection timed out (60 s): the component is loaded but the communication channel is not ready yet. Retry the connection or unload the component.",
   }
 };
 
