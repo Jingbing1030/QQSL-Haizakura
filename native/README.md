@@ -103,6 +103,75 @@ UNLOAD: true                                     ← 映射已释放
 
 注入前后 QQ 进程未崩溃、容器未重启。
 
+
+## 诊断工具
+
+QQ 一升级、hook 失效，"为什么"往往只有一行报错可看。这两个工具把过程拆开，
+让原因可以直接读出来。两者都**只读文件、不碰进程**，可以在 QQ 正常运行、
+正常登录时跑，不需要停服、不需要 attach。
+
+### `hook_target_probe <wrapper.node>`
+
+报出 QQ 目标模块的体检数据：build ID、PT_LOAD 布局、关键节位置、
+导出的动态符号。判断"这次升级到底改了什么"从这里开始。
+
+```bash
+./hook_target_probe /opt/QQ/resources/app/wrapper.node
+```
+
+关注 build ID —— 载荷先校验它，对不上就整个拒绝加载。多数情况下
+"把新 ID 记进去"就是全部修复工作。
+
+### `hook_compat <wrapper.node> [payload.so]`
+
+回答一个具体问题：**当前这份载荷，还能在这个 QQ 上找到它的目标吗？**
+
+载荷不写死偏移，它在运行时去目标里按名字找这些东西：
+
+| 锚点 | 影响的功能 |
+|---|---|
+| `msf::IMSFService` | MSFService 发送 / SessionInit |
+| `nt::MSFCoreService` | MSFCoreService 发送 / 包状态回调 |
+| `msf::internal::TaskManager` | 接收锚点链 |
+| `nt::MSFService` | 已登录服务实例查找 |
+| `nt::wrapper::IKernelMSFService` | kernel 侧服务句柄 |
+| `msf::MSFSession` | 被包装的会话对象 |
+
+工具逐个到 `wrapper.node` 的 `.rodata` 里找，报 `MISSING` 的那个就指明了
+坏掉的是哪一部分。全部存在时退出码 0，有缺失时 1，可直接进 CI。
+
+```bash
+./hook_compat /opt/QQ/resources/app/wrapper.node \
+              /app/runtime/native/snowluma-linux-arm64.so
+```
+
+带宽高时把载荷路径省略也行，那就只查内置锚点表。
+
+**一处实现细节值得知道**：Itanium ABI 把类名写成 `<长度><名字>`，所以
+`nt::MSFService` 是 `N2nt10MSFServiceE` —— 中间的 `10` 是字符串长度，不是
+命名空间层级。手写这个数字极易出错（最初就写成了 `11`，于是把一个明明存在的
+类报成 `MISSING`）。工具因此**只匹配标识符，再回头校验前缀的长度是否自洽**，
+名字长度变了也不会误判。
+
+### 已验证的行为
+
+拿真实的 QQ 3.2.32（aarch64）和它配套的载荷跑：
+
+```
+build ID: 89c36b520f97c88081a9453bd6abb70c3452f156
+All 6 anchors present.      ← 退出码 0，与"注入确实成功"一致
+```
+
+再把 `.rodata` 里两个类名抹成 `XXXX` 模拟重构：
+
+```
+nt::MSFCoreService   MISSING
+IKernelMSFService    MISSING
+2 of 6 anchors missing.     ← 退出码 1
+```
+
+精确指出了被破坏的两处，其余四项不受影响——这正是排查时需要的信息。
+
 ## 未实现
 
 - TLS 重定位（`TLS_DTPMOD` / `TLS_TPOFF` / `TPREL`）

@@ -75,7 +75,20 @@ add_executable(fake_target test/fake_target.cc)
 # stub into the target and calls it.  If this passes, the transport is sound.
 add_executable(remote_exec_probe test/remote_exec_probe.cc
   src/common.cc src/remote.cc)
+
+# Reports the build ID, layout and exported symbols of an installed wrapper.node.
+# Standalone: reads the file, never touches a process, so it is safe to run against
+# a live QQ install when working out why a hook stopped loading.
 target_include_directories(remote_exec_probe PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+add_executable(hook_target_probe test/hook_target_probe.cc src/common.cc)
+target_include_directories(hook_target_probe PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+# Answers "will the current payload still find its targets in this wrapper.node?"
+# by comparing the payload's anchor strings against the target's .rodata.  Reads
+# files only, so it is safe to run while QQ is live.
+add_executable(hook_compat test/hook_compat.cc src/common.cc)
+target_include_directories(hook_compat PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 enable_testing()
 add_executable(hook_selftest test/selftest.cc
