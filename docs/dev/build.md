@@ -482,7 +482,7 @@ dist/
 ├── index.mjs          ← 本 bundle
 ├── launcher.sh        ← 启动脚本（优先用同目录 ./node，否则回落 $PATH）
 ├── check-node-version.cjs
-├── package.json       ← @snowluma/runtime 清单（version: 2.4.0）
+├── package.json       ← @snowluma/runtime 清单（version: 0.2.4.2）
 ├── release.json       ← { version, target: "linux-arm64", entries: [...] }
 ├── EULA.md / PRIVACY.md
 ├── client/            ← WebUI 前端静态产物（★ 源码未还原）

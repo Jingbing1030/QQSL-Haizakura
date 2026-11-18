@@ -482,7 +482,7 @@ dist/
 ├── index.mjs          ← 本 bundle
 ├── launcher.sh        ← 起動スクリプト（同ディレクトリの ./node を優先し、無ければ $PATH にフォールバック）
 ├── check-node-version.cjs
-├── package.json       ← @snowluma/runtime のマニフェスト（version: 2.4.0）
+├── package.json       ← @snowluma/runtime のマニフェスト（version: 0.2.4.2）
 ├── release.json       ← { version, target: "linux-arm64", entries: [...] }
 ├── EULA.md / PRIVACY.md
 ├── client/            ← WebUI フロントエンドの静的成果物（★ ソースは未復元）

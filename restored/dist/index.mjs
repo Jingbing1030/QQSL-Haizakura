@@ -6085,7 +6085,7 @@ function scanLegacyMusicSignUrl() {
 var APP_VERSION = {
 	license: "SEE LICENSE IN LICENSE",
 	name: "snowluma-monorepo",
-	version: "0.2.4.1",
+	version: "0.2.4.2",
 	description: "Haizakura monorepo workspace (pnpm)",
 	"private": true,
 	type: "module",

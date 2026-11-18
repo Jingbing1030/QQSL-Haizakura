@@ -611,7 +611,7 @@ curl -s -o /dev/null -w '%{http_code}\n' -X POST $BASE/get_version_info \
 | Request | Result |
 | --- | --- |
 | `POST /get_version_info` without a token | HTTP `401`, `retcode 1401`, `unauthorized` |
-| `POST /get_version_info` with a token | `{"app_name":"Haizakura","app_version":"2.4.0-node","protocol_version":"v11"}` |
+| `POST /get_version_info` with a token | `{"app_name":"Haizakura","app_version":"0.2.4.2-node","protocol_version":"v11"}` |
 | `GET /` with a token | `{"status":"ok","retcode":0,"data":{"online":true}}` |
 | `POST /get_supported_actions` | `retcode 1404`, `unknown action` ❌ |
 | `POST /get_status` | `{"online":true,"good":true,"time":3793}` |

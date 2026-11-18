@@ -44,7 +44,7 @@ If any item fails, go to the corresponding section.
 | `wrapper.node` size | **144,561,472** bytes |
 | `wrapper.node` md5 | **`adeb40af26d859d41fcdb21bf38d9eb5`** |
 | `wrapper.node` build-id | **`89c36b520f97c88081a9453bd6abb70c3452f156`** |
-| SnowLuma / Haizakura runtime | **2.4.0** |
+| SnowLuma / Haizakura runtime | **0.2.4.2** |
 | hook stub self-reported version | `snowluma-linux-hook-stub/0.2.0` |
 | Node | **24.22.2** |
 | Container image | `motricseven7/snowluma:latest` (2.69 GB, arm64) |

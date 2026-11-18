@@ -1,6 +1,6 @@
 {
   "name": "snowluma-monorepo",
-  "version": "0.2.4.1",
+  "version": "0.2.4.2",
   "private": true,
   "type": "module",
   "description": "SnowLuma monorepo workspace (pnpm) \u2014 RESTORED from dist/index.mjs",

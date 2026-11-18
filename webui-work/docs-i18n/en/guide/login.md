@@ -156,7 +156,7 @@ A normal reply looks like:
 
 ```
 Haizakura 状态
-版本: 2.4.0
+版本: 0.2.4.2
 平台: linux-x64
 运行时长: 3小时 12分钟
 ```

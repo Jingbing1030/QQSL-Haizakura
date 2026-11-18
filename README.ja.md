@@ -2,7 +2,7 @@
 
 > 公式 QQ クライアントの MSF セッションに寄生する、サードパーティ製 OneBot / Satori ランタイム。
 
-**バージョン 0.2.4.1** ・ Linux arm64 ・ Docker
+**バージョン 0.2.4.2** ・ Linux arm64 ・ Docker
 
 ---
 
