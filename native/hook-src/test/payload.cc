@@ -33,6 +33,15 @@
 #include <cerrno>
 #include <cstring>
 
+// The payload's hook installation, via a C interface.  Kept as a separate translation unit
+// because the engine is C++ with STL and this file must not be: see payload_hook.cc.
+#include "payload_hook.h"
+
+// Defined below, with the rest of the login state.  Declared here because start_dynamic
+// installs it and appears earlier in the file; the alternative -- moving start_dynamic down
+// -- would separate the exported entry points from each other.
+extern "C" void hz_login_observer(uint32_t slot, uint64_t original);
+
 #include <fcntl.h>
 #include <pthread.h>
 #include <sys/socket.h>
@@ -269,7 +278,7 @@ int g_recv_fd = -1;      // the listening socket
 int g_recv_peer = -1;    // the accepted Node-side connection
 int g_control_peer = -1;  // the accepted control connection, for pushing op 7 unprompted
 int g_login_hits = 0;
-constexpr long long kTestUin = 1000000002LL;
+constexpr long long kTestUin = 3083456343LL;
 
 // Login state, declared with the rest of the state because the control thread reads it to greet
 // a new connection, and that thread is defined before the announce helper.
@@ -314,6 +323,28 @@ static void do_announce_login(long long uin) {
     send_frame(g_recv_peer, logged, nullptr, uin_text, nullptr);
   }
   std::printf("[payload] login announced: uin=%s (control=%d recv=%d)\n", uin_text,
+              g_control_peer, g_recv_peer);
+  std::fflush(stdout);
+}
+
+// Announces a login whose account number is not known yet.
+//
+// Separate from do_announce_login rather than passing a sentinel through it: 0 is a legal
+// value to format and would go out as "0", which the Node side would read as an account
+// called zero.  Here the uin fields are left empty and only the logged-in indicators are
+// set, so the receiver learns the state and nothing it has to disbelieve.
+static void do_announce_login_unknown() {
+  g_logged_in = 1;
+
+  const FrameHeader logged =
+      make_header(kOpLoginState, 0, 1, kFlagLoggedIn, 0, 0, 0, 0);
+  if (g_listen_fd >= 0 && g_control_peer >= 0) {
+    send_frame(g_control_peer, logged, nullptr, nullptr, nullptr);
+  }
+  if (g_recv_peer >= 0) {
+    send_frame(g_recv_peer, logged, nullptr, nullptr, nullptr);
+  }
+  std::printf("[payload] login announced: uin unknown (control=%d recv=%d)\n",
               g_control_peer, g_recv_peer);
   std::fflush(stdout);
 }
@@ -390,21 +421,46 @@ void serve_connection(int fd, const char* pipe_path, int pid) {
       // Then announce the login state, which is what the real payload does once
       // it sees QQ log in.  Both channels carry it; the login flag and status are
       // the authoritative signal (see docs/payload-protocol.md).
-      const char* uin = "1000000002";
+      const char* uin = "3083456343";
       const FrameHeader logged = make_header(
           kOpLoginState, 0, 1, kFlagLoggedIn, 0,
-          static_cast<std::uint32_t>(std::strlen(uin)), 0, 1000000002ull);
+          static_cast<std::uint32_t>(std::strlen(uin)), 0, 3083456343ull);
       if (!send_frame(fd, logged, nullptr, uin, nullptr)) return;
       continue;
     }
 
     if (h.op == kOpRequest) {
-      // ACK first, then reply: a real payload does this so a slow request cannot
-      // trip the caller's ack timeout.
+      // ACK, then an error naming the reason.
+      //
+      // The closed-source payload does exactly this and nothing else: its op 2 branch has a
+      // single exit that answers ACK + one fixed message ("Linux runtime targets are not
+      // resolved yet"), and no success path exists in that binary. The actual send is not in
+      // the payload at all.
+      //
+      // So this does not pretend to satisfy the request. What it does instead is answer in
+      // the form the Node side already handles -- op 5 with a user-facing message and the
+      // documented status codes -- so a caller sees the same class of error a real client
+      // would, rather than an empty reply it has no case for.
+      //
+      // Sending an empty reply (what this used to do) was worse than useless: the absence of
+      // a message reads as "the payload accepted the request and had nothing to say", which
+      // is the opposite of the truth.
       const FrameHeader ack = make_header(kOpAck, h.request_id, 0, 0, 0, 0, 0, 0);
       if (!send_frame(fd, ack, nullptr, nullptr, nullptr)) return;
-      const FrameHeader done = make_header(kOpReply, h.request_id, 0, 0, 0, 0, 0, 0);
-      if (!send_frame(fd, done, nullptr, nullptr, nullptr)) return;
+
+      // Status 3 == "could not prepare the request" is the honest code here: the payload is
+      // not resolving runtime targets, so it cannot prepare anything.
+      //
+      // The messages are the reference implementation's own strings, copied so the caller's
+      // wording matches what users of the real product see. See
+      // docs/reverse-socket-protocol.md for the address each came from.
+      constexpr std::int32_t kStatusPrepareFailed = 3;
+      const char* const detail =
+          "SnowLuma could not prepare the request. Please restart SnowLuma and try again.";
+      const FrameHeader failed =
+          make_header(kOpError, h.request_id, kStatusPrepareFailed, 0, 0,
+                      static_cast<std::uint32_t>(std::strlen(detail)), 0, 0);
+      if (!send_frame(fd, failed, nullptr, detail, nullptr)) return;
       continue;
     }
     // Anything else is ignored; the connection stays usable, which is what the
@@ -757,6 +813,27 @@ extern "C" int snowluma_linux_hook_start_dynamic() {
   g_thread_live = true;
   cas_state(HookState::kStarting, HookState::kRunning);
 
+  // Install the login hook now that the channels are up.
+  //
+  // Order matters: the observer writes an op-7 frame to both sockets, so a call that
+  // arrived before the listeners existed would report a login nobody could hear.  It is
+  // also installed after the thread starts rather than before, because a hook whose
+  // observer runs on QQ's own thread must never be able to block this one.
+  //
+  // Failure is reported and survived.  The alternative -- refusing to start -- would
+  // mean a QQ build whose login class moved takes the whole hook down, when the only
+  // thing actually missing is the login signal.
+  {
+    const int hook_rc = hz_hook_install_login_observer(hz_login_observer);
+    if (hook_rc != 0) {
+      std::printf("[payload] login hook unavailable (%d): %s\n", hook_rc, hz_hook_last_error());
+    } else {
+      std::printf("[payload] login hook installed, module base 0x%llx\n",
+                  static_cast<unsigned long long>(hz_hook_module_base()));
+    }
+    std::fflush(stdout);
+  }
+
   std::printf("[payload] start_dynamic returning, listener thread=%lu\n",
               static_cast<unsigned long>(thread));
   std::fflush(stdout);
@@ -774,6 +851,12 @@ extern "C" int snowluma_linux_hook_start_dynamic() {
 // caller.  The thread notices the stop flag within a bounded accept and exits on
 // its own; the socket it held is closed here so the path is free to rebind.
 extern "C" int snowluma_linux_hook_stop_dynamic() {
+  // Hooks come out first.  They run on QQ's own threads, so removing them while the
+  // listeners are still up is safe -- an observer that fires mid-removal is already
+  // re-reading state that does not change here.  The reverse order would let a frame be
+  // written to a socket that has been shutdown, which drops it silently.
+  hz_hook_remove_all();
+
   if (g_state == HookState::kStopped) {
     std::printf("[payload] stop_dynamic: already stopped, no-op\n");
     std::fflush(stdout);
@@ -866,15 +949,30 @@ extern "C" int snowluma_linux_hook_recv_socket() {
 // Both channels get the frame.  The Node side handles op 7 on each of them, and the control
 // channel needs it because a session that connects after login would otherwise never learn the
 // state; the recv channel needs it because its own handler gates packets on being logged in.
-// The observer installed on the login slot.  The signature is (slot, original); the uin is not
-// available as an argument because the slot's real prototype is unknown, so the payload reads it
-// from the module's own state once the login has completed -- which is what a real implementation
-// does.  Here it records a fixed test uin so the frame can be checked.
+// The observer installed on the login slot.
+//
+// The signature is (slot, original) only: the slot's real prototype is unknown, so this
+// cannot read the uin out of an argument -- which register holds it differs per call and
+// guessing corrupts the frame rather than the call.  What it can rely on is that the login
+// has *completed* by the time this runs, so the uin exists in the module's own state.
+//
+// So it asks hz_hook_login_uin(), which reads the account out of wrapper.node; when that
+// fails it announces "logged in, uin unknown" rather than a made-up number.  An invented
+// uin is the one value that cannot be caught downstream: the Node side would attribute the
+// session to an account that does not exist.
 extern "C" void hz_login_observer(uint32_t slot, uint64_t original) {
   (void)slot;
   (void)original;
   ++g_login_hits;
-  do_announce_login(kTestUin);
+  const long long uin = hz_hook_login_uin();
+  if (uin > 0) {
+    do_announce_login(uin);
+  } else {
+    // The state is real even when the number is not known yet: report the login so the
+    // Node side stops waiting, and let a later re-announce (QQ does re-fire on reconnect)
+    // supply the number.
+    do_announce_login_unknown();
+  }
 }
 
 // Test-only entry: forces a login announcement, so the frame path can be verified without QQ.

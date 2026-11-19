@@ -34,6 +34,7 @@ add_library(haizakura_hook MODULE
   src/injector.cc
   src/manual_loader.cc
   src/vtable_hook.cc
+  src/vtable_hook_remote.cc
 )
 
 target_include_directories(haizakura_hook PRIVATE
@@ -66,15 +67,43 @@ set_target_properties(haizakura_hook PROPERTIES
 add_library(fake_wrapper SHARED test/fake_wrapper.cc)
 set_target_properties(fake_wrapper PROPERTIES PREFIX "" SUFFIX ".node" OUTPUT_NAME "fake-wrapper")
 
-add_library(payload SHARED test/payload.cc)
+# payload.cc is plain C++ with no STL; the hook engine (payload_hook.cc plus the vtable
+# machinery it drives) is C++ with STL.  They are separate translation units because they
+# have different constraints -- see the comment at the top of payload_hook.cc -- and they
+# meet only through the C interface in payload_hook.h.
+#
+# The engine files are listed here for the first time.  Until now the payload could bind a
+# socket and speak the protocol but could not install a single hook, so the login signal it
+# reported was a test entry point rather than something QQ actually produced.
+add_library(payload SHARED
+  test/payload.cc
+  src/payload_hook.cc
+  src/vtable_hook.cc
+  src/slot_relay.cc
+  src/elf_image.cc
+  src/common.cc
+)
 set_target_properties(payload PROPERTIES PREFIX "" SUFFIX ".so" OUTPUT_NAME "payload")
+target_include_directories(payload PRIVATE include)
 target_link_options(payload PRIVATE -Wl,--unresolved-symbols=ignore-all)
 # The manual loader implements no TLS relocations, so the payload must not carry
 # any.  A stack-protector canary is a thread-local on modern glibc: without
 # -fno-stack-protector every non-trivial function in payload.cc fails relocation
 # with "manual ELF loader does not implement TLS relocations", which reads like a
 # loader bug but is really a payload build flag.
-target_compile_options(payload PRIVATE -fno-stack-protector -fno-exceptions -fno-rtti)
+# -fno-exceptions and -fno-rtti apply to payload.cc only, not to the target as a whole.
+#
+# The engine needs exceptions: it reports malformed ELF and unresolvable symbols by throwing,
+# and rewriting that contract to error codes would touch every call site for no gain. It also
+# needs RTTI-free compilation to be *off* for its type_info parsing to compile as written.
+#
+# The reason these flags existed at all is TLS, not philosophy: the loader implements no TLS
+# relocations, and a stack-protector canary is a thread-local on modern glibc. Measured, the
+# engine adds zero TLS relocations even with exceptions on, because -fno-stack-protector is
+# what actually controls the canary -- so the two concerns are separable and are separated
+# here rather than compromising one of them.
+target_compile_options(payload PRIVATE -fno-stack-protector)
+set_source_files_properties(test/payload.cc PROPERTIES COMPILE_OPTIONS "-fno-exceptions;-fno-rtti")
 
 add_executable(fake_target test/fake_target.cc)
 
@@ -176,6 +205,7 @@ add_executable(vtable_hook_test test/vtable_hook_test.cc
   src/remote.cc
   src/slot_relay.cc
   src/vtable_hook.cc
+  src/vtable_hook_remote.cc
 )
 target_include_directories(vtable_hook_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -201,6 +231,7 @@ add_executable(vtable_hook_e2e_test test/vtable_hook_e2e_test.cc
   src/remote.cc
   src/slot_relay.cc
   src/vtable_hook.cc
+  src/vtable_hook_remote.cc
   src/manual_loader.cc
 )
 target_include_directories(vtable_hook_e2e_test PRIVATE
@@ -238,6 +269,7 @@ add_executable(vtable_inproc_test test/vtable_inproc_test.cc
   src/remote.cc
   src/slot_relay.cc
   src/vtable_hook.cc
+  src/vtable_hook_remote.cc
 )
 target_include_directories(vtable_inproc_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -279,6 +311,7 @@ add_executable(runtime_targets_test test/runtime_targets_test.cc
   src/remote.cc
   src/slot_relay.cc
   src/vtable_hook.cc
+  src/vtable_hook_remote.cc
 )
 target_include_directories(runtime_targets_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/include

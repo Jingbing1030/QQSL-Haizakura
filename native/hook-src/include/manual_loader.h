@@ -53,7 +53,16 @@ class ManualLoader {
   // Falls back to the payload's well-known start function when the image has no
   // e_entry, and finds .eh_frame_hdr so the unwinder can reach hook frames.
   uint64_t resolve_start_symbol(uint64_t base) const;
+  // .eh_frame -- the CIE/FDE stream __register_frame() consumes.
+  uint64_t locate_eh_frame(uint64_t base) const;
+
+  // .eh_frame_hdr -- the lookup table, kept for the diagnostic field only.
   uint64_t locate_eh_frame_hdr(uint64_t base) const;
+
+  // Address passed to __register_frame(), 0 when nothing was registered.  Read by tests
+  // and by the unload path, which has to undo it.
+  uint64_t last_unwind_registration() const { return last_unwind_registration_; }
+  uint64_t last_unwind_registration_ = 0;
 
  public:
 
@@ -85,6 +94,11 @@ class ManualLoader {
   std::optional<uint64_t> resolve_remote_symbol(std::string_view name);
 
   void apply_relocations(uint64_t base);
+  // Hands the module's .eh_frame_hdr to libgcc's unwinder.  A manually mapped module is
+  // not in the target's link_map, so without this a throw from payload code cannot be
+  // unwound and std::terminate kills the process with SIGABRT.
+  void register_unwind_tables(uint64_t base);
+
   void run_init(uint64_t base);
 
   // Looks up a soname in the target's /proc/<pid>/maps.  Returns its base address.

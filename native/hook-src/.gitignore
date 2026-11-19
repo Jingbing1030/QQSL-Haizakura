@@ -13,3 +13,17 @@ buildx-arm/
 *.log
 core
 core.*
+__pycache__/
+*.pyc
+re/dis.txt
+re/dis_raw.txt
+
+# Reverse-engineering intermediates. These are regenerated from the target .so with objdump,
+# they run to 12 MB, and they are not source: a checkout that has the scripts in re/ can
+# reproduce any of them. Keeping them in history made the repository 9.5 MB of mostly
+# disassembly text and turned every transfer into a multi-megabyte problem.
+work/
+re/dis/
+re/__pycache__/
+*.pyc
+re/*.txt

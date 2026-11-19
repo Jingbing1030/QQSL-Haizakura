@@ -299,6 +299,45 @@ void ManualLoader::apply_relocations(uint64_t base) {
   }
 }
 
+// Registers the module's .eh_frame_hdr with the C++ unwinder.
+//
+// ---------------------------------------------------------------------------
+// Why a manually mapped module needs this and a dlopen'd one does not
+// ---------------------------------------------------------------------------
+// libgcc's unwinder finds unwind tables by asking the dynamic loader, which walks its
+// link_map.  A module this loader maps is deliberately NOT in that map -- it is placed by
+// hand and has no entry in the target's module list -- so the unwinder has nothing to
+// find, and it does not fall back to "no tables, unwind conservatively".  It terminates.
+//
+// The symptom is what makes this worth spelling out: the payload throws once (a malformed
+// ELF, an unresolvable symbol), the throw cannot be unwound, std::terminate runs, and the
+// process dies with SIGABRT inside glibc's pthread_kill.  The trace names neither the
+// payload nor the throw, and the module that caused it looks innocent because it is not in
+// the map.  `unload()` should have been the only thing able to kill the host.
+//
+// __register_frame takes the address of the .eh_frame_hdr section -- the same value this
+// class already computed for handle.exception_table and, until now, only reported.
+void ManualLoader::register_unwind_tables(uint64_t base) {
+  last_unwind_registration_ = 0;
+  const uint64_t table = locate_eh_frame(base);
+  if (table == 0) return;  // nothing to register; a --no-eh-frame payload is legal
+
+  const std::optional<uint64_t> fn = resolve_remote_symbol("__register_frame");
+  if (!fn) {
+    // Not fatal, but worth naming: from here on a throw from payload code aborts the
+    // host process, so a caller that sees a later SIGABRT should look here first.
+    std::fprintf(stderr,
+                 "[loader] __register_frame unavailable; payload exceptions will abort "
+                 "the target instead of unwinding\n");
+    return;
+  }
+  remote_.remote_call(*fn, {table}, 1);
+  last_unwind_registration_ = table;
+  std::fprintf(stderr, "[loader] registered .eh_frame at 0x%llx via __register_frame 0x%llx\n",
+               static_cast<unsigned long long>(table),
+               static_cast<unsigned long long>(*fn));
+}
+
 void ManualLoader::run_init(uint64_t base) {
   // DT_INIT_ARRAY is what registers a payload's static constructors.  Each entry
   // is a virtual address relative to image_base().
@@ -338,6 +377,23 @@ uint64_t ManualLoader::resolve_start_symbol(uint64_t base) const {
   return 0;
 }
 
+// The section __register_frame() wants: .eh_frame, the CIE/FDE record stream.
+//
+// Deliberately NOT .eh_frame_hdr.  The two are easy to confuse -- both are unwind metadata,
+// the header is what the *dynamic* loader uses, and handle.exception_table has always named
+// the header -- but they are different formats.  __register_frame expects a stream of
+// records terminated by a zero-length entry; given the header it reads the lookup table's
+// count and binary-search fields as record lengths, walks off into unmapped memory and
+// faults inside libgcc's unwind code.  That failure looks like "the payload crashed before
+// printing anything", which is a long way from "the wrong section was registered".
+uint64_t ManualLoader::locate_eh_frame(uint64_t base) const {
+  for (const SectionInfo& sec : image_.sections()) {
+    if (sec.name != ".eh_frame" || sec.size == 0) continue;
+    return base + (sec.addr - image_.image_base());
+  }
+  return 0;
+}
+
 uint64_t ManualLoader::locate_eh_frame_hdr(uint64_t base) const {
   for (const SectionInfo& sec : image_.sections()) {
     if (sec.name != ".eh_frame_hdr" || sec.size == 0) continue;
@@ -370,6 +426,8 @@ ManualMapHandle ManualLoader::load() {
     apply_relocations(handle.base);
 
 
+
+    register_unwind_tables(handle.base);
 
     run_init(handle.base);
 
@@ -441,6 +499,23 @@ void ManualLoader::unload(const ManualMapHandle& handle) {
     } catch (const Error&) {
       // A destructor that fails must not prevent the unmap below.
     }
+  }
+
+  // Unregister before unmapping.  The unwinder keeps a pointer to these tables, so leaving
+  // it registered after the pages are gone turns the next throw anywhere in the target --
+  // including in QQ's own code -- into a read of freed memory.  Nothing in the payload can
+  // throw after this point, so the window is closed before the unmap rather than after.
+  if (last_unwind_registration_ != 0) {
+    const std::optional<uint64_t> fn = resolve_remote_symbol("__deregister_frame");
+    if (fn) {
+      try {
+        remote_.remote_call(*fn, {last_unwind_registration_}, 1);
+      } catch (const Error&) {
+        // A failed deregistration is a leak of a table pointer, not a corruption: the
+        // pages are still mapped for this call and the unmap below is what matters.
+      }
+    }
+    last_unwind_registration_ = 0;
   }
 
   if (!remote_.remote_munmap(handle.base, handle.size)) {

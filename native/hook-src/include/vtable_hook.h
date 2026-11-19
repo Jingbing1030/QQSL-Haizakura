@@ -109,6 +109,11 @@ void unhook_vtable_slot_relayed(RemoteProcess& remote, const HookedSlot& hooked)
 // The second pair exists because conflating the two is a design error that only shows up at
 // integration time: a hook that works perfectly in a test driver cannot be called by the code
 // it is meant to run in.
+// Reads a slot from inside the target.  The ptrace variant needs a RemoteProcess, which
+// the payload -- already in the address space -- has no way to construct for itself, so
+// the two mechanisms are genuinely different and not a convenience wrapper.
+uint64_t read_vtable_slot_live(uint64_t vtable_addr, uint32_t slot);
+
 uint64_t hook_vtable_slot_in_process(uint64_t vtable_addr, uint32_t slot, uint64_t new_target);
 void restore_vtable_slot_in_process(uint64_t vtable_addr, uint32_t slot, uint64_t original);
 
