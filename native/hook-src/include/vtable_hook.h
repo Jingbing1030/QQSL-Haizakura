@@ -80,6 +80,32 @@ struct HookedSlot {
   uint64_t relay = 0;       // the trampoline now in the slot
 };
 
+// A function patched at its entry rather than through a vtable slot.
+//
+// The vtable approach cannot reach an export: there is no table to write, only a symbol the
+// application resolves by name. Patching the entry means overwriting the first instructions
+// with a jump, which is why `saved` exists -- the relay must replay them before jumping back,
+// or the function loses its own prologue and every call corrupts the frame.
+struct HookedFunction {
+  uint64_t target = 0;     // the function's entry
+  uint64_t relay = 0;      // the trampoline now at the entry
+  uint32_t saved_len = 0;  // bytes of the original prologue moved into the relay
+  uint8_t saved[20] = {0}; // the displaced instructions, verbatim
+};
+
+// Patches `target` so every call reports to `observer` first, then runs the original.
+//
+// Only aarch64 is implemented: the two instruction words needed for an absolute branch
+// (ldr x16 + br x16, 16 bytes) and the fact that aarch64 instructions are fixed-size make the
+// relocation tractable. Doing this on x86-64 means handling variable-length instructions and
+// RIP-relative operands, which is a different piece of work and is not needed -- QQ's Linux
+// client is aarch64 here.
+HookedFunction hook_function_relayed_in_process(uint64_t target, SlotObserver observer,
+                                                uint32_t id);
+
+// Restores the original entry instructions.
+void unhook_function_in_process(const HookedFunction& hooked);
+
 // Replaces `slot` with a relay that reports each call to `observer` and then forwards it
 // to the function the slot held, unchanged -- registers, flags and vector state all
 // preserved.  Returns the record needed to undo it.

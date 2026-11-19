@@ -434,6 +434,159 @@ void unhook_vtable_slot_relayed_in_process(const HookedSlot& hooked) {
   slot_relay_remove(hooked.relay);
 }
 
+// Checks that `at` is inside an executable mapping we may patch.
+//
+// Separate from check_slot_address, which requires a RELRO page because a vtable lives in
+// .data.rel.ro. A function entry lives in .text and is r-xp; applying the RELRO rule to it
+// rejects every real function, which is what happened first: the export hook reported success
+// while patching nothing, because the check was never wired to it.
+SlotCheck check_code_address(uint64_t at) {
+  SlotCheck out;
+  if ((at & 3) != 0) {
+    out.reason = "code address is not 4-byte aligned";
+    return out;
+  }
+  const int fd = ::open("/proc/self/maps", O_RDONLY | O_CLOEXEC);
+  if (fd < 0) {
+    out.reason = "cannot read /proc/self/maps";
+    return out;
+  }
+  char buf[8192];
+  ssize_t n;
+  bool found = false;
+  while (!found && (n = ::read(fd, buf, sizeof(buf) - 1)) > 0) {
+    buf[n] = '\0';
+    for (char* line = buf; line != nullptr && *line != '\0';) {
+      char* eol = std::strchr(line, '\n');
+      uint64_t start = 0;
+      uint64_t end = 0;
+      char perms[5] = {0};
+      if (parse_maps_line(line, start, end, perms)) {
+        if (at >= start && at + 16 <= end) {
+          found = true;
+          out.prot = 0;
+          if (perms[0] == 'r') out.prot |= PROT_READ;
+          if (perms[1] == 'w') out.prot |= PROT_WRITE;
+          if (perms[2] == 'x') out.prot |= PROT_EXEC;
+          // Executable and private is what a patched .text page looks like.
+          out.ok = (perms[2] == 'x' && perms[3] == 'p');
+          if (!out.ok) out.reason = "code is not in an executable private mapping";
+          break;
+        }
+      }
+      line = (eol == nullptr) ? nullptr : eol + 1;
+    }
+  }
+  ::close(fd);
+  if (!found) out.reason = "code address is outside every mapping";
+  return out;
+}
+
+HookedFunction hook_function_relayed_in_process(uint64_t target, SlotObserver observer,
+                                                uint32_t id) {
+  if (target == 0) throw Error("cannot hook a null function");
+  if ((target & 3) != 0) throw Error("function entry is not 4-byte aligned");
+  if (observer == nullptr) throw Error("observer is null");
+
+  HookedFunction out;
+  out.target = target;
+
+  // The patch: two instruction words followed by the relay address.
+  //
+  //   ldr x16, #8    ; x16 = *(pc + 8), i.e. the literal below
+  //   br  x16        ; jump to the relay
+  //   .quad relay
+  //
+  // Sixteen bytes covers four aarch64 instructions. That is the smallest patch that can branch
+  // anywhere in the 64-bit address space: b/ bl reach +/-128 MB, and wrapper.node is 144 MB, so
+  // an offset branch can miss. x16 is IP0, the scratch register the AArch64 ABI reserves for
+  // exactly this linker use -- it may be clobbered by a veneer, so a function cannot rely on it
+  // arriving with a value.
+  constexpr uint32_t kLdrX16 = 0x58000050u;  // ldr x16, [pc, #8]
+  constexpr uint32_t kBrX16 = 0xD61F0200u;   // br x16
+  constexpr uint32_t kPatchLen = 16;
+
+  uint8_t original[kPatchLen];
+  std::memcpy(original, reinterpret_cast<const void*>(target), kPatchLen);
+  out.saved_len = kPatchLen;
+  std::memcpy(out.saved, original, kPatchLen);
+
+  // Refuse if the prologue contains a PC-relative instruction that would break when moved:
+  // adrp/adr/add-immediate-from-pc, or a literal load. Replaying them at a different address
+  // computes a different target, and the symptom would be a crash inside QQ far from here.
+  for (uint32_t i = 0; i < kPatchLen; i += 4) {
+    uint32_t ins = 0;
+    std::memcpy(&ins, original + i, 4);
+    // adrp / adr
+    if ((ins & 0x1F000000u) == 0x10000000u || (ins & 0x9F000000u) == 0x90000000u) {
+      throw Error(format("function prologue at 0x%llx uses pc-relative addressing (0x%08x)",
+                         static_cast<unsigned long long>(target), ins));
+    }
+    // ldr/ldrsw literal
+    if ((ins & 0x3B000000u) == 0x18000000u) {
+      throw Error(format("function prologue at 0x%llx loads a literal (0x%08x)",
+                         static_cast<unsigned long long>(target), ins));
+    }
+    // b/bl/b.cond/cbz/tbz inside the patch window: the branch would be relocated.
+    if ((ins & 0x7C000000u) == 0x14000000u || (ins & 0xFF000010u) == 0x54000000u) {
+      throw Error(format("function prologue at 0x%llx branches (0x%08x)",
+                         static_cast<unsigned long long>(target), ins));
+    }
+  }
+
+  // `id` rides through to the observer as its `slot` argument. For a vtable hook that number is
+  // the real slot index; for a function hook there is no slot, so the caller's hook index goes
+  // there instead and the observer looks the identity up. That is what lets one observer serve
+  // hundreds of hooks and still name which one was entered.
+  out.relay = slot_relay_install_function(target, out.saved, out.saved_len, observer, id);
+  if (out.relay == 0) throw Error("cannot allocate a function relay");
+
+  const uint64_t page = target & ~static_cast<uint64_t>(kPageSize - 1);
+  const SlotCheck check = check_code_address(target);
+  if (!check.ok) {
+    slot_relay_remove(out.relay);
+    throw Error(format("refusing to patch function at 0x%llx: %s",
+                       static_cast<unsigned long long>(target), check.reason));
+  }
+  if (::mprotect(reinterpret_cast<void*>(page), kPageSize, check.prot | PROT_WRITE) != 0) {
+    slot_relay_remove(out.relay);
+    throw Error(format("mprotect failed at 0x%llx: %s",
+                       static_cast<unsigned long long>(page), std::strerror(errno)));
+  }
+
+  uint8_t patch[kPatchLen];
+  std::memcpy(patch + 0, &kLdrX16, 4);
+  std::memcpy(patch + 4, &kBrX16, 4);
+  std::memcpy(patch + 8, &out.relay, 8);
+  std::memcpy(reinterpret_cast<void*>(target), patch, kPatchLen);
+  __builtin___clear_cache(reinterpret_cast<char*>(target),
+                          reinterpret_cast<char*>(target + kPatchLen));
+
+  if (::mprotect(reinterpret_cast<void*>(page), kPageSize, check.prot) != 0) {
+    std::memcpy(reinterpret_cast<void*>(target), original, kPatchLen);
+    __builtin___clear_cache(reinterpret_cast<char*>(target),
+                            reinterpret_cast<char*>(target + kPatchLen));
+    slot_relay_remove(out.relay);
+    throw Error("mprotect restore failed; the patch could not be undone cleanly");
+  }
+  return out;
+}
+
+void unhook_function_in_process(const HookedFunction& hooked) {
+  if (hooked.target == 0 || hooked.saved_len == 0) return;
+  const uint64_t page = hooked.target & ~static_cast<uint64_t>(kPageSize - 1);
+  const SlotCheck check = check_code_address(hooked.target);
+  if (!check.ok) throw Error(format("cannot unhook: %s", check.reason));
+  if (::mprotect(reinterpret_cast<void*>(page), kPageSize, check.prot | PROT_WRITE) != 0) {
+    throw Error("mprotect failed while unhooking");
+  }
+  std::memcpy(reinterpret_cast<void*>(hooked.target), hooked.saved, hooked.saved_len);
+  __builtin___clear_cache(reinterpret_cast<char*>(hooked.target),
+                          reinterpret_cast<char*>(hooked.target + hooked.saved_len));
+  ::mprotect(reinterpret_cast<void*>(page), kPageSize, check.prot);
+  slot_relay_remove(hooked.relay);
+}
+
 std::optional<VtableInfo> primary_vtable(const ElfImage& image,
                                          const std::vector<VtableInfo>& all,
                                          std::string_view class_name) {

@@ -42,6 +42,7 @@
 // -- would separate the exported entry points from each other.
 extern "C" void hz_login_observer(uint32_t slot, uint64_t original);
 
+#include <dirent.h>
 #include <fcntl.h>
 #include <pthread.h>
 #include <sys/socket.h>
@@ -280,9 +281,34 @@ int g_control_peer = -1;  // the accepted control connection, for pushing op 7 u
 int g_login_hits = 0;
 constexpr long long kTestUin = 3083456343LL;
 
+// The account the hook itself observed, as opposed to any constant compiled in.
+//
+// This exists because the test payload used to answer every connection with a hard-coded uin
+// and an unconditional "logged in". That made op 7 unfalsifiable -- a hook that never fired
+// and one that fired correctly produced identical frames -- so no reading of it could count as
+// evidence that the observer ran. Only this value, written by the observer, can.
+volatile long long g_observed_uin = 0;
+
+// Decimal, without snprintf: this runs on QQ's own thread and the loader relocates no TLS, so
+// a libc formatting call is more machinery than the job needs.
+void unsigned_to_dec(long long value, char* out, std::size_t cap) {
+  if (cap == 0) return;
+  unsigned long long v = static_cast<unsigned long long>(value);
+  char tmp[24];
+  int len = 0;
+  if (v == 0) tmp[len++] = '0';
+  while (v != 0) { tmp[len++] = static_cast<char>('0' + (v % 10)); v /= 10; }
+  std::size_t n = 0;
+  for (int i = len - 1; i >= 0 && n + 1 < cap; --i) out[n++] = tmp[i];
+  out[n] = '\0';
+}
+
 // Login state, declared with the rest of the state because the control thread reads it to greet
 // a new connection, and that thread is defined before the announce helper.
-int g_login_uin = 0;
+// 64-bit, not int: real QQ numbers exceed 2^31 -- 3083456343 wraps to -1211510953 as a signed
+// 32-bit value, which then went out on the wire as 18446744072498040663. The number looked like a
+// garbage uin rather than a truncation, which cost a round of hunting for the wrong bug.
+long long g_login_uin = 0;
 volatile int g_logged_in = 0;
 
 // Signed in as `uin`: record it and tell both channels.
@@ -291,7 +317,7 @@ volatile int g_logged_in = 0;
 // and re-sending op 7 with unchanged state is harmless because the Node side only wakes its
 // waiters when the values actually change.
 static void do_announce_login(long long uin) {
-  g_login_uin = static_cast<int>(uin);
+  g_login_uin = uin;
   g_logged_in = 1;
 
   char uin_text[32];
@@ -421,11 +447,67 @@ void serve_connection(int fd, const char* pipe_path, int pid) {
       // Then announce the login state, which is what the real payload does once
       // it sees QQ log in.  Both channels carry it; the login flag and status are
       // the authoritative signal (see docs/payload-protocol.md).
-      const char* uin = "3083456343";
+      // Replay whatever the hook has actually reported, never a fixed account.
+      //
+      // This used to send a hard-coded uin and an unconditional "logged in". That made every
+      // observation of op 7 meaningless: a hook that never fired and a hook that fired
+      // correctly produced the same frame, so the frame could not be evidence of anything.
+      // Gating on g_logged_in means the frame now says only what was really seen, and reading
+      // "logged in" here proves the observer ran.
+      if (!g_logged_in) {
+        const FrameHeader waiting =
+            make_header(kOpLoginState, 0, 0, 0, 0, 0, 0, 0);
+        if (!send_frame(fd, waiting, nullptr, nullptr, nullptr)) return;
+        continue;
+      }
+      char uin_text[24];
+      unsigned_to_dec(g_observed_uin, uin_text, sizeof(uin_text));
       const FrameHeader logged = make_header(
           kOpLoginState, 0, 1, kFlagLoggedIn, 0,
-          static_cast<std::uint32_t>(std::strlen(uin)), 0, 3083456343ull);
-      if (!send_frame(fd, logged, nullptr, uin, nullptr)) return;
+          static_cast<std::uint32_t>(std::strlen(uin_text)), 0,
+          static_cast<std::uint64_t>(g_observed_uin));
+      if (!send_frame(fd, logged, nullptr, uin_text, nullptr)) return;
+      continue;
+    }
+
+    // Hook a family of exports, or the single login notification when no needle is given.
+    //
+    // The needle travels in `msg`, not the body: the body is drained before this point without
+    // being echoed, so it is not available here.
+    //
+    // Commands are matched against literal bytes. The first attempt at this spelled "EXPORT"
+    // with cmd[0] == 'X' -- off by one -- so the branch was unreachable and every probe fell
+    // through to the generic op-2 refusal, which still answers ACK with value0 == 0. That reads
+    // exactly like a successful install, and it cost several rounds.
+    if (h.op == kOpRequest && h.cmd_len == 6 && cmd[0] == 'E' && cmd[1] == 'X' &&
+        cmd[2] == 'P' && cmd[3] == 'O' && cmd[4] == 'R' && cmd[5] == 'T') {
+      const int rc = (h.msg_len > 0) ? hz_hook_exports_matching(msg, 40)
+                                     : hz_hook_export_login_observer(hz_login_observer);
+      const FrameHeader ack =
+          make_header(kOpAck, 0, 0, 0, h.request_id, 0, 0, static_cast<std::uint64_t>(rc));
+      if (g_control_peer >= 0) send_frame(g_control_peer, ack, nullptr, nullptr, nullptr);
+      continue;
+    }
+
+    // Hook every export large enough to patch. The next login then names its own entry points.
+    if (h.op == kOpRequest && h.cmd_len == 5 && cmd[0] == 'P' && cmd[1] == 'R' &&
+        cmd[2] == 'O' && cmd[3] == 'B' && cmd[4] == 'E') {
+      const int got = hz_hook_all_exports(200);
+      const FrameHeader ack =
+          make_header(kOpAck, 0, 0, 0, h.request_id, 0, 0, static_cast<std::uint64_t>(got));
+      if (g_control_peer >= 0) send_frame(g_control_peer, ack, nullptr, nullptr, nullptr);
+      continue;
+    }
+
+    // Hook a few slots on every nt::login class so the entry counter can say which one a real
+    // sign-in reaches. Driven over the socket because the payload reads QQ's environment, not
+    // the injector's, and an already-running process cannot have that changed.
+    if (h.op == kOpRequest && h.cmd_len >= 5 && cmd[0] == 'S' && cmd[1] == 'W' &&
+        cmd[2] == 'E' && cmd[3] == 'E' && cmd[4] == 'P') {
+      const int got = hz_hook_sweep_login_classes(3);
+      const FrameHeader ack =
+          make_header(kOpAck, 0, 0, 0, h.request_id, 0, 0, static_cast<std::uint64_t>(got));
+      if (g_control_peer >= 0) send_frame(g_control_peer, ack, nullptr, nullptr, nullptr);
       continue;
     }
 
@@ -672,6 +754,163 @@ static void trace(const char* text) {
   (void)ignored;
 }
 
+// Reads QQ's own login state off the filesystem and announces it.
+//
+// This replaces hooking anything inside QQ. Five separate hook sites were each verified
+// installed and each recorded zero calls through a real sign-in -- the QR vtable slot, the
+// MSFService send slot, a 62-slot sweep of nt::login, the notifyLoginSuccess export, and the
+// whole export surface -- so the observation point, not the mechanism, was the problem.
+//
+// QQ writes its account into a directory name in the clear:
+//
+//   <home>/.config/QQ/Partitions/qqnt_<uin>/
+//   <home>/.config/QQ/Partitions/qq-browser-<uin>/
+//
+// Measured in the container: clicking login at 01:32 stamped qqnt_3083456343 at 01:32, and
+// auth/login.enc was rewritten at 01:43. So the signal is real, current, and needs nothing from
+// the client's internals: no vtable layout, no exported symbol, no patched code. It also cannot
+// crash QQ, which the function-entry patching did.
+//
+// Polling rather than inotify: one directory listing every five seconds is cheaper to get right
+// than a watch that has to survive account switches and directory replacement, and a five-second
+// delay on a login notification is not observable to the caller.
+// mtime of auth/login.enc, in ms, as of the last sign-in this payload saw.
+static volatile long long g_login_stamp = 0;
+
+static void* login_dir_main(void*) {
+  for (;;) {
+    // The home directory of this process -- QQ's, since this code runs inside it.
+    const char* home = ::getenv("HOME");
+    if (home == nullptr || home[0] == '\0') home = "/app";
+
+    char dir[512];
+    int n = 0;
+    const char* parts[3] = {home, "/.config/QQ/Partitions", nullptr};
+    for (int k = 0; k < 2; ++k) {
+      for (const char* q = parts[k]; *q != '\0' && n < 500; ++q) dir[n++] = *q;
+    }
+    dir[n] = '\0';
+
+    DIR* d = ::opendir(dir);
+    long long found = 0;
+    long long best_when = -1;
+    if (d != nullptr) {
+      struct dirent* e;
+      while ((e = ::readdir(d)) != nullptr) {
+        // Only the qqnt_ prefix: qq-browser_<uin> appears alongside it for the same account, and
+        // qq-browser-tab / qqnt_<nonce> are not accounts at all. Taking the first numeric suffix
+        // under qqnt_ is the account directory QQ actually creates for a sign-in.
+        const char* nm = e->d_name;
+        if (nm[0] != 'q' || nm[1] != 'q' || nm[2] != 'n' || nm[3] != 't' || nm[4] != '_') continue;
+        const char* p = nm + 5;
+        if (*p < '0' || *p > '9') continue;
+        long long v = 0;
+        while (*p >= '0' && *p <= '9') v = v * 10 + (*p++ - '0');
+        if (*p != '\0') continue;
+        // QQ's uin fits in 32 bits; anything longer is not one, and a 64-bit accumulate would
+        // overflow before the check.
+        if (v <= 0 || v >= 4000000000LL) continue;
+
+        // Pick the most recently touched account directory, not the first one listed.
+        //
+        // readdir order is arbitrary, and this container has qqnt_9210 and qqnt_9211 sitting
+        // beside the real account -- leftovers from other tests. Taking the first match reported
+        // uin 9211 for an account that is 3083456343, which is the sort of wrong answer that
+        // looks entirely plausible in a log.
+        char full[512];
+        int fn = 0;
+        for (const char* q = dir; *q != '\0' && fn < 500; ++q) full[fn++] = *q;
+        if (fn < 500) full[fn++] = '/';
+        for (const char* q = nm; *q != '\0' && fn < 500; ++q) full[fn++] = *q;
+        full[fn] = '\0';
+
+        struct stat dst;
+        long long when = 0;
+        if (::stat(full, &dst) == 0) {
+          when = static_cast<long long>(dst.st_mtime) * 1000LL + dst.st_mtim.tv_nsec / 1000000LL;
+        }
+        if (when >= best_when) { best_when = when; found = v; }
+      }
+      ::closedir(d);
+    }
+
+    // The uin comes from the directory name, but the *event* comes from auth/login.enc.
+    //
+    // The account directory is persistent: qqnt_3083456343 existed before the sign-in and its
+    // mtime did not change when one happened. Using the directory as the trigger therefore
+    // announced a login that had not occurred, which is exactly the class of mistake this whole
+    // exercise exists to stop making.
+    //
+    // login.enc is rewritten on every sign-in. Measured twice in this container: 01:43:18 from
+    // the first click and 01:57:21 from the second, each within a second of the button. So its
+    // mtime is the event, and the directory name is the identity.
+    char auth[512];
+    int an = 0;
+    const char* ap[3] = {home, "/.config/QQ/auth/login.enc", nullptr};
+    for (int k = 0; k < 2; ++k) {
+      for (const char* q = ap[k]; *q != '\0' && an < 500; ++q) auth[an++] = *q;
+    }
+    auth[an] = '\0';
+
+    struct stat st;
+    long long stamp = 0;
+    if (::stat(auth, &st) == 0) {
+      stamp = static_cast<long long>(st.st_mtime) * 1000LL + st.st_mtim.tv_nsec / 1000000LL;
+    }
+
+    // The stamp is a trigger, never a state. This is the correction that mattered: login.enc
+    // persists across restarts, so treating "the file exists" or "the file is newer than
+    // anything" as "signed in" reported an account while QQ sat on the login page. What actually
+    // indicates a sign-in is the file being written *after* we started watching.
+    //
+    // The first observation only records the baseline. Every later change means a sign-in just
+    // happened, and only then is a login announced.
+    if (stamp != 0) {
+      if (g_login_stamp == 0) {
+        g_login_stamp = stamp;
+      } else if (stamp != g_login_stamp) {
+        g_login_stamp = stamp;
+        if (found != 0) {
+          g_observed_uin = found;
+          do_announce_login(found);
+        }
+      }
+    }
+    ::sleep(2);
+  }
+  return nullptr;
+}
+
+// Writes the hook entry counts to /tmp/hz-hits.log once a second, forever.
+//
+// Deliberately not joined or checked on: it exists only to be read, and a payload that
+// guarded its own diagnostic thread would risk failing to start over a debugging aid.
+static void* hits_main(void*) {
+  for (;;) {
+    const int count = hz_hook_count();
+    char line[128];
+    int n = 0;
+    const char* pre = "hits";
+    for (int i = 0; pre[i] != '\0'; ++i) line[n++] = pre[i];
+    for (int i = 0; i < count; ++i) {
+      line[n++] = ' ';
+      unsigned long long v = hz_hook_hits(i);
+      char num[24];
+      unsigned_to_dec(static_cast<long long>(v), num, sizeof(num));
+      for (int j = 0; num[j] != '\0'; ++j) line[n++] = num[j];
+    }
+    line[n++] = '\n';
+    const int fd = ::open("/tmp/hz-hits.log", O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0644);
+    if (fd >= 0) {
+      const ssize_t ignored = ::write(fd, line, static_cast<std::size_t>(n));
+      (void)ignored;
+      ::close(fd);
+    }
+    ::sleep(1);
+  }
+  return nullptr;
+}
+
 extern "C" int snowluma_linux_hook_start_dynamic() {
   trace("[payload] enter start_dynamic\n");
   // Prefer the Node side's derivation.  HZ_CONTROL_SOCK stays as an override for the tests, which
@@ -851,6 +1090,28 @@ extern "C" int snowluma_linux_hook_start_dynamic() {
     std::fflush(stdout);
   }
 
+  // Heartbeat: dump the per-hook entry counts to a file once a second.
+  //
+  // This runs in the payload rather than in the injector because the injector cannot read
+  // another process's counters. It answers the one question that mattered during the live
+  // experiments and could not be answered by inspecting memory: did QQ ever reach these
+  // slots? A zero here means the siting is wrong, which is a different problem from a relay
+  // that was entered and did nothing.
+  {
+    pthread_t beat = 0;
+    if (::pthread_create(&beat, nullptr, hits_main, nullptr) == 0) {
+      ::pthread_detach(beat);
+    }
+  }
+
+  // Watch QQ's own account directory so login state is known without hooking anything.
+  {
+    pthread_t watch = 0;
+    if (::pthread_create(&watch, nullptr, login_dir_main, nullptr) == 0) {
+      ::pthread_detach(watch);
+    }
+  }
+
   std::printf("[payload] start_dynamic returning, listener thread=%lu\n",
               static_cast<unsigned long>(thread));
   std::fflush(stdout);
@@ -977,11 +1238,103 @@ extern "C" int snowluma_linux_hook_recv_socket() {
 // fails it announces "logged in, uin unknown" rather than a made-up number.  An invented
 // uin is the one value that cannot be caught downstream: the Node side would attribute the
 // session to an account that does not exist.
+// Sweep observer: records that a swept slot was entered, with its slot number.
+//
+// Separate from the probe observer because a sweep hooks vtable slots of classes that may or may
+// not be on the login path, whereas the probe hooks exports. Mixing them would make a hit
+// ambiguous between the two kinds of target.
+static volatile unsigned char g_sweep_seen[256];
+
+extern "C" void hz_sweep_observer(uint32_t slot, uint64_t original) {
+  (void)original;
+  if (slot < 256) {
+    if (g_sweep_seen[slot] != 0) return;
+    g_sweep_seen[slot] = 1;
+  }
+  const int fd = ::open("/tmp/hz-sweep.log", O_WRONLY | O_CREAT | O_APPEND | O_CLOEXEC, 0644);
+  if (fd < 0) return;
+  char line[64];
+  std::size_t n = 0;
+  for (const char* q = "SWEEP HIT slot="; *q != '\0'; ++q) line[n++] = *q;
+  char num[8];
+  unsigned_to_dec(static_cast<long long>(slot), num, sizeof(num));
+  for (int k = 0; num[k] != '\0' && n < 60; ++k) line[n++] = num[k];
+  line[n++] = '\n';
+  const ssize_t ig = ::write(fd, line, n);
+  (void)ig;
+  ::close(fd);
+}
+
+// Probe observer: records the *name* of each hooked export the first time it is entered.
+//
+// `hook` is the hook index, carried through the relay in its slot field. Writing the name rather
+// than a count is what makes the output usable: after a login, the file lists which of the
+// exported functions QQ actually called, which is the measurement that replaces guessing.
+//
+// Append-only and unthrottled on the first hit; a repeat hit still appends so a burst can be
+// told from a single call. Never allocates -- it runs on QQ's thread inside the function it is
+// observing.
+// One byte per hook: has it been reported yet. Written on the first entry only.
+//
+// The reason is not tidiness. Some exported functions are called thousands of times a second, and
+// an observer that opens, writes and closes a file on every entry turns each of those calls into
+// three syscalls plus a lock -- the client stops responding and then dies. Reporting only the
+// first entry gives the same answer (which exports were reached) at a cost paid once.
+static volatile unsigned char g_probe_seen[256];
+
+extern "C" void hz_probe_observer(uint32_t hook, uint64_t original) {
+  (void)original;
+  if (hook < 256) {
+    if (g_probe_seen[hook] != 0) return;
+    g_probe_seen[hook] = 1;
+  }
+  const char* name = hz_hook_class_name(static_cast<int>(hook));
+  if (name == nullptr || name[0] == '\0') return;
+  const int fd =
+      ::open("/tmp/hz-hit-names.log", O_WRONLY | O_CREAT | O_APPEND | O_CLOEXEC, 0644);
+  if (fd < 0) return;
+  char line[160];
+  std::size_t n = 0;
+  for (const char* q = "HIT "; *q != '\0'; ++q) line[n++] = *q;
+  for (std::size_t k = 0; name[k] != '\0' && n < 150; ++k) line[n++] = name[k];
+  line[n++] = '\n';
+  const ssize_t ig = ::write(fd, line, n);
+  (void)ig;
+  ::close(fd);
+}
+
 extern "C" void hz_login_observer(uint32_t slot, uint64_t original) {
-  (void)slot;
   (void)original;
   ++g_login_hits;
   const long long uin = hz_hook_login_uin();
+  g_observed_uin = uin;
+  // Record the hit in a file, not on stdout or stderr.
+  //
+  // The payload runs inside QQ, so fd 1 and fd 2 belong to QQ, not to whoever injected us:
+  // writing there goes to QQ's own stdio, which is redirected to /dev/null or a client log.
+  // An earlier version used write(2) for exactly this reason and still showed nothing, which
+  // is what a working hook looks like when its diagnostics are sent to the wrong process.
+  // A file is the only channel the injector can read back afterwards.
+  {
+    const int fd = ::open("/tmp/hz-observer.log", O_WRONLY | O_CREAT | O_APPEND | O_CLOEXEC, 0644);
+    if (fd >= 0) {
+      char line[96];
+      std::size_t n = 0;
+      const char* pre = "OBSERVER FIRED slot=";
+      while (pre[n] != '\0') { line[n] = pre[n]; ++n; }
+      line[n++] = static_cast<char>('0' + (slot / 10) % 10);
+      line[n++] = static_cast<char>('0' + slot % 10);
+      const char* mid = " uin=";
+      for (int i = 0; mid[i] != '\0'; ++i) line[n++] = mid[i];
+      char num[24];
+      unsigned_to_dec(uin, num, sizeof(num));
+      for (int i = 0; num[i] != '\0'; ++i) line[n++] = num[i];
+      line[n++] = '\n';
+      const ssize_t ignored = ::write(fd, line, n);
+      (void)ignored;
+      ::close(fd);
+    }
+  }
   if (uin > 0) {
     do_announce_login(uin);
   } else {

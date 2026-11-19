@@ -35,6 +35,42 @@ void hz_hook_remove_all(void);
 // that unload left nothing behind.
 int hz_hook_count(void);
 
+// How many times the hook at `index` has actually been entered by the target.
+//
+// The number that distinguishes a hook that is installed but never reached from one whose
+// observer is broken. Zero is a finding, not a failure: it says the target does not call this
+// slot, which is what happened with the QR login slot on a saved-account sign-in.
+unsigned long long hz_hook_hits(int index);
+
+// Hooks `slots_to_try` slots on every nt::login class's primary vtable, returning how many were
+// installed. The point is to let the entry counter identify which slot a real sign-in reaches:
+// static analysis shows where a class's slots are, not which class the login flow traverses.
+int hz_hook_sweep_login_classes(int slots_to_try);
+
+// Hooks MSF::MSFSDK::notifyLoginSuccess, the exported notification the application calls.
+//
+// This is the siting that the vtable work missed: the export has no callers inside wrapper.node
+// and no vtable slot, so a slot sweep could not reach it however many slots were covered.
+int hz_hook_export_login_observer(hz_hook_observer observer);
+
+// Hooks every exported function whose mangled name contains `needle`, up to `max_hooks`.
+//
+// For locating a live entry point by measurement instead of by guess: several specific
+// candidates were each verified installed and each recorded zero entries through a real
+// sign-in, so the useful next step is to cover the whole plausible family at once and read the
+// per-hook counters.
+int hz_hook_exports_matching(const char* needle, int max_hooks);
+
+// Hooks every exported function large enough to patch, reporting each first entry by name.
+//
+// For locating a live entry point without deciding in advance which one it is, after five named
+// candidates each recorded zero calls through a real sign-in.
+int hz_hook_all_exports(std::size_t max_hooks);
+
+// What a sweep installed, by index: the class name and the slot number.
+const char* hz_hook_class_name(int index);
+int hz_hook_slot_of(int index);
+
 // The uin of the logged-in account, or 0 when it is not yet known.
 //
 // Returns 0 rather than a placeholder: the uin's location in wrapper.node's state is not

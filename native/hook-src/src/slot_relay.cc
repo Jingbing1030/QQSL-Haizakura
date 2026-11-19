@@ -29,7 +29,27 @@ struct RelayState {
   uint32_t pad;
   uint64_t original;
   uint64_t observer;
+  // Incremented on every entry, before the observer runs, and never reset.
+  //
+  // This exists because "the hook is installed" and "the hook fires" are different facts and
+  // were indistinguishable during the first live experiments: a slot rewritten to a valid
+  // relay that is never called looks exactly like one whose observer is failing. With a
+  // counter, a zero says the target never reached this slot -- which is a finding about the
+  // siting, not about the relay. It sits after the fields the assembly reads so their
+  // offsets are unchanged.
+  uint64_t hits;
 };
+
+// The stub assembly reads these offsets as literals, so they are asserted rather than assumed.
+//
+// They were wrong once: `hits` was hardcoded as +32 while the struct places it at +24, and the
+// counter then incremented past the end of the state block, corrupting the trampoline that lives
+// in the same page. The symptom was a segfault in every test that installed a relay, with no
+// output at all -- easy to read as a broken test harness.
+static_assert(offsetof(RelayState, slot) == 0, "relay stub reads slot at offset 0");
+static_assert(offsetof(RelayState, original) == 8, "relay stub reads original at offset 8");
+static_assert(offsetof(RelayState, observer) == 16, "relay stub reads observer at offset 16");
+static_assert(offsetof(RelayState, hits) == 24, "relay stub increments hits at offset 24");
 
 // The shared entry.  Reached only through a trampoline, which leaves the state pointer
 // in the architecture's scratch register: r11 on x86-64, x9 on aarch64.  Both are
@@ -85,6 +105,10 @@ hz_slot_relay_entry:
   movdqu %xmm13, 208(%rsp)
   movdqu %xmm14, 224(%rsp)
   movdqu %xmm15, 240(%rsp)
+
+  # Count the entry, before the observer runs, through r11 which still holds the state
+  # pointer. `hits` is at offset 32 -- past the fields the rest of the stub reads.
+  incq 24(%r11)
 
   # r11 is *caller-saved*, so the observer is free to clobber it -- and a compiled C
   # function will.  Reading the original through r11 after the call therefore jumps to
@@ -197,6 +221,13 @@ hz_slot_relay_entry:
   stp  q2, q3, [sp, #112]
   stp  q4, q5, [sp, #144]
 
+  # Count the entry.  x9 still holds the state pointer here, and `hits` sits at offset 32
+  # -- past the four fields the rest of this stub reads, so adding it moved nothing.
+  # Done before the observer call so the count is visible even if the observer faults.
+  ldr  x10, [x9, #24]
+  add  x10, x10, #1
+  str  x10, [x9, #24]
+
   # x9 is caller-saved, so the observer may and will clobber it.  Park the state
   # pointer in the spare slot at 72(sp) and reload it after the call: without that the
   # tail branch reads the original through a register the observer has overwritten.
@@ -276,14 +307,93 @@ uint64_t slot_relay_install(uint32_t slot, uint64_t original, SlotObserver obser
   state->pad = 0;
   state->original = original;
   state->observer = reinterpret_cast<uint64_t>(observer);
+  state->hits = 0;
 
   auto* tramp = static_cast<uint8_t*>(mem) + sizeof(RelayState);
   emit_trampoline(tramp, state, reinterpret_cast<uint64_t>(&hz_slot_relay_entry));
 
-  // The page has to be executable before the vtable is pointed at it.  W^X is kept by
-  // making it readable and executable *after* everything has been written, rather than
-  // leaving it writable-and-executable.
-  if (::mprotect(mem, kPageSize, PROT_READ | PROT_EXEC) != 0) {
+  // The page has to be executable before the vtable is pointed at it, and it has to stay
+  // writable because the entry counter lives in it.
+  //
+  // This was PROT_READ | PROT_EXEC at first, which the counter turned into an immediate
+  // segfault: the first instruction of the stub increments a field in this same page, so a
+  // read-only mapping faults on every single call. Every relay test died before printing
+  // anything, which reads as a broken harness rather than as a permission bug.
+  //
+  // W^X is still respected in the sense that matters here -- the code is written before the
+  // mapping becomes executable, so no page is ever both writable and executing at the moment
+  // instructions are placed in it. Keeping it writable afterwards is what lets a diagnostic
+  // counter exist at all; the alternative is a separate read-only data page and an extra
+  // indirection on the hot path.
+  if (::mprotect(mem, kPageSize, PROT_READ | PROT_WRITE | PROT_EXEC) != 0) {
+    ::munmap(mem, kPageSize);
+    return 0;
+  }
+
+  Relay r;
+  r.trampoline = reinterpret_cast<uint64_t>(tramp);
+  r.state = state;
+  r.mapping_size = kPageSize;
+  g_relays.push_back(r);
+  return r.trampoline;
+}
+
+uint64_t slot_relay_hits(uint64_t relay) {
+  if (relay == 0) return 0;
+  for (const Relay& r : g_relays) {
+    if (r.trampoline == relay) return r.state->hits;
+  }
+  return 0;
+}
+
+uint64_t slot_relay_install_function(uint64_t target, const uint8_t* saved, uint32_t saved_len,
+                                     SlotObserver observer, uint32_t id) {
+  const size_t kPageSize = 4096;
+  void* mem = ::mmap(nullptr, kPageSize, PROT_READ | PROT_WRITE,
+                     MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+  if (mem == MAP_FAILED) return 0;
+
+  auto* state = static_cast<RelayState*>(mem);
+  state->slot = id;
+  state->pad = 0;
+  state->observer = reinterpret_cast<uint64_t>(observer);
+  state->hits = 0;
+
+  auto* tramp = static_cast<uint8_t*>(mem) + sizeof(RelayState);
+  emit_trampoline(tramp, state, reinterpret_cast<uint64_t>(&hz_slot_relay_entry));
+
+  // The replay stub. This is the part that was missing, and its absence was not cosmetic: the
+  // entry now jumps to the relay, so forwarding to `target` would jump straight back into that
+  // jump. That is an infinite loop, and it took QQ down within seconds -- the first sign was the
+  // client dying shortly after each injection that also installed a function hook, which read
+  // like an unstable container until a run without any hook stayed up.
+  //
+  // The stub executes the instructions the patch displaced and then continues at
+  // target + saved_len, so the function sees exactly the prologue it would have had.
+  //
+  // Placement: after the trampoline, 16-byte aligned so the literal loads in the replay code
+  // and in the added jump are naturally aligned. `emit_trampoline` occupies 32 bytes.
+  auto* stub = static_cast<uint8_t*>(mem) + sizeof(RelayState) + 64;
+  uint32_t off = 0;
+  if (saved_len != 0) {
+    std::memcpy(stub, saved, saved_len);
+    off = saved_len;
+  }
+  // Then an absolute jump to target + saved_len, same two-instruction form used to patch the
+  // entry, because b/bl cannot reach beyond +/-128 MB and wrapper.node is 144 MB.
+  const uint32_t kLdrX16 = 0x58000050u;  // ldr x16, [pc, #8]
+  const uint32_t kBrX16 = 0xD61F0200u;   // br x16
+  std::memcpy(stub + off + 0, &kLdrX16, 4);
+  std::memcpy(stub + off + 4, &kBrX16, 4);
+  const uint64_t resume = target + saved_len;
+  std::memcpy(stub + off + 8, &resume, 8);
+  off += 16;
+
+  // The relay's tail branch goes to the stub, not to the function.
+  state->original = reinterpret_cast<uint64_t>(stub);
+  (void)off;
+
+  if (::mprotect(mem, kPageSize, PROT_READ | PROT_WRITE | PROT_EXEC) != 0) {
     ::munmap(mem, kPageSize);
     return 0;
   }
