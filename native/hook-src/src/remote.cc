@@ -6,6 +6,7 @@
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
+#include <charconv>
 #include <cstring>
 #include <dirent.h>
 
@@ -22,6 +23,28 @@
 #include <unistd.h>
 
 namespace hz {
+namespace {
+
+// Reads "hex-hex" out of a /proc/self/maps line.
+//
+// from_chars rather than sscanf because sscanf is routed to __isoc23_sscanf by a C23 glibc,
+// which pins the whole module to GLIBC_2.38; the QQ containers run Debian 12 at 2.36 and the
+// addon then fails to load at all.
+bool parse_hex_pair(std::string_view line, uint64_t& lo, uint64_t& hi) {
+  const char* first = line.data();
+  const char* last = first + line.size();
+  const char* dash = static_cast<const char*>(std::memchr(first, '-', line.size()));
+  if (dash == nullptr) return false;
+  if (std::from_chars(first, dash, lo, 16).ec != std::errc()) return false;
+  const char* p = dash + 1;
+  const char* stop = p;
+  while (stop < last && *stop != ' ') ++stop;
+  if (std::from_chars(p, stop, hi, 16).ec != std::errc()) return false;
+  return true;
+}
+
+}  // namespace
+
 namespace {
 
 // Set HZ_DEBUG=1 to trace the ptrace state machine on stderr.  Injection bugs are
@@ -266,9 +289,16 @@ std::vector<pid_t> RemoteProcess::enumerate_threads(pid_t pid) {
       if (*p < '0' || *p > '9') numeric = false;
     }
     if (!numeric) continue;
-    errno = 0;
-    const long value = std::strtol(name, nullptr, 10);
-    if (errno != 0 || value <= 0 || value > INT_MAX) continue;
+    // Parsed rather than strtol: gcc 15 routes strtol to __isoc23_strtol, pinning the module
+    // to GLIBC_2.38, which the Debian 12 containers do not have. The digits-only check above
+    // makes the conversion exact and overflow-checkable.
+    long value = 0;
+    bool overflow = false;
+    for (const char* p = name; *p != '\0'; ++p) {
+      if (value > (INT_MAX - (*p - '0')) / 10) { overflow = true; break; }
+      value = value * 10 + (*p - '0');
+    }
+    if (overflow || value <= 0 || value > INT_MAX) continue;
     const auto tid = static_cast<pid_t>(value);
     // Skip the group leader.  It is the busiest thread in a real target, it is
     // the one a previous tracer is most likely to be holding, and its stop has
@@ -1471,13 +1501,12 @@ std::vector<std::pair<uint64_t, uint64_t>> RemoteProcess::executable_regions_of(
     if (slash == std::string::npos) continue;
     if (line.find(soname, slash) == std::string::npos) continue;
 
+    // Hex bounds parsed with from_chars for the same reason as elsewhere in this file: gcc 15
+    // with a C23 glibc turns sscanf into __isoc23_sscanf, and a GLIBC_2.38 dependency will not
+    // load on the Debian 12 containers.
     uint64_t start = 0;
     uint64_t end = 0;
-    if (std::sscanf(line.c_str(), "%llx-%llx",
-                    reinterpret_cast<unsigned long long*>(&start),
-                    reinterpret_cast<unsigned long long*>(&end)) != 2) {
-      continue;
-    }
+    if (!parse_hex_pair(line, start, end)) continue;
     if (end > start) out.emplace_back(start, end);
   }
   return out;
@@ -1512,9 +1541,10 @@ std::optional<uint64_t> RemoteProcess::find_loaded_module(std::string_view sonam
     if (file.find(soname) == std::string_view::npos) continue;
 
     uint64_t start = 0;
-    if (std::sscanf(line.substr(0, dash).data(), "%llx",
-                    reinterpret_cast<unsigned long long*>(&start)) != 1) {
-      continue;
+    {
+      const char* p = line.data();
+      const char* last = p + dash;
+      if (std::from_chars(p, last, start, 16).ec != std::errc()) continue;
     }
     if (best == 0 || start < best) best = start;
   }

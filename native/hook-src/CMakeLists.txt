@@ -27,6 +27,7 @@ message(STATUS "Node headers: ${NODE_INCLUDE_DIR}")
 
 add_library(haizakura_hook MODULE
   src/common.cc
+  src/compat_isoc23.cc
   src/addon.cc
   src/process_enumerate.cc
   src/elf_image.cc

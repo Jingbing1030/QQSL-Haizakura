@@ -52,7 +52,16 @@ std::vector<ProcessInfo> enumerate_processes(const std::string& name_hint) {
   std::vector<ProcessInfo> out;
   while (dirent* entry = ::readdir(dir)) {
     if (!parse_pid(entry->d_name)) continue;
-    const int pid = std::atoi(entry->d_name);
+    // Parsed by hand rather than atoi: a C23 glibc routes atoi through __isoc23_strtol, which
+    // pins the module to GLIBC_2.38 and the Debian 12 containers only have 2.36.
+    int pid = 0;
+    bool digits = false;
+    for (const char* p = entry->d_name; *p != '\0'; ++p) {
+      if (*p < '0' || *p > '9') { digits = false; break; }
+      pid = pid * 10 + (*p - '0');
+      digits = true;
+    }
+    if (!digits) continue;
 
     ProcessInfo info;
     info.pid = pid;
@@ -88,8 +97,20 @@ std::vector<ProcessInfo> enumerate_processes(const std::string& name_hint) {
     // ')' to avoid mismatching.
     const auto close = stat.rfind(')');
     if (close != std::string::npos) {
+      // Parsed by hand rather than sscanf: gcc 15 with a C23 glibc routes sscanf to
+      // __isoc23_sscanf, which pins the module to GLIBC_2.38 and makes it unloadable on the
+      // Debian 12 containers (2.36). The format " %*c %d" skips one state character and reads
+      // the parent pid, which is the only field needed.
+      const char* p = stat.c_str() + close + 1;
+      while (*p == ' ') ++p;
+      if (*p != '\0') ++p;                    // the state character
+      while (*p == ' ') ++p;
       int ppid = 0;
-      if (std::sscanf(stat.c_str() + close + 1, " %*c %d", &ppid) == 1) info.ppid = ppid;
+      bool negative = false;
+      if (*p == '-') { negative = true; ++p; }
+      bool any = false;
+      while (*p >= '0' && *p <= '9') { ppid = ppid * 10 + (*p - '0'); ++p; any = true; }
+      if (any) info.ppid = negative ? -ppid : ppid;
     }
 
     info.has_wrapper_node = maps_wrapper_node(pid);

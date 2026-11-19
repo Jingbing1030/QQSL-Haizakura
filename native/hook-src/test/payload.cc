@@ -657,7 +657,23 @@ static int listen_unix(const char* path, int backlog) {
 //
 // Repeatable: starting an already-running hook is a no-op that reports success,
 // which is what the Node side needs when it reconnects after a QQ restart.
+// Unbuffered marker, written with write(2) instead of printf.
+//
+// printf goes through stdio's buffer, and when the process that injected us exits, stdout
+// becomes a closed pipe: every later printf fails silently and returns -1. During injection
+// debugging that makes a payload that ran perfectly look like one that never started, which
+// is a genuinely misleading failure. write(2) to fd 2 either lands or returns an error we can
+// ignore, and it does not depend on TLS (which the manual loader does not relocate).
+static void trace(const char* text) {
+  const char* p = text;
+  std::size_t n = 0;
+  while (p[n] != '\0') ++n;
+  const ssize_t ignored = ::write(2, p, n);
+  (void)ignored;
+}
+
 extern "C" int snowluma_linux_hook_start_dynamic() {
+  trace("[payload] enter start_dynamic\n");
   // Prefer the Node side's derivation.  HZ_CONTROL_SOCK stays as an override for the tests, which
   // want a path of their own and must not collide with a real SnowLuma instance on the box.
   char derived_control[sizeof(sockaddr_un::sun_path)] = {0};
@@ -672,6 +688,7 @@ extern "C" int snowluma_linux_hook_start_dynamic() {
   const char* control = derived_control;
   const char* started = env_or("HZ_CONTROL_STARTED", kDefaultStarted);
   ensure_parent_dir(control);
+  trace("[payload] about to bind control\n");
   std::printf("[payload] control socket path: %s\n", control);
   std::fflush(stdout);
 

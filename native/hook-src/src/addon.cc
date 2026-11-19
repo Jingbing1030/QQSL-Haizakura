@@ -19,6 +19,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <charconv>
 #include <string>
 #include <vector>
 
@@ -538,9 +539,30 @@ std::vector<std::pair<uint64_t, uint64_t>> writable_heap_regions(int pid,
     if (perms.size() < 4 || perms[1] != 'w' || perms[3] != 'p') continue;
     if (line.find('/') != std::string_view::npos) continue;
 
-    const uint64_t start = std::stoull(std::string(line.substr(0, dash)), nullptr, 16);
-    const uint64_t end = std::stoull(std::string(line.substr(dash + 1, space - dash - 1)),
-                                     nullptr, 16);
+    // Hex fields parsed with from_chars rather than std::stoull.
+    //
+    // Two reasons. std::stoull takes a std::string, so each line allocated two temporaries
+    // just to read two numbers, and this runs over every mapping in the process. More
+    // importantly, gcc 15 with a C23 glibc routes std::stoull to __isoc23_strtoull, which
+    // pins the binary to GLIBC_2.38 -- and the QQ containers run Debian 12, at 2.36. The
+    // addon then fails to load with "version GLIBC_2.38 not found", which looks like a build
+    // problem rather than the toolchain-version problem it is. from_chars does not go through
+    // that path, so the artifact stays loadable on the target.
+    uint64_t start = 0;
+    uint64_t end = 0;
+    {
+      const auto* first = line.data();
+      const auto* last = line.data() + line.size();
+      const char* p = first;
+      while (p < last && *p == ' ') ++p;
+      if (p >= last || p > first + dash) continue;
+      const char* startEnd = first + dash;
+      if (std::from_chars(p, startEnd, start, 16).ec != std::errc()) continue;
+      p = startEnd + 1;
+      const char* endEnd = first + space;
+      if (p >= endEnd) continue;
+      if (std::from_chars(p, endEnd, end, 16).ec != std::errc()) continue;
+    }
     if (end <= start) continue;
     // Anything smaller than a few pointers cannot hold an object worth patching.
     if (end - start < 64) continue;

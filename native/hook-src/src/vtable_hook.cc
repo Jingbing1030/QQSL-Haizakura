@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <charconv>
 #include <cstring>
 
 #include "common.h"
@@ -48,7 +49,11 @@ std::string demangle_class(std::string_view mangled) {
     size_t j = i;
     while (j < mangled.size() && mangled[j] >= '0' && mangled[j] <= '9') ++j;
     if (j == i) return {};  // an operator code or template -- decline
-    const size_t len = static_cast<size_t>(std::stoul(std::string(mangled.substr(i, j - i))));
+    // from_chars rather than stoul for the same GLIBC_2.38 reason as parse_maps_line below.
+    std::size_t len = 0;
+    if (std::from_chars(mangled.data() + i, mangled.data() + j, len, 10).ec != std::errc()) {
+      break;
+    }
     if (j + len > mangled.size()) return {};
     parts.emplace_back(mangled.substr(j, len));
     i = j + len;
@@ -264,6 +269,37 @@ uint64_t read_vtable_slot_live(uint64_t vtable_addr, uint32_t slot) {
 }
 
 
+namespace {
+
+// Reads "start-end perms" out of a /proc/self/maps line.
+//
+// from_chars rather than sscanf because a C23 glibc routes sscanf to __isoc23_sscanf, which
+// pins the module to GLIBC_2.38; the QQ containers run Debian 12 at 2.36, and the addon then
+// fails to load with a version error that looks like a build mistake rather than a
+// toolchain-target mismatch.
+bool parse_maps_line(const char* line, uint64_t& start, uint64_t& end, char (&perms)[5]) {
+  const char* p = line;
+  const char* dash = std::strchr(p, '-');
+  if (dash == nullptr) return false;
+  if (std::from_chars(p, dash, start, 16).ec != std::errc()) return false;
+
+  p = dash + 1;
+  const char* space = std::strchr(p, ' ');
+  if (space == nullptr) return false;
+  if (std::from_chars(p, space, end, 16).ec != std::errc()) return false;
+
+  // Permissions are exactly four characters, then a space.
+  p = space + 1;
+  for (int i = 0; i < 4; ++i) {
+    if (p[i] == '\0' || p[i] == ' ') return false;
+    perms[i] = p[i];
+  }
+  perms[4] = '\0';
+  return true;
+}
+
+}  // namespace
+
 // Confirms that `at` is a slot we are allowed to write, before mprotecting anything.
 //
 // Three checks, each of which corresponds to a way this goes wrong in practice:
@@ -310,8 +346,10 @@ SlotCheck check_slot_address(uint64_t at) {
       uint64_t start = 0;
       uint64_t end = 0;
       char perms[5] = {0};
-      if (std::sscanf(line, "%llx-%llx %4s", reinterpret_cast<unsigned long long*>(&start),
-                      reinterpret_cast<unsigned long long*>(&end), perms) == 3) {
+      // Parsed with from_chars rather than sscanf: a C23 glibc routes sscanf through
+      // __isoc23_sscanf, which pins the addon to GLIBC_2.38 -- not available on the Debian 12
+      // containers, where the module then fails to load with a version error.
+      if (parse_maps_line(line, start, end, perms)) {
         if (at >= start && at + 8 <= end) {
           found = true;
           out.prot = 0;

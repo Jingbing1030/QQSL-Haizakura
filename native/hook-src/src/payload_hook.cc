@@ -48,6 +48,8 @@
 #include "vtable_hook.h"
 #include "payload_hook.h"
 
+#include <string_view>
+
 namespace {
 
 // One installed hook, in a form the payload can hold: plain integers, no STL.
@@ -64,15 +66,30 @@ struct InstalledHook {
 
 constexpr std::size_t kMaxHooks = 8;
 InstalledHook g_hooks[kMaxHooks];
-std::string g_last_error;
+// 4 MB: a maps file larger than this is not a real process map.
+constexpr std::size_t kMapsBufferSize = 4u << 20;
+
+constexpr std::size_t kErrorMessageCapacity = 512;
 
 // Recorded so a reload can find the module it hooked before.
 std::uint64_t g_module_base = 0;
 
+// A fixed buffer rather than a std::string assignment.
+//
+// g_last_error = text looked harmless and pulled in std::string::_M_replace_cold, which is
+// GLIBCXX_3.4.31 -- a version the QQ process does not have, so the whole payload failed to
+// inject with an unresolved-symbol error that named neither this function nor the reason.
+// Copying into a char array references no libstdc++ symbol at all.
+char g_last_error[kErrorMessageCapacity] = {0};
+
 void set_error(const char* text) {
-  g_last_error = text == nullptr ? "" : text;
-  if (!g_last_error.empty()) {
-    std::printf("[payload] hook: %s\n", g_last_error.c_str());
+  const char* src = (text == nullptr) ? "" : text;
+  std::size_t n = 0;
+  while (src[n] != '\0' && n + 1 < sizeof(g_last_error)) ++n;
+  for (std::size_t i = 0; i < n; ++i) g_last_error[i] = src[i];
+  g_last_error[n] = '\0';
+  if (n > 0) {
+    std::printf("[payload] hook: %s\n", g_last_error);
     std::fflush(stdout);
   }
 }
@@ -104,46 +121,59 @@ std::uint64_t find_wrapper_base(std::string* out_path) {
   // cannot be mmapped".
   const int fd = ::open("/proc/self/maps", O_RDONLY | O_CLOEXEC);
   if (fd < 0) return 0;
-  std::string text;
-  char chunk[4096];
+
+  // Read the whole file, then scan it in place.
+  //
+  // The buffer is a local array rather than a std::string, and the scan uses string_view
+  // rather than substring copies. That is partly speed -- this runs over thousands of lines
+  // per hook install -- but mainly it keeps the module free of std::string's cold grow path.
+  //
+  // std::string::_M_replace_cold is GLIBCXX_3.4.31. The payload does not link libstdc++ (it
+  // has to use the target's), QQ ships 6.0.30, and so the symbol does not exist: injection
+  // fails with "failed to resolve remote symbol ..._M_replace_cold..." reported by the
+  // injector, with nothing pointing at the string append that caused it. Keeping the parsing
+  // allocation-free means the engine references no libstdc++ symbol newer than C++11.
+  static char buffer[kMapsBufferSize];
+  std::size_t size = 0;
   for (;;) {
-    const ssize_t n = ::read(fd, chunk, sizeof(chunk));
+    if (size >= sizeof(buffer) - 1) break;
+    const ssize_t n = ::read(fd, buffer + size, sizeof(buffer) - 1 - size);
     if (n < 0) {
       if (errno == EINTR) continue;
       ::close(fd);
       return 0;
     }
     if (n == 0) break;
-    text.append(chunk, static_cast<std::size_t>(n));
-    if (text.size() > (4u << 20)) break;  // a maps file larger than this is not ours
+    size += static_cast<std::size_t>(n);
   }
   ::close(fd);
+  buffer[size] = '\0';
 
-  const char* data = text.data();
-  const std::size_t size = text.size();
+  const char* data = buffer;
   std::size_t pos = 0;
   while (pos < size) {
     std::size_t end = pos;
     while (end < size && data[end] != '\n') ++end;
-    const std::string line(data + pos, end - pos);
+    const std::string_view line(data + pos, end - pos);
     pos = end + 1;
+
     // "start-end perms offset dev inode path"
     const std::size_t slash = line.find('/');
-    if (slash == std::string::npos) continue;
-    if (line.find("wrapper.node") == std::string::npos) continue;
-    // The first mapping of the file is the ELF header at offset 0, which is the base.
+    if (slash == std::string_view::npos) continue;
+    if (line.find("wrapper.node") == std::string_view::npos) continue;
     const std::size_t dash = line.find('-');
-    if (dash == std::string::npos) continue;
-    const std::string start_text = line.substr(0, dash);
+    if (dash == std::string_view::npos) continue;
+
     std::uint64_t base = 0;
-    for (const char c : start_text) {
+    for (std::size_t i = 0; i < dash; ++i) {
+      const char c = line[i];
       base <<= 4;
       if (c >= '0' && c <= '9') base |= static_cast<std::uint64_t>(c - '0');
       else if (c >= 'a' && c <= 'f') base |= static_cast<std::uint64_t>(c - 'a' + 10);
       else if (c >= 'A' && c <= 'F') base |= static_cast<std::uint64_t>(c - 'A' + 10);
       else return 0;
     }
-    if (out_path != nullptr) *out_path = line.substr(slash);
+    if (out_path != nullptr) *out_path = std::string(line.substr(slash));
     return base;
   }
   return 0;
@@ -282,6 +312,6 @@ extern "C" int hz_hook_count() {
 // docs/uin-is-redundant.md.
 extern "C" long long hz_hook_login_uin() { return 0; }
 
-extern "C" const char* hz_hook_last_error() { return g_last_error.c_str(); }
+extern "C" const char* hz_hook_last_error() { return g_last_error; }
 
 extern "C" std::uint64_t hz_hook_module_base() { return g_module_base; }
