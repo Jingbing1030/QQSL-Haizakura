@@ -143,18 +143,26 @@ void churn_thread() {
 // Heartbeat: one line per 100 ms into a file the driver can read.  Proves the
 // target is still *scheduling*, not merely still existing -- a process whose
 // payload thread is spinning on an unmapped stack still has a live pid.
+// Appends rather than overwrites a fixed slot.  Several writers share the file,
+// and a shared offset would let them clobber each other's line so the driver saw
+// an unchanged file while threads were scheduling perfectly well.
 void heartbeat_thread(const char* path) {
   if (path == nullptr) return;
-  const int fd = ::open(path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+  const int fd = ::open(path, O_WRONLY | O_CREAT | O_APPEND, 0644);
   if (fd < 0) return;
+  // Keep the file from growing without bound over a long test.
+  static std::atomic<int> written{0};
   uint64_t seq = 0;
   while (!g_stop.load()) {
     char buf[64];
     const int n = std::snprintf(buf, sizeof(buf), "%llu %llu\n",
                                 static_cast<unsigned long long>(++seq),
                                 static_cast<unsigned long long>(g_ticks.load()));
-    if (::pwrite(fd, buf, static_cast<size_t>(n), 0) != n) {
+    if (::write(fd, buf, static_cast<size_t>(n)) != n) {
       // keep going; a missing heartbeat is reported by the driver
+    }
+    if (written.fetch_add(1) > 20000) {
+      if (::ftruncate(fd, 0) == 0) written.store(0);
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
@@ -291,6 +299,14 @@ int main(int argc, char** argv) {
   for (int i = static_cast<int>(workers.size()); i < bg_threads; ++i) {
     workers.emplace_back(sleeper_thread);
   }
+  // Two heartbeat writers, not one.  The injector picks a thread to run the
+  // callee on and prefers ones blocked in a syscall -- and a sleeping heartbeat
+  // thread scores high.  A callee that never returns then permanently occupies
+  // that thread, which makes "is the target still scheduling?" unanswerable: the
+  // only writer stopped.  With two writers on independent stacks, losing one
+  // still advances the file, so the check tests the process rather than the luck
+  // of the pick.
+  workers.emplace_back(heartbeat_thread, heartbeat);
   workers.emplace_back(heartbeat_thread, heartbeat);
 
   // A target with a large module is the case that made the injector slow enough
