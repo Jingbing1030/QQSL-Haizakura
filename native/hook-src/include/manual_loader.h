@@ -44,6 +44,14 @@ class ManualLoader {
   // released before the exception escapes.
   ManualMapHandle load();
 
+ private:
+  // Falls back to the payload's well-known start function when the image has no
+  // e_entry, and finds .eh_frame_hdr so the unwinder can reach hook frames.
+  uint64_t resolve_start_symbol(uint64_t base) const;
+  uint64_t locate_eh_frame_hdr(uint64_t base) const;
+
+ public:
+
   // Runs DT_FINI_ARRAY / DT_FINI and unmaps the image.
   void unload(const ManualMapHandle& handle);
 

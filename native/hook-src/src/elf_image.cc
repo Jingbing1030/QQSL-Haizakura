@@ -19,6 +19,7 @@ void require(bool condition, const char* message) {
 ElfImage::ElfImage(MappedFile file) : file_(std::move(file)) {
   parse_headers();
   parse_dynamic();
+  parse_sections();
   parse_symbols();
   parse_relocations();
   parse_init_fini();
@@ -44,6 +45,13 @@ void ElfImage::parse_headers() {
   ehdr_.shoff = rd64(p + 40);
   ehdr_.phentsize = rd16(p + 54);
   ehdr_.phnum = rd16(p + 56);
+  // The section table is not needed to load a module, but the inspection API
+  // reports it and a user needs it to correlate file offsets with runtime
+  // addresses.  These three fields were being left at zero, so every image
+  // claimed to have no sections at all.
+  ehdr_.shentsize = rd16(p + 58);
+  ehdr_.shnum = rd16(p + 60);
+  ehdr_.shstrndx = rd16(p + 62);
 
   require(ehdr_.type == elf::kTypeShared || ehdr_.type == 1 /* ET_REL not supported */,
           "manual ELF loader supports only ET_DYN images");
@@ -151,6 +159,54 @@ const uint8_t* ElfImage::at(uint64_t vaddr, size_t len) const {
 
   fail(format("virtual address 0x%llx is outside the mapped image",
               static_cast<unsigned long long>(vaddr)));
+}
+
+void ElfImage::parse_sections() {
+  // Section headers live at the end of the file, so an image can be perfectly
+  // loadable and still have none.  Absence is not an error: report the sections
+  // that exist and let callers cope with an empty vector.
+  const uint64_t shoff = ehdr_.shoff;
+  const uint16_t shnum = ehdr_.shnum;
+  const uint16_t shentsize = ehdr_.shentsize;
+  if (shoff == 0 || shnum == 0 || shentsize < 64) return;
+  // shoff is a file offset, not a virtual address, so it cannot go through at().
+  if (shoff + static_cast<uint64_t>(shentsize) * shnum > file_.size()) return;
+
+  const uint8_t* shstr = nullptr;
+  uint64_t shstr_size = 0;
+
+  sections_.resize(shnum);
+  for (uint16_t i = 0; i < shnum; ++i) {
+    const uint8_t* p = file_.data() + shoff + uint64_t{i} * shentsize;
+    SectionInfo& out = sections_[i];
+    const uint32_t name_off = rd32(p + 0);
+    out.type = rd32(p + 4);
+    out.flags = rd64(p + 8);
+    out.addr = rd64(p + 16);
+    out.offset = rd64(p + 24);
+    out.size = rd64(p + 32);
+    out.link = rd32(p + 40);
+    out.entsize = rd64(p + 56);
+    out.name_off_hint = name_off;
+  }
+
+  // Resolve names in a second pass: .shstrtab is itself a section and its index
+  // is stored in the header, so the table has to be read before any name can be.
+  if (ehdr_.shstrndx < shnum) {
+    const SectionInfo& str = sections_[ehdr_.shstrndx];
+    if (str.size != 0 && str.offset + str.size <= file_.size()) {
+      shstr = file_.data() + str.offset;  // also a file offset
+      shstr_size = str.size;
+    }
+  }
+  for (SectionInfo& out : sections_) {
+    if (shstr == nullptr || out.name_off_hint >= shstr_size) {
+      out.name.clear();
+      continue;
+    }
+    const char* name = reinterpret_cast<const char*>(shstr + out.name_off_hint);
+    out.name = std::string(name, strnlen(name, shstr_size - out.name_off_hint));
+  }
 }
 
 void ElfImage::parse_symbols() {

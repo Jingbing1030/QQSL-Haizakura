@@ -270,23 +270,49 @@ void ManualLoader::run_init(uint64_t base) {
   }
 }
 
+uint64_t ManualLoader::resolve_start_symbol(uint64_t base) const {
+  // Ordered by preference: the dynamic hook is what actually starts the payload,
+  // the version symbol is only useful as a last resort for identification.
+  for (const char* name : {"snowluma_linux_hook_start_dynamic",
+                           "haizakura_linux_hook_start_dynamic"}) {
+    const DynSymbol* sym = image_.find_symbol(name);
+    if (sym == nullptr || !sym->defined || sym->value == 0) continue;
+    return base + (sym->value - image_.image_base());
+  }
+  return 0;
+}
+
+uint64_t ManualLoader::locate_eh_frame_hdr(uint64_t base) const {
+  for (const SectionInfo& sec : image_.sections()) {
+    if (sec.name != ".eh_frame_hdr" || sec.size == 0) continue;
+    return base + (sec.addr - image_.image_base());
+  }
+  return 0;
+}
+
 ManualMapHandle ManualLoader::load() {
   ManualMapHandle handle;
   handle.base = reserve_image();
   handle.size = image_.image_size();
+  // Linux shared objects normally carry no e_entry -- the field is optional for
+  // ET_DYN and this payload leaves it zero.  Returning 0 there was wrong in a way
+  // that looked harmless: the caller uses `entry` to locate the code that starts
+  // the hook, and got a null address, so nothing ran and nothing errored.
+  //
+  // Payloads of this shape expose a known start function instead, so fall back to
+  // it.  The name is part of the payload ABI, not a guess.
   handle.entry =
-      image_.entry() == 0 ? 0 : handle.base + (image_.entry() - image_.image_base());
+      image_.entry() != 0 ? handle.base + (image_.entry() - image_.image_base())
+                          : resolve_start_symbol(handle.base);
+
+  // The unwinder needs the module's .eh_frame_hdr to walk stack frames that pass
+  // through hook code; without it a single exception unwinds the process.
+  handle.exception_table = locate_eh_frame_hdr(handle.base);
 
   try {
     copy_segments(handle.base);
     apply_relocations(handle.base);
 
-
-
-    std::fprintf(stderr, "[hz] image_base=0x%llx init_count=%zu legacy_init=0x%llx\n",
-                 static_cast<unsigned long long>(image_.image_base()),
-                 image_.init_functions().size(),
-                 static_cast<unsigned long long>(image_.legacy_init()));
 
 
     run_init(handle.base);

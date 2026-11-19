@@ -145,6 +145,23 @@ struct Elf64Rela {
 
 // Dynamic symbol table entry paired with its version indices, which the loader
 // needs to look names up in the target's libraries.
+// A section header, reduced to what the inspection API reports.  The loader does
+// not need sections to run a module, but the diagnostics do: telling a user that
+// `.data.rel.ro` sits at such-and-such a runtime address is far more useful than
+// handing them a program header and hoping.
+struct SectionInfo {
+  std::string name;
+  uint32_t type = 0;
+  uint64_t flags = 0;
+  uint64_t addr = 0;
+  uint64_t offset = 0;
+  uint64_t size = 0;
+  uint64_t entsize = 0;
+  uint32_t link = 0;
+  uint32_t name_off_hint = 0;  // offset into .shstrtab, resolved to `name` later
+  bool executable() const { return (flags & 0x4) != 0; }
+};
+
 struct DynSymbol {
   std::string name;
   uint64_t value = 0;
@@ -166,6 +183,7 @@ class ElfImage {
   uint16_t type() const { return ehdr_.type; }
   uint64_t entry() const { return ehdr_.entry; }
   const std::vector<Elf64Phdr>& program_headers() const { return phdrs_; }
+  const std::vector<SectionInfo>& sections() const { return sections_; }
 
   // Virtual address range covering every PT_LOAD segment, page aligned.  The
   // loader maps exactly this window so relative offsets stay valid.
@@ -202,6 +220,7 @@ class ElfImage {
 
  private:
   void parse_headers();
+  void parse_sections();
   void parse_dynamic();
   void parse_symbols();
   void parse_relocations();
@@ -212,6 +231,7 @@ class ElfImage {
   MappedFile file_;
   Elf64Ehdr ehdr_{};
   std::vector<Elf64Phdr> phdrs_;
+  std::vector<SectionInfo> sections_;
   std::vector<Elf64Dyn> dyn_;
   std::map<int64_t, uint64_t> dyn_index_;
   std::vector<DynSymbol> symbols_;
