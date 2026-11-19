@@ -13,3 +13,16 @@ webui-work/.frozen/
 
 # 构建产物（可由源码重生）
 restored/dist/
+
+# 运行期配置（SnowLuma 首次启动自动生成；webui.json 含密码哈希与盐）
+# 只需入库脱敏模板 config/*.example.json
+config/*.json
+!config/*.example.json
+
+# 运行日志与备份产物
+logs/
+index-hz.mjs.bak-*
+
+# 归档区里的构建产物（源码 .ts 需要跟踪，产物不需要）
+archive/**/index-hz.mjs
+archive/**/*.tgz

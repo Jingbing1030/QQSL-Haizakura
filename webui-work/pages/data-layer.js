@@ -647,9 +647,9 @@ export function createSystemResource() {
  *   "list": [{
  *     "pid": 79, "name": "qq", "path": "",
  *     "injected": true, "connected": true, "loggedIn": true,
- *     "uin": "3254926145", "status": "online", "error": "",
+ *     "uin": "1000000001", "status": "online", "error": "",
  *     "method": "reconnect",
- *     "account": { "uin": "3254926145", "nickname": "碧海" }   // 或 null
+ *     "account": { "uin": "1000000001", "nickname": "示例用户" }   // 或 null
  *   }]
  * }
  * 服务端在失败时返回 `{ list: [], message: "..." }` 且 HTTP 500 —— 本层会把
@@ -674,7 +674,7 @@ export function createProcessesResource() {
 
 /**
  * `GET /api/qq-list`
- * 实测响应：`{ "list": [{ "uin": "3254926145", "nickname": "碧海" }] }`
+ * 实测响应：`{ "list": [{ "uin": "1000000001", "nickname": "示例用户" }] }`
  * 语义：已接入 OneBot 的账号实例（**已登录**的会话），不是"所有 QQ 进程"。
  * @returns {Resource}
  */
@@ -690,7 +690,7 @@ export function createQqListResource() {
  * 实测响应：
  * {
  *   "list": [{
- *     "uin": "3254926145", "nickname": "碧海",
+ *     "uin": "1000000001", "nickname": "示例用户",
  *     "adapters": [
  *       { "name":"http-default","kind":"httpServer","status":"ok","detail":"监听中" },
  *       { "name":"ws-default","kind":"wsServer","status":"ok","detail":"1 个客户端" },
@@ -721,7 +721,7 @@ export function createConnectionsResource() {
  * 有记录时每条形如（源码 NotificationManager.record）：
  * {
  *   "time": 1763290000000,        // 毫秒时间戳
- *   "uin": "3254926145",
+ *   "uin": "1000000001",
  *   "event": "offline" | "online",
  *   "channelId": "<渠道 id>",
  *   "ok": true|false,

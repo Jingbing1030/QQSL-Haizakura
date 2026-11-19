@@ -105,7 +105,7 @@ int main(int argc, char** argv) {
         "not logged in before the announcement");
 
   // Announce a login, as the hooked slot would.
-  const long long uin = 3083456343LL;
+  const long long uin = 1000000002LL;
   remote.remote_call(*announce, {static_cast<uint64_t>(uin)}, 1);
   check(static_cast<int32_t>(remote.remote_call(*logged_in, {}, 0)) == 1,
         "logged in after the announcement");

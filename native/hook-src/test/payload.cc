@@ -269,7 +269,7 @@ int g_recv_fd = -1;      // the listening socket
 int g_recv_peer = -1;    // the accepted Node-side connection
 int g_control_peer = -1;  // the accepted control connection, for pushing op 7 unprompted
 int g_login_hits = 0;
-constexpr long long kTestUin = 3083456343LL;
+constexpr long long kTestUin = 1000000002LL;
 
 // Login state, declared with the rest of the state because the control thread reads it to greet
 // a new connection, and that thread is defined before the announce helper.
@@ -390,10 +390,10 @@ void serve_connection(int fd, const char* pipe_path, int pid) {
       // Then announce the login state, which is what the real payload does once
       // it sees QQ log in.  Both channels carry it; the login flag and status are
       // the authoritative signal (see docs/payload-protocol.md).
-      const char* uin = "3083456343";
+      const char* uin = "1000000002";
       const FrameHeader logged = make_header(
           kOpLoginState, 0, 1, kFlagLoggedIn, 0,
-          static_cast<std::uint32_t>(std::strlen(uin)), 0, 3083456343ull);
+          static_cast<std::uint32_t>(std::strlen(uin)), 0, 1000000002ull);
       if (!send_frame(fd, logged, nullptr, uin, nullptr)) return;
       continue;
     }

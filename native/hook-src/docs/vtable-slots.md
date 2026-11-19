@@ -806,8 +806,8 @@ LOAD off=0x869c2c0  vaddr=0x86ac2c0   filesz=0x3408a0
 ### 登录态帧的两个指示位都置位
 
 ```
-control: status=1 flags=0x4 value0=3083456343 msg=3083456343
-recv:    status=1 flags=0x4 value0=3083456343 msg=3083456343
+control: status=1 flags=0x4 value0=1000000002 msg=1000000002
+recv:    status=1 flags=0x4 value0=1000000002 msg=1000000002
 ```
 
 Node 侧 `logged_in = (flags & 0x4) || status != 0`，两路都成立，不存在

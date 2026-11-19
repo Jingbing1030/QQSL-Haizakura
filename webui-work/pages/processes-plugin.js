@@ -16,11 +16,11 @@
  *   "injected": true,          // Haizakura 注入是否在位
  *   "connected": true,         // 与 QQ 的管道是否连上
  *   "loggedIn": true,          // 账号是否已登录
- *   "uin": "3254926145",       // 已登录 QQ 号（"0" 表示未识别）
+ *   "uin": "1000000001",       // 已登录 QQ 号（"0" 表示未识别）
  *   "status": "online",        // 见下方枚举
  *   "error": "",               // 出错原因（status==="error" 时非空）
  *   "method": "reconnect",     // 注入/连接方式
- *   "account": { "uin": "3254926145", "nickname": "碧海" } | null
+ *   "account": { "uin": "1000000001", "nickname": "示例用户" } | null
  * }
  *
  * status 枚举（源码 statusFor() + HookSession 的带外状态）：

@@ -1118,7 +1118,7 @@ export function renderAlerts(logSource) {
  * { "list": [ { "id": 6242, "time": "2026-11-16T11:52:04.125Z",
  *               "level": "info", "scope": "WebUI",
  *               "message": "...", "line": "...",
- *               "uin": 3254926145            // 可选，账号相关日志才有
+ *               "uin": 1000000001            // 可选，账号相关日志才有
  *          } ] }
  * 注意：服务端**按插入顺序**返回最近 limit 条（非逆序），
  * 所以取末尾（最新）若干条 —— 现有前端也是用 .slice(-count)。

@@ -7,7 +7,7 @@
 > - 交叉验证 `~/sl-ref/index.mjs`（12,338,350 B / 367,423 行）
 > - 交叉验证 `~/sl-hz/dist/index.mjs`（12,339,442 B / 367,445 行）
 > - **未打包 TS 还原源** `~/sl-hz/packages/{bridge,protocol,core,onebot}/src/*.ts`（最有价值的证据源）
-> - oracle `api.jingbing.top:~/qqsl-hz/restored/dist/index.mjs`（13,910,041 B / 374,166 行，0.2.4.2）
+> - oracle `<host>:~/qqsl-hz/restored/dist/index.mjs`（13,910,041 B / 374,166 行，0.2.4.2）
 >
 > 标注约定：**[实证]** = 有代码字面量直接支撑；**[推断]** = 由代码行为反推、无正向字面量；
 > **[未验证]** = 本机无运行中的 QQ，无法用真包核对。
