@@ -91,6 +91,12 @@ constexpr uint32_t kRaarch64Relative = 1027;
 constexpr uint32_t kRaarch64TlsDtpMod64 = 1028;
 constexpr uint32_t kRaarch64TlsDtpOff64 = 1029;
 constexpr uint32_t kRaarch64Tprel64 = 1031;
+// TLSDESC is the newer form of a TLS access, used by -mtls-dialect=desc (the default on some
+// distributions).  A payload built there carries these instead of the TPREL form, so treating
+// only TPREL as TLS would let a TLSDESC payload reach the relocation pass and fail on the
+// default branch with a bare "unsupported type" -- losing the explanation that would have told
+// the reader it is a TLS problem.
+constexpr uint32_t kRaarch64TlsDesc = 1032;
 constexpr uint32_t kRaarch64Copy = 1024;
 
 }  // namespace elf

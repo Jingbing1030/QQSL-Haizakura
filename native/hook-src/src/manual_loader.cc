@@ -245,7 +245,12 @@ void ManualLoader::apply_relocations(uint64_t base) {
         case elf::kRx86_64TlsGotpcrel:
         case elf::kRx86_64Tprel64:
         case elf::kRx86_64TprelDyn:
-          fail("manual ELF loader does not implement TLS relocations");
+          fail(
+              "payload uses thread-local storage (TLS relocation), which the manual loader does "
+              "not implement: a manually mapped image has no TLS block, so there is nowhere for "
+              "these relocations to point.  Removing the thread_local from the payload is the "
+              "fix; scaling the loader's TLS support up would mean allocating and registering a "
+              "TLS block, which no QQ hook needs yet");
         default:
           fail(format("unsupported x86_64 ELF relocation type %u", type));
       }
@@ -270,7 +275,14 @@ void ManualLoader::apply_relocations(uint64_t base) {
         case elf::kRaarch64TlsDtpMod64:
         case elf::kRaarch64TlsDtpOff64:
         case elf::kRaarch64Tprel64:
-          fail("manual ELF loader does not implement TLS relocations");
+        case elf::kRaarch64TlsDesc:
+          fail(
+              "payload uses thread-local storage (TLS relocation), which the manual loader does "
+              "not implement: a manually mapped image has no TLS block, so there is nowhere for "
+              "these relocations to point.  Removing the thread_local from the payload is the "
+              "fix.  Note that wrapper.node itself contains TLS relocations (27 of them) -- that "
+              "is fine, because QQ's own loader maps it; only the injected payload has to avoid "
+              "them");
         default:
           fail(format("unsupported aarch64 ELF relocation type %u", type));
       }
@@ -295,6 +307,23 @@ void ManualLoader::run_init(uint64_t base) {
     const uint64_t target = base + (fn - image_.image_base());
     remote_.remote_call(target, {}, 0);
   }
+}
+
+std::optional<uint64_t> ManualLoader::symbol(const ManualMapHandle& handle,
+                                             std::string_view name) {
+  // Look the name up in the image we just mapped, by base -- not through the
+  // target's dynamic loader.  The payload is not in the target's link map, so
+  // dlsym-style resolution cannot see it, and a name that also exists in a real
+  // module would resolve to that module instead.
+  const DynSymbol* sym = image_.find_symbol(name);
+  if (sym == nullptr || !sym->defined || sym->value == 0) return std::nullopt;
+  // st_value is image-relative in the file; subtract the image's own base to get
+  // an offset, then add where the loader actually put it.  Adding st_value to the
+  // mapping base directly would be wrong whenever image_base() is non-zero.
+  const uint64_t addr = handle.base + (sym->value - image_.image_base());
+  // Same IFUNC rule as relocation: st_value is the resolver for those.
+  if (!sym->is_ifunc) return addr;
+  return remote_.call_ifunc_resolver(addr);
 }
 
 uint64_t ManualLoader::resolve_start_symbol(uint64_t base) const {
@@ -371,6 +400,36 @@ ManualMapHandle ManualLoader::load() {
 
 void ManualLoader::unload(const ManualMapHandle& handle) {
   if (handle.base == 0) fail("ManualMapHandle::base is 0");
+
+  // Stop the module before tearing it down.
+  //
+  // Calling the stop entry is not optional politeness: the payload owns listening sockets, and
+  // unmapping the image while they are still bound leaves them bound forever -- the file is
+  // gone, so nothing can close them, and the next start fails with EADDRINUSE.  The symptom is
+  // "the second injection broken", which sends you looking at the injector.
+  //
+  // Done before DT_FINI_ARRAY because the stop entry is what the payload understands as its own
+  // lifecycle end; running destructors first would tear down the state it reads.
+  {
+    // Both spellings are accepted, matching resolve_start_symbol: a payload may be built under
+    // either name and an unload that only knows one of them silently skips the stop.
+    uint64_t stop = 0;
+    for (const char* name : {"snowluma_linux_hook_stop_dynamic",
+                             "haizakura_linux_hook_stop_dynamic"}) {
+      const DynSymbol* sym = image_.find_symbol(name);
+      if (sym == nullptr || !sym->defined || sym->value == 0) continue;
+      stop = handle.base + (sym->value - image_.image_base());
+      break;
+    }
+    if (stop != 0) {
+      try {
+        remote_.remote_call(stop, {}, 0);
+      } catch (const Error&) {
+        // A stop entry that faults must not prevent the unmap: the alternative is leaking the
+        // whole mapping, which is worse than leaking a socket.
+      }
+    }
+  }
 
   // Destructors run in reverse order, matching ld.so.
   const auto& fini = image_.fini_functions();

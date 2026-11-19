@@ -29,6 +29,11 @@ struct ManualMapHandle {
   uint64_t entry = 0;
   uint64_t size = 0;
   uint64_t exception_table = 0;  // .eh_frame_hdr address, 0 when absent
+  // The image this handle maps.  Needed to unload: DT_FINI_ARRAY and the stop entry live in the
+  // file, so unloading without it is a bare munmap that skips both -- leaving the payload's
+  // sockets bound.  Carried in the handle rather than re-derived from `pid` because by unload
+  // time the caller may only still have the handle.
+  std::string path;
 };
 
 // Resolves a symbol name against the libraries already mapped in the target.
@@ -51,6 +56,16 @@ class ManualLoader {
   uint64_t locate_eh_frame_hdr(uint64_t base) const;
 
  public:
+
+  // Looks a symbol up in the image that was just mapped, relative to its base.
+  // Returns the address the caller should call: IFUNC symbols are resolved by
+  // running their resolver inside the target, because st_value for those is the
+  // resolver rather than the implementation.
+  //
+  // The payload's other lifecycle entry points (stop, is_loaded, version) are not
+  // e_entry, so a caller that wants them needs a lookup by name -- resolving them
+  // against the target's own maps would find the wrong image, or nothing.
+  std::optional<uint64_t> symbol(const ManualMapHandle& handle, std::string_view name);
 
   // Runs DT_FINI_ARRAY / DT_FINI and unmaps the image.
   void unload(const ManualMapHandle& handle);

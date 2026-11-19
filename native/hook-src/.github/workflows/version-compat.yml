@@ -1,0 +1,107 @@
+# T13: version compatibility gate.
+#
+# A QQ update can break the hook in two different ways, and they need separate checks:
+#
+#   1. It renames or drops a class the payload locates by RTTI name.  `hook_compat` finds this by
+#      reading .rodata and .data.rel.ro out of wrapper.node and looking for the anchors.
+#   2. It keeps every name but moves the slots.  The hooks are installed by WRITING a vtable slot,
+#      so an index change makes the payload patch the wrong virtual -- which does not fail loudly,
+#      it just silently stops hooking.  `hook_compat` now also verifies the slot tables exist.
+#
+# Both are cheap: neither loads wrapper.node nor runs QQ, so this can gate every build.
+name: version-compat
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      wrapper_url:
+        description: "URL of the wrapper.node to check"
+        required: false
+        default: ""
+
+jobs:
+  # Fast job: no target binary needed.  Verifies the addon and payload still build and that the
+  # in-process tests pass, so a version check on a real wrapper.node has something to gate.
+  build-and-unit-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install a C++ toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends g++ cmake make
+
+      - name: Node headers
+        run: |
+          # The addon compiles against node_api.h; take it from the runner's own Node rather than
+          # pinning a version, so this does not rot.
+          node -p "process.versions.node"
+          test -d /usr/include/node || sudo apt-get install -y --no-install-recommends nodejs-dev
+
+      - name: Configure
+        run: cmake -B build -DNODE_INCLUDE_DIR=/usr/include/node -DARCH_TAG=linux-x64
+
+      - name: Build
+        run: cmake --build build -j2
+
+      - name: Unit tests
+        working-directory: build
+        run: ctest --output-on-failure
+
+      - name: Payload relocations are all supported
+        # Static pre-flight: a payload that picks up a TLS or COPY relocation would map and then
+        # die partway through relocation, on the target machine.  This catches that on any host.
+        run: |
+          ./build/reloc_check build/payload.so
+          if [ -x build/fake-wrapper.node ]; then ./build/reloc_check build/fake-wrapper.node; fi
+
+      - name: Upload the built addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: addon-linux-x64
+          path: build/haizakura-hook-linux-x64.node
+
+  # Version gate: needs a wrapper.node.  Without one it still runs the tool's self-check against
+  # the fixture, so the tool itself cannot silently break.
+  version-gate:
+    runs-on: ubuntu-latest
+    needs: build-and-unit-test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install a C++ toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends g++ cmake make
+
+      - name: Configure and build the checker
+        run: |
+          cmake -B build -DNODE_INCLUDE_DIR=/usr/include/node -DARCH_TAG=linux-x64
+          cmake --build build --target hook_compat -j2
+
+      - name: Fetch the wrapper.node to check
+        if: ${{ inputs.wrapper_url != '' }}
+        run: |
+          curl -fL --retry 3 -o /tmp/wrapper.node "${{ inputs.wrapper_url }}"
+          ls -l /tmp/wrapper.node
+
+      - name: Check against the real wrapper.node
+        if: ${{ inputs.wrapper_url != '' }}
+        run: ./build/hook_compat /tmp/wrapper.node
+
+      - name: Self-check the tool when no wrapper.node is supplied
+        if: ${{ inputs.wrapper_url == '' }}
+        run: |
+          # The tool must fail closed: a file that is not w2rpper.node has to be rejected, not
+          # reported as compatible.  This is the property a gate needs more than any specific
+          # verdict about a specific QQ version.
+          echo "not an elf" > /tmp/bogus.node
+          if ./build/hook_compat /tmp/bogus.node; then
+            echo "::error::hook_compat accepted a non-ELF file"
+            exit 1
+          fi
+          echo "hook_compat correctly rejected a non-ELF input"

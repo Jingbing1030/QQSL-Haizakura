@@ -733,8 +733,19 @@ uint64_t RemoteProcess::remote_call_detached(uint64_t fn, const std::vector<uint
   write_exact(region, park, sizeof(park));
 
   const uint64_t stack_top = (region + kTrampSize + kStackSize) & ~static_cast<uint64_t>(0xf);
+#if defined(__aarch64__)
+  // AArch64 returns through x30, not through a stack slot, and the ABI requires SP
+  // to be 16-byte aligned at every instruction boundary.  The x86 shape -- push the
+  // return address and leave SP at top-8 -- is 8-byte aligned, so the first SIMD
+  // spill in the callee (stp q0,q1,[sp] in glibc's memcpy/memset) takes an alignment
+  // fault.  The kernel reports that as SIGBUS, and because this call deliberately
+  // detaches first there is nobody to catch it: the handler-less default kills the
+  // whole thread group a moment after the seemingly successful injection.
+  const uint64_t new_rsp = stack_top;
+#else
   const uint64_t new_rsp = stack_top - 8;
   write_value<uint64_t>(new_rsp, region);
+#endif
 
   stop_target();
   Regs baseline{};
@@ -756,6 +767,12 @@ uint64_t RemoteProcess::remote_call_detached(uint64_t fn, const std::vector<uint
   regs.rcx = argc > 3 ? args[3] : 0;
   regs.r8 = argc > 4 ? args[4] : 0;
   regs.r9 = argc > 5 ? args[5] : 0;
+#if defined(__aarch64__)
+  // Return address register.  remote_call() sets this on its own path; without it
+  // here the callee's `ret` jumps to whatever x30 happened to hold, which for a
+  // freshly attached thread is the interrupted libc address.
+  regs.x30 = region;
+#endif
   regs_set(tracer_tid_, regs);
 
   dbg("[hz] remote_call_detached fn=0x%llx rsp=0x%llx\n",
@@ -1112,8 +1129,14 @@ uint64_t RemoteProcess::remote_call(uint64_t fn, const std::vector<uint64_t>& ar
   write_exact(region, sled.data(), sled.size());
 
   const uint64_t stack_top = (region + kTrampSize + kStackSize) & ~static_cast<uint64_t>(0xf);
+#if defined(__aarch64__)
+  // Same ABI constraint as in remote_call_detached: SP has to stay 16-byte aligned,
+  // and the return address travels in x30 rather than in a stack slot.
+  const uint64_t new_rsp = stack_top;
+#else
   const uint64_t new_rsp = stack_top - 8;
   write_value<uint64_t>(new_rsp, region);
+#endif
 
   stop_target();
 

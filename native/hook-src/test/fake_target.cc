@@ -172,7 +172,9 @@ void heartbeat_thread(const char* path) {
 }  // namespace
 
 int main(int argc, char** argv) {
+  (void)0;
   const char* wrapper = "/tmp/fake-wrapper.node";
+  const char* rename_to = nullptr;  // --name: present as this comm, so "qq" discovery finds us
   const char* pidfile = nullptr;
   const char* heartbeat = nullptr;
   int seconds = 120;
@@ -185,6 +187,7 @@ int main(int argc, char** argv) {
   bool positional_wrapper = false;
 
   for (int i = 1; i < argc; ++i) {
+    if (std::strcmp(argv[i], "--name") == 0 && i + 1 < argc) { rename_to = argv[++i]; continue; }
     const char* a = argv[i];
     if (std::strcmp(a, "--orphan") == 0 && i + 1 < argc) {
       orphan = true;
@@ -236,6 +239,11 @@ int main(int argc, char** argv) {
     ::setsid();
     write_pidfile(pidfile);
   }
+
+  // Present the comm the addon's process discovery searches for.  The addon looks for "qq"
+  // because that is what the original does, so a target left named fake_target is invisible to
+  // it -- correct behaviour on both sides, and only a harness concern.
+  if (rename_to != nullptr) ::prctl(PR_SET_NAME, rename_to, 0, 0, 0);
 
   if (allow_pid == -1) {
     // The one *cooperative* way out of yama: the target itself declares who may

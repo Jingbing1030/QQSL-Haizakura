@@ -100,6 +100,20 @@ int32_t get_int_arg(napi_env env, napi_value value, const char* what) {
   return out;
 }
 
+// Optional string property.  Returns "" when absent rather than failing: a handle produced by an
+// older build has no `path`, and refusing it would break a caller that only wants to unmap.
+std::string get_string_prop(napi_env env, napi_value object, const char* name,
+                            bool required = true) {
+  napi_value prop = nullptr;
+  napi_valuetype type = napi_undefined;
+  if (napi_get_named_property(env, object, name, &prop) != napi_ok ||
+      napi_typeof(env, prop, &type) != napi_ok || type == napi_undefined) {
+    if (required) hz::fail(hz::format("handle is missing '%s'", name));
+    return {};
+  }
+  return get_string_arg(env, prop, name);
+}
+
 uint64_t get_uint64_prop(napi_env env, napi_value object, const char* name,
                          bool required = true) {
   napi_value prop = nullptr;
@@ -155,6 +169,8 @@ napi_value handle_to_object(napi_env env, const hz::ManualMapHandle& h) {
   napi_set_named_property(env, obj, "entry", make_uint64(env, h.entry));
   napi_set_named_property(env, obj, "size", make_uint64(env, h.size));
   napi_set_named_property(env, obj, "exceptionTable", make_uint64(env, h.exception_table));
+  // Round-trips so unload can find the image again; see ManualMapHandle::path.
+  napi_set_named_property(env, obj, "path", make_string(env, h.path));
   return obj;
 }
 
@@ -302,8 +318,19 @@ napi_value ListCandidateProcessesAsync(napi_env env, napi_callback_info info) {
 struct BackendInfo {
   std::string platform;
   std::string arch;
+  // The closed-source addon reports six fields in this order:
+  //   platform, arch, processDiscovery, moduleInspection, runtimeResolution, injection
+  // An earlier version of this file reported only four, omitting the two middle ones.  They are
+  // part of the contract: the JavaScript side logs them and, in the version gate, compares them
+  // to decide whether the installed build can handle a given QQ.  A missing field reads as
+  // "unknown capability" there, not as "not applicable".
+  std::string process_discovery;
+  std::string module_inspection;
   std::string runtime_resolution;
   std::string injection;
+  // The IPC transport this build speaks.  Reported last, after `injection`, exactly as the
+  // closed-source addon orders it.
+  std::string ipc;
 };
 
 napi_value GetBackendInfoAsync(napi_env env, napi_callback_info info) {
@@ -324,7 +351,12 @@ napi_value GetBackendInfoAsync(napi_env env, napi_callback_info info) {
         out.arch = "unsupported";
         out.injection = "unsupported";
 #endif
+        out.process_discovery = "procfs";
+        out.module_inspection = "procfs-elf64";
         out.runtime_resolution = "elf64-eh-frame-itanium-rtti";
+        // Matches the reference build: the pipeline speaks the pipe protocol but does not yet
+        // create the sockets itself, and saying so is more useful than overstating it.
+        out.ipc = "unix-domain-socket-stub";
         return out;
       },
       [](napi_env e, const BackendInfo& info) {
@@ -332,9 +364,14 @@ napi_value GetBackendInfoAsync(napi_env env, napi_callback_info info) {
         napi_create_object(e, &obj);
         napi_set_named_property(e, obj, "platform", make_string(e, info.platform));
         napi_set_named_property(e, obj, "arch", make_string(e, info.arch));
+        napi_set_named_property(e, obj, "processDiscovery",
+                                make_string(e, info.process_discovery));
+        napi_set_named_property(e, obj, "moduleInspection",
+                                make_string(e, info.module_inspection));
         napi_set_named_property(e, obj, "runtimeResolution",
                                 make_string(e, info.runtime_resolution));
         napi_set_named_property(e, obj, "injection", make_string(e, info.injection));
+        napi_set_named_property(e, obj, "ipc", make_string(e, info.ipc));
         return obj;
       });
 }
@@ -370,6 +407,9 @@ napi_value LoadModuleManualAsync(napi_env env, napi_callback_info info) {
         hz::ManualLoader loader(remote, image);
         remote.attach();
         auto handle = loader.load();
+        // Remember the image so unload can run the fini array and stop_dynamic; without this the
+        // handle is only enough to munmap, which leaves the payload's sockets bound.
+        handle.path = resolved;
         remote.detach();
         return handle;
       },
@@ -394,6 +434,7 @@ napi_value UnloadModuleManualAsync(napi_env env, napi_callback_info info) {
     handle.entry = get_uint64_prop(env, argv[1], "entry", false);
     handle.size = get_uint64_prop(env, argv[1], "size");
     handle.exception_table = get_uint64_prop(env, argv[1], "exceptionTable", false);
+    handle.path = get_string_prop(env, argv[1], "path", false);
     if (handle.base == 0) {
       hz::fail("handle must be {base, entry, size, exceptionTable}");
     }
@@ -405,14 +446,20 @@ napi_value UnloadModuleManualAsync(napi_env env, napi_callback_info info) {
   return schedule<bool>(
       env, "haizakura:unloadModuleManual",
       [pid, handle]() {
+        // Go through ManualLoader rather than calling munmap directly.  Two things happen there
+        // that a bare unmap skips, and both matter:
+        //
+        //   * DT_FINI_ARRAY runs, so the payload's destructors see a normal shutdown.
+        //   * snowluma_linux_hook_stop_dynamic is called before the image disappears.  That is
+        //     what unlinks the control and recv sockets.  Skipping it leaves both bound and the
+        //     next start fails with EADDRINUSE -- which reads as "the payload is broken" when it
+        //     is only "nobody told it to stop".
         hz::RemoteProcess remote(pid);
+        hz::ElfImage image(hz::MappedFile::open(handle.path));
+        hz::ManualLoader loader(remote, image);
         remote.attach();
-        const bool ok = remote.remote_munmap(handle.base, handle.size);
+        loader.unload(handle);
         remote.detach();
-        if (!ok) {
-          hz::fail(hz::format("remote munmap failed for 0x%llx",
-                              static_cast<unsigned long long>(handle.base)));
-        }
         return true;
       },
       [](napi_env e, bool) { return make_bool(e, true); });
@@ -1099,19 +1146,19 @@ napi_value ResolveRuntimeTargetsAsync(napi_env env, napi_callback_info info) {
 NAPI_MODULE_INIT(/* napi_env env, napi_value exports */) {
   napi_property_descriptor props[] = {
       {"getAllMainProcessAsync", nullptr, GetAllMainProcessAsync, nullptr, nullptr,
-       nullptr, napi_default, nullptr},
+       nullptr, napi_default_jsproperty, nullptr},
       {"listCandidateProcessesAsync", nullptr, ListCandidateProcessesAsync, nullptr,
-       nullptr, nullptr, napi_default, nullptr},
+       nullptr, nullptr, napi_default_jsproperty, nullptr},
       {"getBackendInfoAsync", nullptr, GetBackendInfoAsync, nullptr, nullptr, nullptr,
-       napi_default, nullptr},
+       napi_default_jsproperty, nullptr},
       {"loadModuleManualAsync", nullptr, LoadModuleManualAsync, nullptr, nullptr, nullptr,
-       napi_default, nullptr},
+       napi_default_jsproperty, nullptr},
       {"unloadModuleManualAsync", nullptr, UnloadModuleManualAsync, nullptr, nullptr,
-       nullptr, napi_default, nullptr},
+       nullptr, napi_default_jsproperty, nullptr},
       {"inspectProcessAsync", nullptr, InspectProcessAsync, nullptr, nullptr, nullptr,
-       napi_default, nullptr},
+       napi_default_jsproperty, nullptr},
       {"resolveRuntimeTargetsAsync", nullptr, ResolveRuntimeTargetsAsync, nullptr,
-       nullptr, nullptr, napi_default, nullptr},
+       nullptr, nullptr, napi_default_jsproperty, nullptr},
   };
   napi_define_properties(env, exports, sizeof(props) / sizeof(props[0]), props);
   return exports;

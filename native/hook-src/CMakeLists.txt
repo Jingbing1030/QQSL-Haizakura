@@ -33,6 +33,7 @@ add_library(haizakura_hook MODULE
   src/remote.cc
   src/injector.cc
   src/manual_loader.cc
+  src/vtable_hook.cc
 )
 
 target_include_directories(haizakura_hook PRIVATE
@@ -166,3 +167,119 @@ add_test(NAME thread_contend
          COMMAND ${CMAKE_COMMAND} -E env
                  ${CMAKE_CURRENT_BINARY_DIR}/run_contend_test.sh)
 set_tests_properties(thread_contend PROPERTIES TIMEOUT 300)
+
+# Vtable discovery against a real wrapper.node.  Takes the path as an argument so
+# it runs against whichever QQ build is installed rather than a checked-in blob.
+add_executable(vtable_hook_test test/vtable_hook_test.cc
+  src/common.cc
+  src/elf_image.cc
+  src/remote.cc
+  src/slot_relay.cc
+  src/vtable_hook.cc
+)
+target_include_directories(vtable_hook_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+# The relay's register save/restore, exercising every calling shape a vtable slot can
+# have.  A relay that only handles the integer cases passes a naive test and then
+# corrupts a float argument in the target, so the coverage here is the point.
+add_executable(slot_relay_test test/slot_relay_test.cc
+  src/slot_relay.cc
+  src/common.cc
+)
+target_include_directories(slot_relay_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+add_test(NAME slot_relay COMMAND slot_relay_test)
+
+# End-to-end vtable hooking: needs a live target with the subject library mapped, so it is
+# driven by run_vtable_e2e.sh.in rather than by ctest directly.
+add_executable(vtable_hook_e2e_test test/vtable_hook_e2e_test.cc
+  src/common.cc
+  src/elf_image.cc
+  src/remote.cc
+  src/slot_relay.cc
+  src/vtable_hook.cc
+  src/manual_loader.cc
+)
+target_include_directories(vtable_hook_e2e_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+# T10: the recv channel delivers a frame the Node side can parse, and an emit with no peer is
+# dropped rather than blocked -- the property that keeps QQ alive when the Node side is not
+# attached.  Needs a live target, so it is run by hand against one.
+add_executable(recv_channel_test test/recv_channel_test.cc
+  src/common.cc
+  src/elf_image.cc
+  src/remote.cc
+  src/manual_loader.cc
+)
+target_include_directories(recv_channel_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+add_executable(dual_channel_lifecycle_test test/dual_channel_lifecycle_test.cc
+  src/common.cc
+  src/elf_image.cc
+  src/remote.cc
+  src/manual_loader.cc
+)
+target_include_directories(dual_channel_lifecycle_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+# The in-process hook path, which is the one the payload uses.  Runs as a single process, so
+# ctest can drive it directly.
+add_executable(vtable_inproc_test test/vtable_inproc_test.cc
+  src/common.cc
+  src/elf_image.cc
+  src/remote.cc
+  src/slot_relay.cc
+  src/vtable_hook.cc
+)
+target_include_directories(vtable_inproc_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+add_test(NAME vtable_inproc COMMAND vtable_inproc_test)
+
+add_executable(login_state_test test/login_state_test.cc
+  src/common.cc
+  src/elf_image.cc
+  src/remote.cc
+  src/manual_loader.cc
+)
+target_include_directories(login_state_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+# The full stack through the real Node addon: loadModuleManualAsync -> start_dynamic ->
+# sockets -> client handshake -> unload -> repeat.  Needs a live target pid and Node, so it is
+# scripted rather than added to ctest; run test/run_full_stack.sh to drive it.
+
+# Static pre-flight: every relocation type in the payload must be one the loader implements.
+# Runs on any host for either architecture's payload, so CI can gate it without a target.
+add_executable(reloc_check test/reloc_check.cc
+  src/common.cc
+  src/elf_image.cc
+)
+target_include_directories(reloc_check PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+add_test(NAME reloc_check COMMAND reloc_check ${CMAKE_CURRENT_SOURCE_DIR}/test/no_such_file.so)
+set_tests_properties(reloc_check PROPERTIES DISABLED TRUE)
+
+# resolveRuntimeTargetsAsync's field values against the recorded ground truth.  Takes the
+# wrapper.node as an argument rather than a pid, so it runs anywhere the file is available and
+# on either architecture -- the addon itself needs a live QQ on the matching architecture.
+add_executable(runtime_targets_test test/runtime_targets_test.cc
+  src/common.cc
+  src/elf_image.cc
+  src/remote.cc
+  src/slot_relay.cc
+  src/vtable_hook.cc
+)
+target_include_directories(runtime_targets_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+)

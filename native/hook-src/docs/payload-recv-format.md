@@ -23,7 +23,7 @@
 | `CLIENT_MESSAGE_RECEIPT_CMD` | **`"ClientMessageReceipt"`**（纯字面量，无协议号） |
 
 > **[实证]** `~/x64run/index.mjs:1778` `var PIPE_MAGIC = 827344977;`；
-> `:2003` `if (magic !== 827344977 || version !== 1) throw new Error(...)`。
+> `:2013` `if (magic !== 827344977 || version !== 1) throw new Error(...)`。
 > 纠正十六进制：`python3 -c "print(hex(827344977))"` → `0x31504851`。
 > 这个 ASCII `QHP1` 是自洽的（QQ Hook Pipe v1），而 `0x3157D141` 只是接近但不等于。
 
@@ -155,7 +155,7 @@ return path.join(runtimeDir, `mojo.${pid}.${suffix}.sock`);
 | 7 | 载荷→Node | 登录状态 | 同 recv 的 op 7 |
 | 17 | **Node→载荷** | 登录身份提示 | `value0` = uin；`requestId != 0`；无 body。载荷回 op 3 ACK |
 
-**op 5 的两种语义 [实证]** `:2586-2614`：
+**op 5 的两种语义 [实证]** `:2595-2615`：
 ```js
 if (frame.op === 5) {
   const error = new HookPipeRequestError(frame.msg || `pipe error ${frame.status}`, frame.status, frame.requestId);
@@ -286,7 +286,7 @@ op7 的 uin、op6/op21 的 uin、账号目录名扫描、在线账号列表、�
 ### 5.1 op 6 —— 业务数据包（**收包主干**）
 
 ```js
-// ~/x64run/index.mjs:2655-2666
+// ~/x64run/index.mjs:2647-2655
 if (frame.op !== 6) return;
 this.emit("packet", {
     seq:   Number(frame.value0),   // ← header.value0
@@ -376,7 +376,7 @@ async processClientMessage(pkt, connection) {
 2. 因此 Node **必须二次请求**：用回执里的 `(peerUid, privateSequence)` 作为
    `SsoGetC2cMsg(friendUid, startSequence=seq, endSequence=seq)` 的键，
    去 QQ 服务器把这**一条**消息的完整 `PushMsgBody` 拉回来。
-   —— **[实证]** `:171613` `fetchClientMessage`，`SSO_GET_C2C_MSG_CMD = "trpc.msg.register_proxy.RegisterProxy.SsoGetC2cMsg"`。
+   —— **[实证]** `:171629-171667` `fetchClientMessage`，`SSO_GET_C2C_MSG_CMD = "trpc.msg.register_proxy.RegisterProxy.SsoGetC2cMsg"`。
 
 3. 拉回后做**逐字段严格比对**，防止竞态/错位：
    ```js
@@ -385,11 +385,11 @@ async processClientMessage(pkt, connection) {
        head.sequence !== receipt.clientSequence || head.timestamp !== receipt.timestamp)
        throw new Error("Client message lookup did not match the confirmed message");
    ```
-   —— **[实证]** `:171608-171612` 附近。
+   —— **[实证]** `:171654`（同一函数内的校验块）。
 
 4. 再**复用** `decodeFriendMessage(context)` 生成标准 `friend_message` 事件，
    并追加生存性检查（`classifyMessageSurvival(...) === "keep"`）。
-   —— **[实证]** `:171619-171623`。
+   —— **[实证]** `:171663-171665`。
 
 5. **为什么需要这条路？** —— **[推断]**：QQ NT 在多端场景下，**本账号从别的客户端
    （手机/另一台电脑）发出的私聊消息**，QQ 内核不会为它走 OlPush 推送给自己；
@@ -407,7 +407,7 @@ async processClientMessage(pkt, connection) {
 ### 5.4 op 22 —— 客户端私聊上报可用性
 
 ```js
-// ~/x64run/index.mjs:2623-2627
+// ~/x64run/index.mjs:2627-2631
 if (frame.op === 22) {
     if (frame.status === 1) runtimeLog.debug("Client private-message reporting is available: PID=%d", this.pid);
     else runtimeLog.warn("Client private-message reporting is unavailable: PID=%d status=%d%s",
@@ -539,7 +539,7 @@ function buildContext(pkt, identity) {
 **长度约束 [实证]**：`body.length ∈ [12, 65672]`；
 `ackOffset = 8 + peerLength < body.length`；`body.length - ackOffset ≤ 65536`。
 
-**`SendMessageResponse`（`ack` 部分，`:171613` 附近 decoder）**
+**`SendMessageResponse`（`ack` 部分，decoder 在 `:170971`）**
 
 | 字段号 | wire | 名称 | 类型 | 用途 |
 | --- | --- | --- | --- | --- |
@@ -624,12 +624,12 @@ this.pipeline.registerCmd(KICK_NT_CMD, parseKickNT);
 | serviceCmd 字面量 | 常量名 | 位置 | 说明 |
 | --- | --- | --- | --- |
 | `"trpc.msg.olpush.OlPushService.MsgPush"` | `MSG_PUSH_CMD` | `:179455` | **绝大多数消息**（私聊/群/临时/各类 notice 都在这一个 service 下，靠 `msgType`/`subType` 分流） |
-| `"trpc.qq_new_tech.status_svc.StatusService.KickNT"` | `KICK_NT_CMD` | `:348107` | 被踢下线 → `bot_offline` 事件 |
+| `"trpc.qq_new_tech.status_svc.StatusService.KickNT"` | `KICK_NT_CMD` | `:348109` | 被踢下线 → `bot_offline` 事件 |
 | `"trpc.qq_new_tech.status_svc.StatusService.SsoHeartBeat"` | `QQ_RECV_HEARTBEAT_CMD` | `:3745` | **心跳**，不是事件 —— 只用来给收包看门狗"上弦" |
 | `"ClientMessageReceipt"` | `CLIENT_MESSAGE_RECEIPT_CMD` | `:1700` | **Node 自造**，op 21 专用伪 cmd（不在 wire 上） |
 
 > **重要**：`cmdHandlers_` 是 `Map<string, parser[]>`，**没注册的 cmd 会被静默丢弃**，
-> 只留一条 trace 日志 `branch=parser_unregistered`。[实证] `:348167-348183`。
+> 只留一条 trace 日志 `branch=parser_unregistered`。[实证] `:348174-348187`。
 > 所以"一条消息能不能变成 OneBot 事件"的第一道闸就是 **`serviceCmd` 是否在白名单里**。
 >
 > 观察到的**其他** trpc 名（都在 Node→载荷方向，是请求不是收包）：
@@ -639,7 +639,7 @@ this.pipeline.registerCmd(KICK_NT_CMD, parseKickNT);
 > `"HttpConn.0x6ff_501"`、`"trpc.basic.corp.Datacard.SsoCorpInfo"`、
 > `"QunAlbum.trpc.qzone.webapp_qun_media.QunMedia.GetAlbumList"` 等。
 
-**心跳的实际作用 [实证]** `noteReceiveActivity`（`:4456`）：
+**心跳的实际作用 [实证]** `noteReceiveActivity`（`:4455`）：
 ```js
 if (!this.receiveWatchArmed) {
     if (cmd !== QQ_RECV_HEARTBEAT_CMD) return;   // 没见过心跳 = 不武装
@@ -699,7 +699,7 @@ return "drop-blank";
 **去重实际靠什么 [实证]**：
 
 1. **op 21**：`key = JSON.stringify([pid, peerUid, sequence, clientSequence, timestamp])`
-   —— 用**业务字段**去重（`bridge.ts:135` 附近），与帧的 `value0` 无关。
+   —— 用**业务字段**去重（`core/src/bridge/bridge.ts:147`），与帧的 `value0` 无关。
 2. **系统消息**：`deriveSysMsgDedupIdentity(ctx)` 用
    `{peerUid, chatType, sequence: head.sequence, random: head.msgId}`（`sysmsg-dedup.ts`）
    —— 完整复刻 QQ NT `sys_msg_mgr.cc::ProcessRecvSysMsg` 的
@@ -881,7 +881,7 @@ return "drop-blank";
 | --- | --- | --- | --- |
 | 1 | 帧头 40 B，字段序同任务书 | **实证** | `index.mjs:1950-1975` `encodeFrame`；`:1993` `FrameReader` |
 | 2 | `magic = 827344977`，**hex 是 `0x31504851` 不是 `0x3157D141`** | **实证** | `:1778`、`:2003` + `hex(827344977)` |
-| 3 | 长度上限 4096 / 65536 / 16 MiB，超限**抛错**而非丢帧 | **实证** | `:1779-1781`、`:1976-1990` |
+| 3 | 长度上限 4096 / 65536 / 16 MiB，超限**抛错**而非丢帧 | **实证** | `:1779-1781`、`:1973-1992` |
 | 4 | 支持粘包/半包；UTF-8 宽松解码 | **实证** | `FrameReader.push` 双游标结构 |
 | 5 | recv 通道 Node 侧**只读不写** | **实证** | 无 `writeRecv`；`writeControl` 只取 `controlSocket` |
 | 6 | Node 是 connect 方，载荷是 listen 方 | **实证** | `net.createConnection(pipeName)` `:2426` |
@@ -893,23 +893,23 @@ return "drop-blank";
 | 12 | `CLIENT_MESSAGE_RECEIPT_CMD = "ClientMessageReceipt"` | **实证** | `protocol-types.ts` 全文 / `:1700` |
 | 13 | **op 21 线上 `cmd` 为空串**，该常量在 emit 时才填入 | **实证** | `:2633` 校验 + `:2640` 赋值 |
 | 14 | op 21 要求 `requestId==0`、`flags==0`、`value0>0`、`uin` 过 `isRealUin` | **实证** | `:2633` |
-| 15 | op 21 的 body 是 8 B 手写小端头 + peerUid + `SendMessageResponse` | **实证** | `client-message-receipt.ts:7760-7795` |
+| 15 | op 21 的 body 是 8 B 手写小端头 + peerUid + `SendMessageResponse` | **实证** | `client-message-receipt.ts:7760-7782` |
 | 16 | op 21 必须二次 `SsoGetC2cMsg` 拉内容，body 不含消息内容 | **实证** | `fetchClientMessage` `:171629`；§6.4 字段表 |
 | 17 | op 21 存在的原因 = 补"本账号在别处发的私聊" | **推断** | 结合 `post_type:"message_sent"`；无正向注释 |
 | 18 | `SsoGetC2cMsg` 重试 5 次（100/250/500/1000/2000 ms），`result==100000301` 触发 | **实证** | `historyRetryDelays` |
 | 19 | 二次拉取后逐字段比对 6 个字段防错位 | **实证** | `fetchClientMessage` 校验块 |
-| 20 | op 22 只看 `status==1` 与 `value0`，只打日志不降级 | **实证** | `:2623-2627` |
-| 21 | op 5 `requestId==0 && cmd=="runtime"` = 全局熔断，粘滞生效 | **实证** | `:2586-2600` |
+| 20 | op 22 只看 `status==1` 与 `value0`，只打日志不降级 | **实证** | `:2627-2631` |
+| 21 | op 5 `requestId==0 && cmd=="runtime"` = 全局熔断，粘滞生效 | **实证** | `:2595-2605` |
 | 22 | op 17 = Node→载荷 登录身份 hint，等 op 3 ACK | **实证** | `:2115` `sendAckOnly(17, ...)` |
 | 23 | `PushMsg` = `{f1 message: PushMsgBody, f3 status}` | **实证** | decoder `:144186` 字段表 |
 | 24 | `PushMsgBody` = `{f1 responseHead, f2 contentHead, f3 body}` | **实证** | decoder `:137244` |
 | 25 | `ContentHead.f11 ntMsgSeq` 优先作 `message_id`，缺失降级 `sequence` | **实证** | `to-message.ts` |
 | 26 | `RichText.elems[]` 是 15 槽 oneof；`commonElem{f53}` 是通用透传 | **实证** | decoder `:138686` |
-| 27 | `serviceCmd` 白名单只有 MsgPush + KickNT，其余静默丢 | **实证** | `:348719-348720`、`:348167` |
-| 28 | `SsoHeartBeat` 只武装看门狗，不产生事件 | **实证** | `noteReceiveActivity` `:4456` |
+| 27 | `serviceCmd` 白名单只有 MsgPush + KickNT，其余静默丢 | **实证** | `:348719-348720`、`:348174-348187` |
+| 28 | `SsoHeartBeat` 只武装看门狗，不产生事件 | **实证** | `noteReceiveActivity` `:4455` |
 | 29 | `msgType` → decoder 的映射表 | **实证** | `enums.ts` + `registry.register` |
 | 30 | **`seq`(value0) 不参与去重，只进日志** | **实证** | 48 处 `seqId` 引用全在 trace |
-| 31 | 去重实际用 `{pid,peerUid,seq,clientSeq,ts}`（op21）与 `{peerUid,chatType,seq,random}`（sysmsg） | **实证** | `bridge.ts:135`、`sysmsg-dedup.ts` |
+| 31 | 去重实际用 `{pid,peerUid,seq,clientSeq,ts}`（op21）与 `{peerUid,chatType,seq,random}`（sysmsg） | **实证** | `bridge.ts:147`、`sysmsg-dedup.ts` |
 | 32 | `seq` 是每连接递增、op6/op21 共享序列空间 | **推断** | 由 `value0>0` 校验反推；`.so` 是二进制无法 grep |
 | 33 | Node 不校验 `seq` 连续性 | **实证** | 无任何 `prev+1` 比较 |
 | 34 | oracle `qqsl-hz` 0.2.4.2 的 recv 协议与 2.4.2 **完全一致** | **实证** | oracle `:2610-2662` 与 `x64run:2617-2671` 逐字节 diff 为空 |

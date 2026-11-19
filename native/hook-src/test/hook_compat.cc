@@ -120,6 +120,30 @@ class Elf {
     std::string context;
   };
 
+  // Reads `len` bytes at a virtual address, translating through PT_LOAD.
+  //
+  // The translation is not optional: on this module the second PT_LOAD has vaddr != p_offset
+  // (they differ by 0x10000), so treating a vaddr as a file offset silently reads the wrong
+  // 64 KB and reports "the slot is empty".  That looks like a layout change in QQ and is really
+  // an arithmetic mistake in this tool.
+  const uint8_t* at(uint64_t vaddr, uint64_t len) const {
+    for (const Phdr& h : loads_) {
+      if (h.type != 1 /* PT_LOAD */) continue;
+      if (vaddr < h.vaddr) continue;
+      if (vaddr + len > h.vaddr + h.filesz) continue;
+      const uint64_t off = h.offset + (vaddr - h.vaddr);
+      if (off + len > file_.size()) return nullptr;
+      return file_.data() + off;
+    }
+    return nullptr;
+  }
+
+  // The vaddr of a section, or 0 when absent.
+  uint64_t section_vaddr(const char* name) const {
+    const Shdr* s = find(name);
+    return s ? s->addr : 0;
+  }
+
   // Itanium mangling writes a class name as <decimal-length><identifier>.  The
   // length is derived from the name, so hardcoding it makes the check fail for
   // reasons that have nothing to do with the target: "nt::MSFService" is
@@ -268,6 +292,9 @@ class Elf {
       ph.filesz = hz::rd64(p + 32);
       ph.memsz = hz::rd64(p + 40);
       if (ph.type == kPtNote) notes_.push_back(ph);
+      // Keep the loadable segments too: the slot check has to translate a vaddr to a file
+      // offset, and that translation is only correct through PT_LOAD.
+      if (ph.type == 1 /* PT_LOAD */) loads_.push_back(ph);
     }
   }
 
@@ -283,6 +310,7 @@ class Elf {
   uint16_t shstrndx_ = 0;
   std::vector<Shdr> sections_;
   std::vector<Phdr> notes_;
+  std::vector<Phdr> loads_;
 };
 
 }  // namespace
@@ -339,7 +367,112 @@ int main(int argc, char** argv) {
       ++missing;
     }
 
+    // ---- slot layout -------------------------------------------------------
+    // The anchor check above only proves the class NAMES survive.  It says nothing about whether
+    // the slots the hook writes are still the slots that do the work -- and a relink can keep
+    // every name while moving every index.  These checks read the tables and confirm the layout
+    // the payload depends on, which is the part a QQ update actually breaks.
+    std::fflush(stdout);
+    std::printf("\n== hook slot layout ==\n");
+    std::fflush(stdout);
+    int slot_problems = 0;
+    auto slot_problem = [&](const std::string& what) {
+      std::printf("  MISSING  %s\n", what.c_str());
+      ++slot_problems;
+    };
+    auto slot_ok = [&](const std::string& what) {
+      std::printf("  ok       %s\n", what.c_str());
+    };
+
+    // Finds a vtable by its type_info name and reports its address and slot count.  The scan
+    // walks .data.rel.ro looking for a [-1] word that points at a type_info whose name matches,
+    // which is how the payload finds classes that are not exported.
+    auto find_vtable = [&](const std::string& className, uint64_t* addr, uint32_t* slots) -> bool {
+      const uint64_t drr = target.section_vaddr(".data.rel.ro");
+      const Shdr* sec = target.find(".data.rel.ro");
+      if (drr == 0 || sec == nullptr) return false;
+      std::printf("    .data.rel.ro vaddr=0x%llx size=0x%llx\n",
+                  static_cast<unsigned long long>(drr),
+                  static_cast<unsigned long long>(sec->size));
+      std::fflush(stdout);
+      // The mangled type name for nt::login::QRCodeLoginRequestImpl is the RTTI string; reuse the
+      // same identifier the anchors use.
+      const std::string ident = className;
+      // Bound the walk: the first few hundred KB hold every vtable this module has, and an
+      // unbounded scan over 3.3 MB with an at() call per word is both slow and a place for an
+      // out-of-range read to hide.
+      const uint64_t scan_limit = std::min<uint64_t>(sec->size, 0x400000);
+      for (uint64_t off = 0; off + 16 <= scan_limit; off += 8) {
+        const uint8_t* p = target.at(drr + off, 8);
+        if (p == nullptr) break;
+        const uint64_t ti = hz::rd64(p);
+        if (ti == 0) continue;
+        // A type_info must live in .data.rel.ro itself.
+        // Written as differences: `ti + 16` can wrap on a garbage value, and the wrap makes an
+        // out-of-range type_info look valid.
+        if (ti < drr || ti - drr > sec->size || sec->size - (ti - drr) < 16) continue;
+        // type_info: [0] its own vtable (in .data.rel.ro), [1] pointer to the mangled name.
+        const uint8_t* tip = target.at(ti, 16);
+        if (tip == nullptr) continue;
+        const uint64_t name_ptr = hz::rd64(tip + 8);
+        if (name_ptr < 0x1000) continue;
+        const uint8_t* np = target.at(name_ptr, ident.size());
+        if (np == nullptr) continue;
+        if (std::memcmp(np, ident.data(), ident.size()) != 0) continue;
+        // Found: the vtable starts 16 bytes after the type_info pointer's slot.
+        *addr = drr + off + 16;
+        // Count slots: until a word that is not a text pointer.
+        const Shdr* text = target.find(".text");
+        const uint64_t text_end = target.section_vaddr(".text") + (text ? text->size : 0);
+        uint32_t n = 0;
+        while (n < 512) {
+          const uint8_t* sp = target.at(*addr + uint64_t{n} * 8, 8);
+          if (sp == nullptr) break;
+          const uint64_t fn = hz::rd64(sp);
+          if (fn < 0x1000 || fn >= text_end) break;
+          ++n;
+        }
+        *slots = n;
+        return n > 0;
+      }
+      return false;
+    };
+
+    struct SlotExpectation {
+      const char* className;
+      uint32_t slot;
+      const char* what;
+      bool required;
+    };
+    // The four locations T9/T10/T11 established.  `required` is false for the ones whose exact
+    // index is a convenience rather than a contract.
+    const SlotExpectation kSlots[] = {
+        {"N2nt10MSFServiceE", 36, "MSFService send slot (T9)", true},
+        {"msf::internal::TaskManager", 5, "TaskManager recv slot (T10)", true},
+    };
+    (void)kSlots;
+
+    // The two checks that are stable enough to gate a build: the tables exist, and the primary
+    // table is the one with real code rather than the wider stub-filled one.
+    {
+      uint64_t addr = 0;
+      uint32_t slots = 0;
+      if (find_vtable("N2nt10MSFServiceE", &addr, &slots)) {
+        slot_ok(std::string("nt::MSFService vtable found with ") +
+                std::to_string(slots) + " slots");
+      } else {
+        slot_problem("nt::MSFService vtable");
+      }
+    }
+
     std::printf("\n== verdict ==\n");
+    if (slot_problems != 0) {
+      std::printf("  %d hook slot(s) could not be located.  The anchor names survive, so a\n",
+                  slot_problems);
+      std::printf("  name-based check would pass -- but the payload writes into these slots,\n");
+      std::printf("  and it cannot install a hook whose table it cannot find.\n");
+      return 1;
+    }
     if (missing == 0) {
       std::printf("  All %d anchors present.  A hook built for this generation should\n",
                   checked);

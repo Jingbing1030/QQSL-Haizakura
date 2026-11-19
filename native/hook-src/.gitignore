@@ -1,2 +1,15 @@
+# Build trees: three naming schemes exist (build/, build-arm64/, buildx/, buildx-arm/), so ignore
+# by content rather than by name.
 build/
 build-*/
+buildx/
+buildx-arm/
+*.o
+*.node
+*.so
+
+# Generated test artifacts
+/tmp/
+*.log
+core
+core.*
