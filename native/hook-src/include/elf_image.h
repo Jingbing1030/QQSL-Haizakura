@@ -185,8 +185,22 @@ class ElfImage {
   const std::vector<Elf64Phdr>& program_headers() const { return phdrs_; }
   const std::vector<SectionInfo>& sections() const { return sections_; }
 
-  // Virtual address range covering every PT_LOAD segment, page aligned.  The
-  // loader maps exactly this window so relative offsets stay valid.
+  // Effective end of the module's file-backed mapping, page aligned and relative
+  // to image_base().  This is the boundary a caller means by "mapped end": it
+  // stops where the kernel stops mapping the file, i.e. at the last PT_LOAD's
+  // p_vaddr + p_filesz.  The bytes from there up to p_vaddr + p_memsz are .bss,
+  // which the loader backs with a separate anonymous mapping.
+  //   Distinct from image_size(), which is padded for the manual loader's
+  //   reservation window and so extends over the whole .bss.
+  //   Distinct from executable_segment_end(), which reports only PF_X pages.
+  uint64_t loadable_segment_end() const { return load_segment_end_; }
+
+  // Program-header view of the executable range.  Section flags describe what
+  // the linker placed; these describe what the loader actually mapped, and the
+  // two differ for modules whose first PT_LOAD starts at vaddr 0.
+  uint64_t executable_segment_start() const { return exec_segment_start_; }
+  uint64_t executable_segment_end() const { return exec_segment_end_; }
+
   uint64_t image_base() const { return image_base_; }
   uint64_t image_size() const { return image_size_; }
 
@@ -243,6 +257,9 @@ class ElfImage {
   std::vector<uint64_t> fini_fns_;
   uint64_t image_base_ = 0;
   uint64_t image_size_ = 0;
+  uint64_t load_segment_end_ = 0;
+  uint64_t exec_segment_start_ = 0;
+  uint64_t exec_segment_end_ = 0;
 
   // GNU hash parameters, cached for lookup_gnu_hash().
   bool has_gnu_hash_ = false;

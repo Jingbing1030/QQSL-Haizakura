@@ -65,6 +65,12 @@ void ElfImage::parse_headers() {
   phdrs_.reserve(ehdr_.phnum);
   uint64_t min_vaddr = UINT64_MAX;
   uint64_t max_vaddr = 0;
+  // End of the file-backed part of the image.  The kernel maps exactly
+  // [p_vaddr, p_vaddr + p_filesz) out of the file; whatever p_memsz adds beyond
+  // that is .bss, which the loader satisfies with a separate anonymous mapping
+  // rather than by extending the file mapping.  So the mapped end stops here,
+  // not at p_vaddr + p_memsz.
+  uint64_t max_file_vaddr = 0;
   for (uint16_t i = 0; i < ehdr_.phnum; ++i) {
     const uint8_t* ph = file_.data() + ehdr_.phoff + static_cast<uint64_t>(i) * ehdr_.phentsize;
     Elf64Phdr h{};
@@ -83,6 +89,22 @@ void ElfImage::parse_headers() {
       require(h.filesz <= h.memsz, "ELF loadable segment file size exceeds memory size");
       min_vaddr = std::min(min_vaddr, h.vaddr);
       max_vaddr = std::max(max_vaddr, h.vaddr + h.memsz);
+      max_file_vaddr = std::max(max_file_vaddr, h.vaddr + h.filesz);
+
+      // Track the executable span separately.  PF_X is bit 0 of p_flags; the
+      // loader maps exactly these pages executable, which is what a caller
+      // placing trampolines needs to know.
+      if ((h.flags & 1u) != 0) {
+        const uint64_t seg_start = h.vaddr;
+        const uint64_t seg_end = h.vaddr + h.memsz;
+        if (exec_segment_start_ == 0 && exec_segment_end_ == 0) {
+          exec_segment_start_ = seg_start;
+          exec_segment_end_ = seg_end;
+        } else {
+          exec_segment_start_ = std::min(exec_segment_start_, seg_start);
+          exec_segment_end_ = std::max(exec_segment_end_, seg_end);
+        }
+      }
     }
     phdrs_.push_back(h);
   }
@@ -95,6 +117,15 @@ void ElfImage::parse_headers() {
   image_base_ = min_vaddr & ~(page - 1);
   const uint64_t end = (max_vaddr + page - 1) & ~(page - 1);
   image_size_ = end - image_base_;
+
+  load_segment_end_ = ((max_file_vaddr + page - 1) & ~(page - 1)) - image_base_;
+
+  // Report the executable span page-aligned, in image-relative terms so callers
+  // add their own base.
+  if (exec_segment_end_ > exec_segment_start_) {
+    exec_segment_start_ = exec_segment_start_ & ~(page - 1);
+    exec_segment_end_ = (exec_segment_end_ + page - 1) & ~(page - 1);
+  }
   require(image_size_ > 0 && image_size_ < (1ull << 32),
           "ELF image size is invalid or too large");
 }

@@ -97,7 +97,34 @@ std::optional<uint64_t> ManualLoader::resolve_remote_symbol(std::string_view nam
     try {
       ElfImage lib(MappedFile::open(path));
       if (const DynSymbol* sym = lib.find_symbol(name)) {
-        if (sym->defined) return *base + (sym->value - lib.image_base());
+        if (!sym->defined) continue;
+        const uint64_t addr = *base + (sym->value - lib.image_base());
+
+        // STT_GNU_IFUNC is not a function, it is a *function that returns the
+        // function*.  glibc implements strlen, memcpy, memset, strcmp and friends
+        // as IFUNCs so the dynamic loader can pick an AVX-512 or SSE4 variant at
+        // first use; their st_value is the resolver's address.
+        //
+        // Returning st_value verbatim hands the payload a pointer to the address
+        // of the implementation.  Every call then produces garbage that looks
+        // plausible: a payload's strlen(control) returned 0x750aed59a940, so its
+        // "path too long" check fired, start_dynamic returned -1, no socket was
+        // ever created, and the caller reported "the hook did not start".  A
+        // memcpy resolved this way writes wherever the pointer says.  This is by
+        // far the most common way a hand-written ELF loader breaks on glibc and
+        // it fails in the payload, not in the loader, which is why it is fixed
+        // here rather than worked around per payload.
+        //
+        // Calling the resolver from the tracee is the only correct answer:
+        // IFUNC resolvers may read CPU features (via getauxval/IFUNC-only
+        // relocation) and are not guaranteed to be pure address arithmetic.
+        //
+        // The guard matters: without it every symbol -- including plain data
+        // objects like `stdout` -- would be "called" as a resolver.  Executing a
+        // data page produces garbage return values that look plausible, and the
+        // corruption only shows up much later, in the payload.
+        if (!sym->is_ifunc) return addr;
+        return remote_.call_ifunc_resolver(addr);
       }
     } catch (const Error&) {
       continue;
@@ -316,6 +343,19 @@ ManualMapHandle ManualLoader::load() {
 
 
     run_init(handle.base);
+
+    // A shared object's constructors only wire up static state; they do not
+    // start the hook.  The payload exposes snowluma_linux_hook_start_dynamic for
+    // that, and it is what creates the control and receive sockets the Node side
+    // connects to.  Without this call the module maps successfully, entry points
+    // at valid code, and nothing observable happens -- the caller then waits on a
+    // channel that will never appear.
+    // start_dynamic returns after creating the control and receive sockets; the
+    // threads that serve them outlive it.  Waiting for the return matters because
+    // the call needs a landing pad, and detaching before the callee returns would
+    // leave that landing pad trapping with nobody to catch it -- which kills the
+    // host process instead of starting the hook.
+    if (handle.entry != 0) remote_.remote_call(handle.entry, {}, 0);
   } catch (const UnresolvedSymbol&) {
     // A missing symbol is fatal but recoverable-by-the-caller: release the window
     // so the target does not carry an unreachable executable region.

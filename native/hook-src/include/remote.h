@@ -15,6 +15,7 @@
 
 #include "common.h"
 
+#include <chrono>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -83,6 +84,24 @@ class RemoteProcess {
   // breakpoint trips.  `args` are placed in the first `argc` integer registers.
   uint64_t remote_call(uint64_t fn, const std::vector<uint64_t>& args, size_t argc);
 
+  // Resolves an STT_GNU_IFUNC symbol.  glibc's strlen/memcpy/memset/strcmp are
+  // IFUNCs: their symbol value is a resolver that *returns* the implementation
+  // chosen for this CPU.  Using the value directly hands the payload a function
+  // that returns a pointer where a length is expected, which corrupts the
+  // payload's own logic instead of failing loudly.  Runs the resolver in the
+  // tracee (it may read that process's auxiliary vector) and returns the
+  // implementation address.  Falls back to `resolver` when the call fails.
+  uint64_t call_ifunc_resolver(uint64_t resolver);
+
+  // Runs `fn` and lets go without waiting for it.  For callees that spawn threads
+  // and keep running -- a hook payload's start_dynamic -- waiting is wrong twice:
+  // the value never arrives, and every thread the callee creates traps under our
+  // ptrace session where a non-main-thread stop looks like a crash.
+  //
+  // The scratch window is deliberately leaked: it holds the callee's stack.
+  uint64_t remote_call_detached(uint64_t fn, const std::vector<uint64_t>& args,
+                                size_t argc);
+
   // Finds a mapping whose pathname contains `soname` and returns its lowest base
   // address, or nullopt when the target has not loaded it.
   std::optional<uint64_t> find_loaded_module(std::string_view soname);
@@ -98,6 +117,12 @@ class RemoteProcess {
   uint64_t scratch_buffer(size_t size);
   void release_scratch();
 
+  // Hands the current scratch window to the target permanently.  Used after a
+  // detached call: the window is the callee's stack and must outlive us.  After
+  // this, scratch_buffer() maps a new window instead of reusing the old one, and
+  // release_scratch() will not unmap it.
+  void leak_scratch();
+
   // Ensures the target is stopped so registers can be inspected or rewritten.
   // PTRACE_SEIZE leaves the tracee running, so the first register access has to
   // interrupt it; afterwards we stay in a stopped state between operations.
@@ -108,10 +133,24 @@ class RemoteProcess {
   // it raised itself.
   bool last_stop_was_ours() const { return last_stop_ours_; }
 
+  // Wall-clock limit for a single remote_call().  The wait loop that runs the
+  // callee cannot block forever: a callee that never returns, or a thread that
+  // cannot be resumed, would leave the target frozen under our ptrace session and
+  // the injector's worker thread stuck with it.  On expiry the call throws, which
+  // unwinds into ~RemoteProcess and detaches the target.  Default 60 s is roughly
+  // 100x the cost of the slowest injection observed against a real 130 MB module.
+  void set_call_timeout_seconds(int seconds) { call_timeout_seconds_ = seconds; }
+  int call_timeout_seconds() const { return call_timeout_seconds_; }
+
  private:
   void seize();
   void interrupt();
   void wait_for_stop();
+  // Same as wait_for_stop() but bounded by a deadline: returns the stopped pid,
+  // or -1 when the deadline expires.  Uses WNOHANG polling because a blocking
+  // waitpid() cannot be bounded.  The status of the stop it returns is left in
+  // last_wait_status_ for callers that need it.
+  int wait_for_stop_until(std::chrono::steady_clock::time_point deadline);
   void restore_and_continue();
   void ensure_syscall_site();
 
@@ -129,6 +168,9 @@ class RemoteProcess {
 
   uint64_t scratch_addr_ = 0;
   size_t scratch_size_ = 0;
+  bool scratch_leaked_ = false;
+  int call_timeout_seconds_ = 60;
+  int last_wait_status_ = 0;
 };
 
 }  // namespace hz

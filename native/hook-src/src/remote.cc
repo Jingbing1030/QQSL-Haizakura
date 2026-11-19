@@ -1,5 +1,6 @@
 #include "remote.h"
 
+#include <chrono>
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
@@ -76,6 +77,12 @@ struct Aarch64Regs {
           x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28,
           x29, x30;
     };
+    // Argument-register aliases, so call setup code can be written once for both
+    // architectures.  aarch64 takes arguments in x0..x5; x86-64 uses the same
+    // positional order through rdi, rsi, rdx, rcx, r8, r9.
+    struct {
+      uint64_t rdi, rsi, rdx, rcx, r8, r9;
+    };
   };
   union {
     uint64_t sp;
@@ -131,12 +138,15 @@ RemoteProcess::RemoteProcess(int pid) : pid_(pid) {
 }
 
 RemoteProcess::~RemoteProcess() {
+  // Order matters: the scratch window may be needed to run the munmap syscall
+  // (it is the stack for the syscall trampoline), so it is released last, and its
+  // own failure must not stop the detach below.
   try {
-    release_scratch();
+    if (attached_) detach();
   } catch (...) {
   }
   try {
-    if (attached_) detach();
+    release_scratch();
   } catch (...) {
   }
   delete saved_;
@@ -149,23 +159,57 @@ void RemoteProcess::attach() {
   attached_ = true;
 }
 
+// A leak of the tracer relationship is not a cosmetic bug, it is the failure the
+// live-QQ runs kept hitting: a process is only allowed one tracer at a time, so a
+// tracer that dies or unwinds without detaching leaves the target permanently
+// un-attachable -- for us and for the reference implementation -- until the target
+// is restarted.  Two different hazards, two different mechanisms:
+//
+//   * an exception or an early return between SEIZE and DETACH  -> ~RemoteProcess
+//   * the injector process itself being killed (SIGSEGV in native code, SIGKILL
+//     from the OOM killer, the Node runtime aborting on exit 255)
+//
+// The kernel handles the second case by itself: when a tracer dies without
+// detaching, it detaches every tracee automatically.  Measured on this kernel at
+// yama ptrace_scope=1, after SIGKILLing the tracer of a stopped target:
+// TracerPid returned to 0, the target went back to S and a fresh SEIZE *and*
+// ATTACH both succeeded.  So no signal handler is needed to avoid the stuck
+// state -- and that matters, because PTRACE_DETACH from a signal handler is
+// async-signal-unsafe and would be unsafe precisely when the process is already
+// in a bad state.  What the kernel does NOT clean up is the *saved registers*:
+// the target is left stopped with our rewritten rip/rsp, so on detach it resumes
+// wherever we last pointed it.  That is why the destructor path below (which
+// restores registers before DETACH) is the one that must be airtight.
+
 void RemoteProcess::seize() {
-  // PTRACE_ATTACH is used rather than PTRACE_SEIZE on purpose.  SEIZE leaves the
-  // tracee running, so every register access first needs a group-stop via
-  // INTERRUPT; while that stop can be read and written, resuming from it with
-  // SINGLESTEP does not establish a single-step context on all kernels and the
-  // tracee dies with SIGILL before executing the instruction.  ATTACH delivers a
-  // signal-delivery-stop, from which SINGLESTEP is reliable.
-  if (::ptrace(PTRACE_ATTACH, pid_, nullptr, nullptr) != 0) {
-    fail(format("PTRACE_ATTACH failed for pid %d: %s", pid_, std::strerror(errno)));
+  // PTRACE_SEIZE, not PTRACE_ATTACH.  ATTACH is subject to yama's
+  // ptrace_scope: outside a parent/child relationship it fails with EPERM, and a
+  // QQ session is not our child.  SEIZE carries no such restriction, which is why
+  // the reference implementation uses it: it can attach a live process that is not
+  // our child, where ATTACH is refused.
+  //
+  // SEIZE leaves the tracee running, so a stop has to be requested explicitly.
+  // INTERRUPT gives a group-stop, and PTRACE_GETREGSET/SETREGSET work from it.
+  if (::ptrace(PTRACE_SEIZE, pid_, nullptr, nullptr) != 0) {
+    fail(format("PTRACE_SEIZE failed for pid %d: %s", pid_, std::strerror(errno)));
   }
+  if (::ptrace(PTRACE_INTERRUPT, pid_, nullptr, nullptr) != 0) {
+    fail(format("PTRACE_INTERRUPT failed for pid %d: %s", pid_, std::strerror(errno)));
+  }
+
   int status = 0;
-  if (::waitpid(pid_, &status, __WALL) < 0) {
-    fail(format("target wait failed for pid %d: %s", pid_, std::strerror(errno)));
+  for (;;) {
+    const pid_t w = ::waitpid(pid_, &status, __WALL);
+    if (w < 0) {
+      if (errno == EINTR) continue;
+      fail(format("target wait failed for pid %d: %s", pid_, std::strerror(errno)));
+    }
+    if (WIFSTOPPED(status)) break;
+    if (WIFEXITED(status) || WIFSIGNALED(status)) {
+      fail(format("target process %d exited while attaching", pid_));
+    }
   }
-  if (!WIFSTOPPED(status)) {
-    fail(format("target process %d did not stop after PTRACE_ATTACH", pid_));
-  }
+
   // Record the initial stop so stop_target() does not interrupt again.
   if (saved_ == nullptr) saved_ = new SavedRegs();
   regs_get(pid_, saved_->regs);
@@ -177,6 +221,38 @@ void RemoteProcess::interrupt() {
     fail(format("PTRACE_INTERRUPT failed for pid %d: %s", pid_, std::strerror(errno)));
   }
   wait_for_stop();
+}
+
+int RemoteProcess::wait_for_stop_until(std::chrono::steady_clock::time_point deadline) {
+  // Polls instead of blocking.  WNOHANG is the whole point: a blocking waitpid()
+  // cannot respect a deadline, and an unbounded wait is exactly the failure mode
+  // that froze the target under a live tracer with the injector inside do_wait.
+  // The tick is short enough to keep the timeout honest and long enough that the
+  // syscall rate stays negligible (100 Hz).
+  constexpr int kTickMicros = 10000;
+  for (;;) {
+    int status = 0;
+    const pid_t w = ::waitpid(pid_, &status, __WALL | WNOHANG);
+    if (w == pid_) {
+      last_wait_status_ = status;
+      if (WIFEXITED(status)) {
+        fail(format("target process %d exited during injection (code %d)", pid_,
+                    WEXITSTATUS(status)));
+      }
+      if (WIFSIGNALED(status)) {
+        fail(format("target process %d was killed by signal %d during injection", pid_,
+                    WTERMSIG(status)));
+      }
+      return pid_;
+    }
+    if (w < 0) {
+      if (errno == EINTR) continue;
+      fail(format("target wait failed for pid %d: %s", pid_, std::strerror(errno)));
+    }
+    // w == 0: nothing to report yet.
+    if (std::chrono::steady_clock::now() > deadline) return -1;
+    ::usleep(kTickMicros);
+  }
 }
 
 void RemoteProcess::wait_for_stop() {
@@ -313,6 +389,16 @@ std::string RemoteProcess::read_cstring(uint64_t addr, size_t max_len) {
 }
 
 uint64_t RemoteProcess::scratch_buffer(size_t size) {
+  // If a detached callee is living on the current window, that window is
+  // untouchable: neither reusable (its stack is in use) nor unmappable (the
+  // callee would fault).  Map a fresh one instead and let the old one live out
+  // the target's lifetime.  This is the whole scratch lifetime rule in one place:
+  // leak_scratch() sets the flag, everything else here respects it.
+  if (scratch_leaked_) {
+    scratch_addr_ = 0;
+    scratch_size_ = 0;
+    scratch_leaked_ = false;
+  }
   if (scratch_addr_ != 0 && scratch_size_ >= size) return scratch_addr_;
   release_scratch();
   // Map writable+readable scratch space in the target.  PROT flags are the raw
@@ -333,6 +419,15 @@ uint64_t RemoteProcess::scratch_buffer(size_t size) {
 }
 
 void RemoteProcess::release_scratch() {
+  // Never unmap a window a detached callee is running on, even if some future
+  // caller asks for it explicitly.  The check is here as well as in the
+  // destructor because this is the function that would do the damage.
+  if (scratch_leaked_) {
+    scratch_addr_ = 0;
+    scratch_size_ = 0;
+    scratch_leaked_ = false;
+    return;
+  }
   if (scratch_addr_ != 0) {
     remote_munmap(scratch_addr_, scratch_size_);
     scratch_addr_ = 0;
@@ -340,9 +435,121 @@ void RemoteProcess::release_scratch() {
   }
 }
 
+uint64_t RemoteProcess::call_ifunc_resolver(uint64_t resolver) {
+  // STT_GNU_IFUNC symbols carry the address of a resolver, not of the function.
+  // Calling the resolver with no arguments yields the implementation address.
+  //
+  // This has to happen *inside the tracee*, not in the injector, for two reasons:
+  // IFUNC resolvers are allowed to read CPU capabilities from the target's own
+  // auxiliary vector, and the implementation they return is an address in the
+  // target's address space -- computing it here would produce an address that
+  // only means something in our own process.
+  //
+  // A resolver never spawns threads, so the plain (waiting) call is correct here.
+  try {
+    return remote_call(resolver, {}, 0);
+  } catch (const Error&) {
+    // A resolver that cannot be called leaves us no better answer than the raw
+    // symbol value.  That is still wrong for an IFUNC, but it is the historical
+    // behaviour, and failing the whole load would reject payloads that merely
+    // reference a symbol they never call.
+    return resolver;
+  }
+}
+
+uint64_t RemoteProcess::remote_call_detached(uint64_t fn, const std::vector<uint64_t>& args,
+                                            size_t argc) {
+  // For callees that spawn threads and keep running -- a hook payload's
+  // start_dynamic takes that shape.  Waiting for it to return is wrong twice
+  // over: the value never comes, and every thread it creates traps under our
+  // ptrace session, where a non-main-thread stop is indistinguishable from a
+  // crash in the callee.  Set up the call, let the target run, and let go.
+  // The callee returns into `region`, so the first bytes there must not be int3.
+  // `remote_call` uses an int3 sled because it stays attached and *catches* the
+  // trap; here we have deliberately let go, and an uncaught SIGTRAP from
+  // returning into the sled has SIGTRAP's default action: the kernel kills the
+  // whole thread group.  That is exactly the failure this test first showed --
+  // socket created, marker written, target dead a moment later.
+  //
+  // Instead park on a `jmp $` (EB FE): returning from the callee spins one
+  // thread forever inside an executable, permanently mapped page.  A spinning
+  // thread is a leak of one thread's worth of CPU, but it cannot corrupt memory
+  // and it cannot kill the host, which makes it the correct failure mode for a
+  // call we are not going to supervise.  A `ret`-to-`hlt` is not an option:
+  // hlt outside ring 0 is SIGSEGV.
+  constexpr size_t kTrampSize = 64;
+  constexpr size_t kStackSize = 128 * 1024;
+  const uint64_t region = scratch_buffer(kTrampSize + kStackSize);
+
+  const uint8_t park[2] = {0xeb, 0xfe};  // jmp $
+  write_exact(region, park, sizeof(park));
+
+  const uint64_t stack_top = (region + kTrampSize + kStackSize) & ~static_cast<uint64_t>(0xf);
+  const uint64_t new_rsp = stack_top - 8;
+  write_value<uint64_t>(new_rsp, region);
+
+  stop_target();
+  Regs baseline{};
+  regs_get(pid_, baseline);
+
+  Regs regs = baseline;
+  regs.rip = fn;
+  regs.rsp = new_rsp;
+#if defined(__x86_64__)
+  // Mark the tracee as not inside a syscall.  Without this the kernel believes a
+  // system call is still in flight and rewinds rip by the length of the `syscall`
+  // instruction on resume, landing in the middle of the previous instruction.
+  // aarch64 has no orig_rax: pstate carries that state instead, so nothing to do.
+  regs.orig_rax = static_cast<uint64_t>(-1);
+#endif
+  regs.rdi = argc > 0 ? args[0] : 0;
+  regs.rsi = argc > 1 ? args[1] : 0;
+  regs.rdx = argc > 2 ? args[2] : 0;
+  regs.rcx = argc > 3 ? args[3] : 0;
+  regs.r8 = argc > 4 ? args[4] : 0;
+  regs.r9 = argc > 5 ? args[5] : 0;
+  regs_set(pid_, regs);
+
+  dbg("[hz] remote_call_detached fn=0x%llx rsp=0x%llx\n",
+      static_cast<unsigned long long>(fn), static_cast<unsigned long long>(new_rsp));
+
+  // Hand the target back to itself and let the call run on its own threads.
+  // Nothing below waits: the scratch window is left mapped on purpose, because
+  // unmapping it would pull the callee's stack out from under it.
+  if (::ptrace(PTRACE_DETACH, pid_, nullptr, nullptr) != 0) {
+    fail(format("PTRACE_DETACH failed for pid %d: %s", pid_, std::strerror(errno)));
+  }
+  attached_ = false;
+
+  leak_scratch();
+  return 0;
+}
+
+void RemoteProcess::leak_scratch() {
+  // Deliberately forget the window without unmapping it.  It holds the callee's
+  // live stack, and the callee is still running on it -- releasing it pulls the
+  // ground out from under the hook the moment it starts, which looks exactly like
+  // the hook failing to start: the module maps, the entry point is valid, and no
+  // socket ever appears.  The window is a few pages and lives until the target
+  // exits, which is the correct lifetime for a payload's own stack.
+  //
+  // The flag is what makes this safe rather than merely lucky: without it the
+  // next scratch_buffer() call would happily reuse or unmap the leaked window,
+  // which is the same crash one call later.
+  if (scratch_addr_ == 0) return;
+  dbg("[hz] leaking scratch window 0x%llx (%zu bytes) for a detached callee\n",
+      static_cast<unsigned long long>(scratch_addr_), scratch_size_);
+  scratch_addr_ = 0;
+  scratch_size_ = 0;
+  scratch_leaked_ = true;
+}
+
 void RemoteProcess::detach() {
   if (!attached_) return;
-  release_scratch();
+  // The scratch window is NOT released here any more.  It may be holding a live
+  // callee stack (see remote_call_detached), and we cannot tell from here whether
+  // it is.  A window a few pages in size is not worth crashing the target over;
+  // release_scratch() is called explicitly by callers that own the decision.
   try {
     restore_and_continue();
   } catch (...) {
@@ -635,19 +842,39 @@ uint64_t RemoteProcess::remote_call(uint64_t fn, const std::vector<uint64_t>& ar
       static_cast<unsigned long long>(applied.rsp),
       static_cast<unsigned long long>(fn), static_cast<unsigned long long>(new_rsp));
 
+  // Every tolerated off-sled trap is counted; the limit is what keeps a stuck
+  // stop from becoming an infinite resume loop.
+  constexpr int kMaxOffSledTraps = 16;
+  int offSledTraps = 0;
+
+  // Hard deadline for the whole wait.  Without one, a callee that blocks forever
+  // (or a thread that cannot be resumed) hangs the injector's worker thread with
+  // the target stopped under our ptrace session -- which is worse than a failed
+  // injection, because the target stays frozen until we die.  The caller's own
+  // timeout cannot help: it never gets control back.
+  const auto deadline = std::chrono::steady_clock::now() +
+                        std::chrono::seconds(call_timeout_seconds_);
+
   // Run the function to completion.  The `data` argument is the signal to inject;
   // passing 0 resumes without delivering anything, which is what we want since the
-  // SIGSTOP from PTRACE_ATTACH has already been consumed by waitpid.
+  // stop from attaching has already been consumed by waitpid.
   if (::ptrace(PTRACE_CONT, pid_, nullptr, nullptr) != 0) {
     fail(format("PTRACE_CONT failed for pid %d: %s", pid_, std::strerror(errno)));
   }
 
   int status = 0;
   for (;;) {
-    const pid_t w = ::waitpid(pid_, &status, __WALL);
+    // wait_for_stop() polls with a bounded timeout rather than blocking in
+    // waitpid().  A blocking wait cannot be bounded: a callee that never returns
+    // would park this thread in do_wait forever, and the deadline above would
+    // never be evaluated.  That is not hypothetical -- it is what the hang test
+    // did the first time round: the target sat healthy in S with TracerPid still
+    // pointing at us, and the injector sat in do_wait.
+    const int w = wait_for_stop_until(deadline);
     if (w < 0) {
-      if (errno == EINTR) continue;
-      fail(format("target wait failed for pid %d: %s", pid_, std::strerror(errno)));
+      fail(format("call into 0x%llx timed out after %d s; the callee or one of "
+                  "its threads never resumed",
+                  static_cast<unsigned long long>(fn), call_timeout_seconds_));
     }
     if (WIFEXITED(status) || WIFSIGNALED(status)) {
       fail(format("target process %d died inside 0x%llx", pid_,
@@ -673,8 +900,65 @@ uint64_t RemoteProcess::remote_call(uint64_t fn, const std::vector<uint64_t>& ar
     }
 
 
-    // Any other trap or fault is a real failure inside the callee.
-    fail(format("call to 0x%llx raised signal %d at rip 0x%llx", 
+    // A stop that is not ours and not the main thread belongs to a thread the
+    // callee just created.  A hook payload spawns its listener threads inside
+    // this call, and those threads trap and fault on their own: treating their
+    // stops as failures aborted the call with "raised signal 5 at rip 0x..." from
+    // an address nowhere near the callee.  Forward the signal and keep waiting
+    // for the main thread's return into the sled.
+    if (w != pid_) {
+      const int deliver = sig == SIGTRAP ? 0 : sig;
+      if (::ptrace(PTRACE_CONT, w, nullptr,
+                   reinterpret_cast<void*>(static_cast<intptr_t>(deliver))) != 0) {
+        fail(format("cannot resume thread %d: %s", w, std::strerror(errno)));
+      }
+      continue;
+    }
+
+    // Signal 5 delivered to the main thread just after a new thread started is
+    // the pthread bookkeeping trap, not a fault in the callee.
+    //
+    // Both of the tolerated branches below are BOUNDED by offSledTraps, and the
+    // bound is the fix for the worst failure this loader has produced: an
+    // unbounded "any SIGTRAP is bookkeeping" rule turned a payload that re-tripped
+    // the same breakpoint into an infinite resume loop.  On live QQ that showed up
+    // in the log as `stop sig=5 rip=0xb6a750b37624` repeated tens of thousands of
+    // times, and the node process exited 255 with the target still frozen under
+    // our tracer.  A stop we cannot make progress past is a failure, not
+    // bookkeeping, so after a bounded number of them the call is aborted -- which
+    // unwinds into ~RemoteProcess and detaches.
+    if (sig == SIGTRAP && offSledTraps < kMaxOffSledTraps &&
+        (now.rip < fn || now.rip > fn + (1u << 20))) {
+      ++offSledTraps;
+      if (::ptrace(PTRACE_CONT, pid_, nullptr, nullptr) != 0) {
+        fail(format("cannot resume pid %d: %s", pid_, std::strerror(errno)));
+      }
+      continue;
+    }
+
+    // A trap from somewhere other than the callee is the debug-exception path
+    // reporting a thread the callee just started, or the callee's own intentional
+    // breakpoint.  Neither is a failure of the call we made, and aborting on them
+    // is what turned a working payload into a dead QQ: the first trap from a
+    // freshly spawned listener thread looked exactly like a crash.
+    if (sig == SIGCHLD || sig == SIGPIPE) {
+      if (::ptrace(PTRACE_CONT, pid_, nullptr, nullptr) != 0) {
+        fail(format("cannot resume pid %d inside 0x%llx: %s", pid_,
+                    static_cast<unsigned long long>(fn), std::strerror(errno)));
+      }
+      continue;
+    }
+    if (sig == SIGTRAP && offSledTraps < kMaxOffSledTraps) {
+      ++offSledTraps;
+      if (::ptrace(PTRACE_CONT, pid_, nullptr, nullptr) != 0) {
+        fail(format("cannot resume pid %d inside 0x%llx: %s", pid_,
+                    static_cast<unsigned long long>(fn), std::strerror(errno)));
+      }
+      continue;
+    }
+
+    // Any other signal is a real fault inside the callee.
+    fail(format("call to 0x%llx raised signal %d at rip 0x%llx",
                 static_cast<unsigned long long>(fn), sig,
                 static_cast<unsigned long long>(now.rip)));
   }
@@ -705,6 +989,11 @@ uint64_t RemoteProcess::remote_call(uint64_t fn, const std::vector<uint64_t>& ar
   // the stack 16-byte aligned as AAPCS64 requires.
   const uint64_t stack_top =
       (region + kTrampSize + kStackSize) & ~static_cast<uint64_t>(0xf);
+
+  // Every tolerated off-sled trap is counted; the limit stops a stuck stop from
+  // becoming an infinite resume loop.
+  constexpr int kMaxOffSledTraps = 16;
+  int offSledTraps = 0;
 
   stop_target();
 
@@ -767,6 +1056,37 @@ uint64_t RemoteProcess::remote_call(uint64_t fn, const std::vector<uint64_t>& ar
       regs_set(pid_, baseline);
       dbg("[hz] call returned x0=0x%llx\n", static_cast<unsigned long long>(result));
       return result;
+    }
+
+    // A stop that is not ours belongs to a thread the callee just created.  The
+    // payload's start_dynamic spawns its listener threads inside this call, and
+    // those threads hit the debug-exception path on their own.  Treating their
+    // stops as failures aborted the call with "raised signal 5 at pc 0x..." from
+    // an address nowhere near the callee, which is exactly what we saw: pc
+    // 0xb27e16027624 against a callee at 0xe6f62bfbdf3c.
+    if (w != pid_) {
+      const int deliver = sig == SIGTRAP ? 0 : sig;
+      if (::ptrace(PTRACE_CONT, w, nullptr,
+                   reinterpret_cast<void*>(static_cast<intptr_t>(deliver))) != 0) {
+        fail(format("cannot resume thread %d: %s", w, std::strerror(errno)));
+      }
+      continue;
+    }
+
+    // Bounded tolerance for a SIGTRAP that is neither ours nor a fault in the
+    // callee.  A freshly cloned thread can report a debug trap before it becomes
+    // visible to waitpid, and that is bookkeeping -- but only a finite number of
+    // them are bookkeeping.  Resuming every SIGTRAP forever turns a stuck stop
+    // into a spin that never returns: the same pc was resumed thousands of times
+    // while the caller waited and eventually died, with the target held in a
+    // traced state afterwards.  Cap it and fail loudly instead.
+    if (sig == SIGTRAP && offSledTraps < kMaxOffSledTraps) {
+      ++offSledTraps;
+      if (::ptrace(PTRACE_CONT, pid_, nullptr, nullptr) != 0) {
+        fail(format("cannot resume pid %d inside 0x%llx: %s", pid_,
+                    static_cast<unsigned long long>(fn), std::strerror(errno)));
+      }
+      continue;
     }
 
     regs_set(pid_, baseline);

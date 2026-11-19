@@ -68,6 +68,12 @@ set_target_properties(fake_wrapper PROPERTIES PREFIX "" SUFFIX ".node" OUTPUT_NA
 add_library(payload SHARED test/payload.cc)
 set_target_properties(payload PROPERTIES PREFIX "" SUFFIX ".so" OUTPUT_NAME "payload")
 target_link_options(payload PRIVATE -Wl,--unresolved-symbols=ignore-all)
+# The manual loader implements no TLS relocations, so the payload must not carry
+# any.  A stack-protector canary is a thread-local on modern glibc: without
+# -fno-stack-protector every non-trivial function in payload.cc fails relocation
+# with "manual ELF loader does not implement TLS relocations", which reads like a
+# loader bug but is really a payload build flag.
+target_compile_options(payload PRIVATE -fno-stack-protector -fno-exceptions -fno-rtti)
 
 add_executable(fake_target test/fake_target.cc)
 
@@ -107,3 +113,18 @@ add_executable(hook_selftest test/selftest.cc
 target_include_directories(hook_selftest PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
+
+# End-to-end injection test.  Needs a live target, so it is not part of the
+# default selftest: it forks its own multithreaded fake_target as an orphan and
+# injects into that.  Invoked by ctest through the wrapper script, which stages
+# the built payload/binary into a scratch directory.
+add_executable(thread_inject_test test/thread_inject_test.cc
+  src/common.cc
+  src/remote.cc
+  src/elf_image.cc
+  src/manual_loader.cc
+)
+target_include_directories(thread_inject_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+add_dependencies(thread_inject_test payload fake_wrapper fake_target)
