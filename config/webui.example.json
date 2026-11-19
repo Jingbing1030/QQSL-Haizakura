@@ -1,0 +1,16 @@
+{
+  "$comment": [
+    "Template for config/webui.json. SnowLuma generates the real file on first",
+    "start, including passwordHash and passwordSalt.",
+    "",
+    "Do not commit the generated file: even though it stores a hash rather than a",
+    "password, it is the credential that unlocks the panel, and a hash is",
+    "offline-crackable. If you need to reset the password, delete the generated",
+    "file and let the next start produce a new bootstrap password."
+  ],
+  "passwordHash": "<generated on first start - do not commit>",
+  "passwordSalt": "<generated on first start - do not commit>",
+  "mustChangePassword": true,
+  "generatedAt": "<ISO 8601 timestamp>",
+  "updatedAt": "<ISO 8601 timestamp>"
+}

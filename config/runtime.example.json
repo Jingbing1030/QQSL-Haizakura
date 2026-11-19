@@ -1,0 +1,25 @@
+{
+  "$comment": [
+    "Template for config/runtime.json. Copy to config/runtime.json and adjust.",
+    "",
+    "Why this is a template and not the real file: SnowLuma generates config/ on",
+    "first start, and webui.json in that directory holds the panel password hash",
+    "and salt. Neither is source, so neither belongs in the repository."
+  ],
+  "webuiPort": 5099,
+  "webuiHost": "127.0.0.1",
+  "webuiTls": {
+    "enabled": false
+  },
+  "trustProxy": "",
+  "hookAutoLoad": false,
+  "logMaxTotalMb": 1024,
+  "logRetainDays": 7,
+  "logPerUin": false,
+  "statusCommand": {
+    "enabled": true,
+    "swallow": false,
+    "cooldownSeconds": 5,
+    "trigger": "#hz"
+  }
+}
