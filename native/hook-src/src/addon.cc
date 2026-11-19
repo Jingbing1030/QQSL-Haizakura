@@ -15,7 +15,9 @@
 
 #include <node_api.h>
 
+#include <cxxabi.h>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -126,6 +128,9 @@ napi_value process_info_to_object(napi_env env, const hz::ProcessInfo& p) {
   napi_create_object(env, &obj);
   napi_set_named_property(env, obj, "pid", make_int(env, p.pid));
   napi_set_named_property(env, obj, "ppid", make_int(env, p.ppid));
+  // "comm" is the field name the original addon uses; "name" is kept as an
+  // alias because the TypeScript layer reads it.
+  napi_set_named_property(env, obj, "comm", make_string(env, p.name));
   napi_set_named_property(env, obj, "name", make_string(env, p.name));
   napi_set_named_property(env, obj, "exe", make_string(env, p.exe));
   napi_set_named_property(env, obj, "cmdline", make_string(env, p.cmdline));
@@ -254,7 +259,16 @@ napi_value GetAllMainProcessAsync(napi_env env, napi_callback_info info) {
       env, "haizakura:getAllMainProcess",
       []() { return hz::find_main_processes("qq"); },
       [](napi_env e, const std::vector<hz::ProcessInfo>& list) {
-        return process_list_to_array(e, list);
+        // Pid array, matching the original addon.  The TypeScript layer happens
+        // to accept records too, but anything else consuming this addon expects
+        // numbers, and a shape change here would be silent at the call site.
+        napi_value array = nullptr;
+        napi_create_array_with_length(e, list.size(), &array);
+        for (size_t i = 0; i < list.size(); ++i) {
+          napi_set_element(e, array, static_cast<uint32_t>(i),
+                           make_int(e, list[i].pid));
+        }
+        return array;
       });
 }
 
@@ -523,6 +537,51 @@ struct InspectOut {
   std::vector<SymbolOut> dynamic_symbols;
 };
 
+// Symbols of the messaging layer, as opposed to the third-party code linked
+// into the same module.
+//
+// The reference addon builds this list from a fixed table of identifiers and
+// keeps every defined dynamic symbol whose mangled name contains one of them,
+// case-sensitively.  The table is reproduced verbatim below; it is what makes
+// wrapper.node report exactly the 86 symbols the inspector is looking for out
+// of the 883 it defines.
+//
+// A namespace-based test is the obvious alternative and is *not* what the
+// reference does: MSF and nt::wrapper only account for 84 of the 86.  The two
+// stragglers are a std::_Hashtable::_M_insert instantiation that mentions
+// "_Hash_nodeIS5_" (matched by "NodeI") and the typeinfo name for
+// std::Cr::default_delete<MSF::MSFRequest>.  Matching identifiers rather than
+// namespaces also keeps the entries that spell "SessionShell" without being
+// reachable from the nt::wrapper nested-name production.
+const char* const kSymbolHints[] = {
+    "MSF", "Msf", "SSO", "Wrapper", "Kernel",
+    "NodeI", "Session", "CreateNTSessionShell", "CreateGProSessionShell",
+};
+
+bool is_messaging_symbol(const std::string& name) {
+  if (name.empty()) return false;
+  // Case-sensitive substring search, exactly as the reference does it: a
+  // case-insensitive pass would additionally pull in eleven "_Rb_tree_node" /
+  // "_Hash_node" instantiations that spell "node" in lower case.
+  for (const char* hint : kSymbolHints) {
+    if (name.find(hint) != std::string::npos) return true;
+  }
+  return false;
+}
+
+// Demangles when the runtime demangler is available, otherwise keeps the raw
+// name.  Symbol listing must not depend on libstdc++ internals being exported by
+// whatever process this addon is loaded into, so failure is not an error.
+std::string demangle_name(const std::string& mangled) {
+  int status = 0;
+  char* demangled =
+      abi::__cxa_demangle(mangled.c_str(), nullptr, nullptr, &status);
+  if (status != 0 || demangled == nullptr) return mangled;
+  std::string result(demangled);
+  std::free(demangled);
+  return result;
+}
+
 napi_value InspectProcessAsync(napi_env env, napi_callback_info info) {
   size_t argc = 1;
   napi_value argv[1];
@@ -559,21 +618,28 @@ napi_value InspectProcessAsync(napi_env env, napi_callback_info info) {
         hz::ElfImage image(hz::MappedFile::open(out.path));
 
         out.mapped_start = out.base;
-        out.mapped_end = out.base + image.image_size();
+        // Report where the kernel stops mapping the file, not image_size().
+        // image_size() is padded for the manual loader's reservation window and
+        // covers the whole .bss; the file-backed mapping ends at the last
+        // PT_LOAD's p_vaddr + p_filesz, and the .bss tail lives in a separate
+        // anonymous mapping that follows it.  On this module the two differ by
+        // 0x32000.
+        out.mapped_end = out.base + image.loadable_segment_end();
 
         for (const hz::SectionInfo& sec : image.sections()) {
           if (sec.size == 0) continue;
           out.sections.push_back({sec.name, sec.addr, sec.offset, sec.size, sec.flags,
                                   sec.entsize, out.base + sec.addr});
-          if (sec.executable()) {
-            const uint64_t start = out.base + sec.addr;
-            const uint64_t end = start + sec.size;
-            if (out.executable_start == 0 || start < out.executable_start) {
-              out.executable_start = start;
-            }
-            if (end > out.executable_end) out.executable_end = end;
-          }
         }
+
+        // Executable range comes from the program headers, not the section
+        // table.  The two disagree for a module like this one: its first PT_LOAD
+        // is r-x and spans from vaddr 0, while the executable *sections* inside
+        // it start later.  A caller that maps hook trampolines into this range
+        // needs the segment view -- the section view reports a range that is too
+        // narrow and too high off the base.
+        out.executable_start = out.base + image.executable_segment_start();
+        out.executable_end = out.base + image.executable_segment_end();
 
         for (const hz::DynSymbol& sym : image.symbols()) {
           // Only symbols defined in this image belong here.  The undefined ones
@@ -581,11 +647,17 @@ napi_value InspectProcessAsync(napi_env env, napi_callback_info info) {
           // reporting 1500 of those drowns the 86 that actually live in
           // wrapper.node -- which is what a caller inspecting the module wants.
           if (sym.name.empty() || !sym.defined) continue;
+          // Keep the messaging layer's symbols and drop the rest.  wrapper.node
+          // exports 883 defined symbols, but 797 of them are third-party code
+          // linked in alongside (LZ4, protobuf, tinyxml, libstdc++ internals).
+          // The 86 that remain are the ones an inspector is looking for, and
+          // listing the rest buries them.  See kSymbolHints for how the set is
+          // chosen -- it is the reference addon's identifier table, not a
+          // namespace test.
+          if (!is_messaging_symbol(sym.name)) continue;
           SymbolOut s;
           s.name = sym.name;
-          // Only names the payload might match on; demangling everything would
-          // add thousands of allocations for a field nothing reads.
-          s.demangled = sym.name;
+          s.demangled = demangle_name(sym.name);
           s.value = sym.value;
           s.size = sym.size;
           s.runtime_address = out.base + sym.value;
@@ -693,13 +765,28 @@ std::vector<uint64_t> scan_for_vtable_pointers(int pid,
     }
     for (uint64_t off = 0; off + 8 <= chunk; off += 8) {
       const uint64_t word = hz::rd64(buffer.data() + off);
+      bool hit = false;
       for (uint64_t vt : vtables) {
         if (word == vt) {
-          out.push_back(start + off);
-          if (out.size() >= limit) return out;
+          hit = true;
           break;
         }
       }
+      if (!hit) continue;
+
+      // One object embeds several vtable pointers back to back: the primary
+      // subobject plus each virtual base sits in consecutive slots.  Counting
+      // every slot turned one live MSFService instance into five candidates,
+      // which made the count useless for telling whether the right object had
+      // been found.  Keep only the first slot of each run.
+      //
+      // The span is the object's own size -- for MSFService that is 0x30 bytes,
+      // enough to cover all five pointers.  A hit further away is a different
+      // object.
+      constexpr uint64_t kObjectSpan = 0x30;
+      const uint64_t address = start + off;
+      if (out.empty() || address - out.back() >= kObjectSpan) out.push_back(address);
+      if (out.size() >= limit) return out;
     }
   }
   return out;
@@ -773,6 +860,7 @@ std::vector<uint64_t> find_string_xrefs(const hz::ElfImage& image, uint64_t stri
   }
   return out;
 }
+
 
 // Locates a standalone string in .rodata and returns its virtual address.
 //
