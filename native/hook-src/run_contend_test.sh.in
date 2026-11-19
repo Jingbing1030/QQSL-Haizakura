@@ -1,0 +1,16 @@
+#!/bin/sh
+# Contended-attach test, staged so it can run from `ctest`.
+#
+# The target grants PR_SET_PTRACER_ANY so an unprivileged tracer may attach to a
+# process it did not fork at kernel.yama.ptrace_scope=1.  The interesting part is
+# not the permission, it is that individual threads are deliberately held by a
+# separate process: see test/thread_contend_test.cc.
+set -e
+stage=@CMAKE_CURRENT_BINARY_DIR@/contend-stage
+rm -rf "$stage"
+mkdir -p "$stage"
+cp @CMAKE_CURRENT_BINARY_DIR@/fake_target "$stage/"
+cp @CMAKE_CURRENT_BINARY_DIR@/fake-wrapper.node "$stage/"
+exec @CMAKE_CURRENT_BINARY_DIR@/thread_contend_test \
+  --target "$stage/fake_target" \
+  --wrapper "$stage/fake-wrapper.node"

@@ -22,12 +22,14 @@
 #include "remote.h"
 
 #include <cerrno>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <string>
 #include <vector>
 
+#include <dirent.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <sys/stat.h>
@@ -69,14 +71,70 @@ void unlink_if_present(const std::string& path) {
   if (!path.empty()) ::unlink(path.c_str());
 }
 
-// Reads TracerPid out of /proc/<pid>/status.  A non-zero value after we are done
-// means we leaked a tracer: the target keeps a dangling ptrace relationship and
-// the next PTRACE_ATTACH from anyone is refused with EPERM.
-int tracer_pid_of(int pid) {
-  const std::string status = read_text(hz::format("/proc/%d/status", pid));
-  const size_t pos = status.find("TracerPid:");
-  if (pos == std::string::npos) return -1;
-  return std::atoi(status.c_str() + pos + std::strlen("TracerPid:"));
+// TracerPid is a PER-THREAD field, and /proc/<pid>/status reports the *group
+// leader's* tracer, not the process's.  ptrace attachment is per-task too (see
+// RemoteProcess::seize): SEIZE(tid) marks exactly one tid as traced, and on this
+// kernel SEIZE(leader) also marks only the leader.  The consequence is a silent
+// hole in every leak check written against /proc/<pid>/status -- measured:
+//
+//   attach a non-leader tid -> /proc/<pid>/task/<tid>/status: TracerPid = us
+//                              /proc/<pid>/status:             TracerPid = 0
+//
+// So a tracer leaked on any thread other than the leader is invisible there, and
+// the assertion below would pass while the target is permanently un-attachable
+// on that thread -- the exact zombie-tracer failure this rewrite exists to fix.
+// Every tid has to be checked, and the tid that leaks has to be named.
+struct TracerScan {
+  bool readable = false;      // /proc/<pid>/task was listable at all
+  int leaked_tid = 0;         // first tid still carrying a tracer, 0 if none
+  int leaked_tracer = 0;      // its TracerPid value
+  int threads = 0;            // how many tids were examined
+};
+
+TracerScan scan_tracers(int pid) {
+  TracerScan out;
+
+  std::vector<int> tids;
+  DIR* dir = ::opendir(hz::format("/proc/%d/task", pid).c_str());
+  if (dir == nullptr) return out;
+  while (dirent* entry = ::readdir(dir)) {
+    const int tid = std::atoi(entry->d_name);
+    if (tid > 0) tids.push_back(tid);
+  }
+  ::closedir(dir);
+  if (tids.empty()) return out;
+  out.readable = true;
+  out.threads = static_cast<int>(tids.size());
+
+  for (const int tid : tids) {
+    const std::string status =
+        read_text(hz::format("/proc/%d/task/%d/status", pid, tid));
+    const size_t pos = status.find("TracerPid:");
+    if (pos == std::string::npos) continue;
+    const int tracer = std::atoi(status.c_str() + pos + std::strlen("TracerPid:"));
+    if (tracer != 0) {
+      out.leaked_tid = tid;
+      out.leaked_tracer = tracer;
+      return out;
+    }
+  }
+  return out;
+}
+
+// Convenience for the assertion sites: true when every thread of the group is
+// free of a tracer.  Prints the offending tid so a failure names the thread.
+bool no_tracer_on_any_thread(int pid, const std::string& where) {
+  const TracerScan scan = scan_tracers(pid);
+  if (!scan.readable) {
+    std::printf("       (%s: could not enumerate /proc/%d/task)\n", where.c_str(), pid);
+    return false;
+  }
+  if (scan.leaked_tid != 0) {
+    std::printf("       (%s: tid %d still has TracerPid=%d; %d threads scanned)\n",
+                where.c_str(), scan.leaked_tid, scan.leaked_tracer, scan.threads);
+    return false;
+  }
+  return true;
 }
 
 // Number of live tasks in the target's thread group.  Proves the target is still
@@ -125,6 +183,7 @@ struct Options {
   bool allow_any = false;  // let the target waive yama itself
   int rounds = 3;
   int run_seconds = 60;
+  int call_timeout = 0;  // 0 = RemoteProcess default
   int threads = 0;      // 0 = the target's own default
   int big_module_mb = 0;
   int map_count = 0;
@@ -205,12 +264,14 @@ struct InjectionResult {
   uint64_t start_result = 0;
 };
 
-InjectionResult inject_once(int pid, const std::string& payload_path) {
+InjectionResult inject_once(int pid, const std::string& payload_path,
+                            int call_timeout_seconds = 0) {
   InjectionResult out;
   try {
     hz::RemoteProcess remote(pid);
     hz::ElfImage image(hz::MappedFile::open(payload_path));
     hz::ManualLoader loader(remote, image);
+    if (call_timeout_seconds > 0) remote.set_call_timeout_seconds(call_timeout_seconds);
 
     remote.attach();
     out.handle = loader.load();
@@ -253,6 +314,8 @@ int main(int argc, char** argv) {
       opt.rounds = std::atoi(argv[++i]);
     } else if (std::strcmp(a, "--seconds") == 0 && has_value) {
       opt.run_seconds = std::atoi(argv[++i]);
+    } else if (std::strcmp(a, "--call-timeout") == 0 && has_value) {
+      opt.call_timeout = std::atoi(argv[++i]);
     } else if (std::strcmp(a, "--threads") == 0 && has_value) {
       opt.threads = std::atoi(argv[++i]);
     } else if (std::strcmp(a, "--big-module") == 0 && has_value) {
@@ -328,8 +391,8 @@ int main(int argc, char** argv) {
   if (first.threw) {
     // Everything below depends on the injection having happened; still report the
     // clean-up invariants so the failure names the actual problem.
-    std::printf("       TracerPid after failed injection: %d\n", tracer_pid_of(pid));
-    check(tracer_pid_of(pid) == 0, "no tracer left behind after a failed injection");
+    check(no_tracer_on_any_thread(pid, "failed injection"),
+          "no tracer left behind on any thread after a failed injection");
     check(process_alive(pid), "target survived a failed injection");
     stop_target(pid);
     return failures;
@@ -368,7 +431,8 @@ int main(int argc, char** argv) {
   info(hz::format("remote_call_detached returned 0x%llx (not the callee's value)",
                   static_cast<unsigned long long>(first.start_result)));
 
-  check(tracer_pid_of(pid) == 0, "TracerPid is 0 after detach");
+  check(no_tracer_on_any_thread(pid, "after detach"),
+        "no thread still has a tracer after detach");
   check(process_alive(pid), "target is alive after injection");
   check(heartbeat_advances(heartbeat), "target threads are still scheduling");
   const int threads_after = thread_count(pid);
@@ -381,7 +445,8 @@ int main(int argc, char** argv) {
     const InjectionResult again = inject_once(pid, opt.payload);
     if (again.threw) std::printf("       error: %s\n", again.error.c_str());
     check(!again.threw, "re-injection raised no error");
-    check(tracer_pid_of(pid) == 0, "TracerPid is 0 after the re-injection");
+    check(no_tracer_on_any_thread(pid, "after re-injection"),
+          "no thread still has a tracer after the re-injection");
     check(process_alive(pid), "target is alive after the re-injection");
     check(heartbeat_advances(heartbeat), "target threads are still scheduling");
   }
@@ -401,7 +466,8 @@ int main(int argc, char** argv) {
       const InjectionResult bad = inject_once(pid, broken);
       std::printf("       error: %s\n", bad.error.c_str());
       check(bad.threw, "payload with a missing symbol is rejected");
-      check(tracer_pid_of(pid) == 0, "TracerPid is 0 after a rejected payload");
+      check(no_tracer_on_any_thread(pid, "rejected payload"),
+            "no thread still has a tracer after a rejected payload");
       check(process_alive(pid), "target survived a rejected payload");
     } else {
       std::printf("       (skipped: %s not built)\n", broken.c_str());
@@ -414,15 +480,46 @@ int main(int argc, char** argv) {
   {
     bool threw = false;
     std::string message;
+    // pid 1 is init: it exists, so "does not exist" cannot be what rejects it, and
+    // an unprivileged tracer cannot attach to it.  Using a pid that is merely large
+    // is flaky -- pid_max can make it a valid, live process on a busy machine, and
+    // then the test passes for the wrong reason.
     try {
-      hz::RemoteProcess remote(pid + 999999);
+      hz::RemoteProcess remote(1);
       remote.attach();
     } catch (const std::exception& e) {
       threw = true;
       message = e.what();
     }
-    check(threw, "attaching to a non-existent pid throws");
+    check(threw, "attaching to pid 1 is refused");
     info(message);
+  }
+
+  // ---- a callee that never returns -------------------------------------
+  // Bounded by the call timeout rather than by the test's own patience.  What
+  // matters is that the failure is reported and the target is left detachable,
+  // not that the callee is somehow made to return.
+  {
+    const std::string hang = "/tmp/hz-test/payload-hang.so";
+    if (file_exists(hang)) {
+      std::printf("\nfailure path: callee that never returns (call timeout %d s)\n",
+                  opt.call_timeout > 0 ? opt.call_timeout : 60);
+      const auto t0 = std::chrono::steady_clock::now();
+      const InjectionResult timed_out = inject_once(pid, hang, opt.call_timeout);
+      const auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
+                               std::chrono::steady_clock::now() - t0)
+                               .count();
+      info(timed_out.error);
+      check(timed_out.threw, "a callee that never returns is reported as a failure");
+      check(elapsed <= (opt.call_timeout > 0 ? opt.call_timeout : 60) + 15,
+            hz::format("the call gave up in %lld s, not never", (long long)elapsed));
+      check(no_tracer_on_any_thread(pid, "after timeout"),
+            "no thread still has a tracer after the timeout");
+      check(process_alive(pid), "target survived the timeout");
+      check(heartbeat_advances(heartbeat), "target threads are still scheduling");
+    } else {
+      std::printf("\n       (skipped hang payload: %s not built)\n", hang.c_str());
+    }
   }
 
   stop_target(pid);

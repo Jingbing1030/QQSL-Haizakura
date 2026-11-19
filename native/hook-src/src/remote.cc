@@ -1,9 +1,13 @@
 #include "remote.h"
 
+#include <algorithm>
 #include <chrono>
+#include <climits>
 #include <cstdarg>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
+#include <dirent.h>
 
 #include <csignal>
 #include <sys/ptrace.h>
@@ -138,15 +142,17 @@ RemoteProcess::RemoteProcess(int pid) : pid_(pid) {
 }
 
 RemoteProcess::~RemoteProcess() {
-  // Order matters: the scratch window may be needed to run the munmap syscall
-  // (it is the stack for the syscall trampoline), so it is released last, and its
-  // own failure must not stop the detach below.
+  // Order matters, and getting it wrong leaks the tracer: release_scratch() ends
+  // in remote_munmap -> remote_syscall6 -> stop_target -> attach(), so calling it
+  // AFTER detach() re-attaches the target and leaves it traced forever.  Release
+  // while still attached, then detach.  (release_scratch() is a no-op for a window
+  // that was handed to a detached callee, see leak_scratch().)
   try {
-    if (attached_) detach();
+    if (attached_) release_scratch();
   } catch (...) {
   }
   try {
-    release_scratch();
+    if (attached_) detach();
   } catch (...) {
   }
   delete saved_;
@@ -181,6 +187,107 @@ void RemoteProcess::attach() {
 // wherever we last pointed it.  That is why the destructor path below (which
 // restores registers before DETACH) is the one that must be airtight.
 
+int RemoteProcess::thread_score(pid_t pid, pid_t tid) {
+  // Preference order for "which thread should we steal".  A thread parked in a
+  // syscall is not holding up anyone else and is not mid-computation, so seizing
+  // it costs the target the least; a thread that is actively running is the worst
+  // choice, both because we freeze real work and because it is likelier to be the
+  // thread a lock or a JIT depends on.
+  //
+  // The table below is the reference implementation's, recovered from its binary.
+  // Kernel wording drifts across versions -- this kernel reports `futex_do_wait`
+  // where the table says `futex_wait`, and `hrtimer_nanosleep` where it says
+  // `nanosleep` -- so matching is bidirectional: a table entry counts when either
+  // string contains the other.  Without that, most entries would silently score 0
+  // on a modern kernel and the ordering would degrade to plain tid order.
+  static const struct {
+    const char* name;
+    int score;
+  } kScores[] = {
+      {"syscall", 100},
+      {"ep_poll", 90},
+      {"do_epoll", 90},
+      {"poll_schedule", 90},
+      {"do_sys_poll", 90},
+      {"do_select", 90},
+      {"hrtimer_nanosleep", 80},
+      {"nanosleep", 80},
+      {"futex_wait", 70},
+      {"futex_do_wait", 70},
+      {"schedule_timeout", 60},
+      // Not in the reference table, but these are the other shapes a parked
+      // worker takes, and all of them beat "actively running".
+      {"epoll_wait", 50},
+      {"pipe_read", 50},
+      {"anon_pipe_read", 50},
+      {"do_wait", 40},
+  };
+
+  const std::string wchan = [&] {
+    try {
+      std::string text = read_file_text(format("/proc/%d/task/%d/wchan", pid, tid), 4096);
+      while (!text.empty() && (text.back() == '\n' || text.back() == '\0')) text.pop_back();
+      return text;
+    } catch (const Error&) {
+      return std::string();
+    }
+  }();
+  if (wchan.empty()) return 0;
+
+  int best = 0;
+  for (const auto& entry : kScores) {
+    const std::string needle = entry.name;
+    if (wchan.find(needle) != std::string::npos ||
+        needle.find(wchan) != std::string::npos) {
+      best = std::max(best, entry.score);
+    }
+  }
+  return best;
+}
+
+std::vector<pid_t> RemoteProcess::enumerate_threads(pid_t pid) {
+  // ptrace attaches one task, not a thread group (measured: SEIZE(leader) marks
+  // exactly one tid traced).  So the group has to be enumerated and each tid
+  // tried on its own -- that is what makes a thread wedged under a dead tracer a
+  // local problem instead of a fatal one.
+  std::vector<pid_t> tids;
+  const std::string dir = format("/proc/%d/task", pid);
+  DIR* d = ::opendir(dir.c_str());
+  if (d == nullptr) {
+    fail(format("cannot enumerate threads of pid %d (%s): %s", pid, dir.c_str(),
+                std::strerror(errno)));
+  }
+  while (dirent* entry = ::readdir(d)) {
+    // Only plain numeric names: "." and ".." are not tids, and neither is
+    // anything else the kernel might grow here.
+    const char* name = entry->d_name;
+    bool numeric = *name != '\0';
+    for (const char* p = name; numeric && *p != '\0'; ++p) {
+      if (*p < '0' || *p > '9') numeric = false;
+    }
+    if (!numeric) continue;
+    errno = 0;
+    const long value = std::strtol(name, nullptr, 10);
+    if (errno != 0 || value <= 0 || value > INT_MAX) continue;
+    const auto tid = static_cast<pid_t>(value);
+    // Skip the group leader.  It is the busiest thread in a real target, it is
+    // the one a previous tracer is most likely to be holding, and its stop has
+    // group-wide effects; the reference implementation skips it too.
+    if (tid == pid) continue;
+    tids.push_back(tid);
+  }
+  ::closedir(d);
+
+  // Best-first by wchan score, ties broken by tid so a run is reproducible.
+  std::sort(tids.begin(), tids.end(), [pid](pid_t a, pid_t b) {
+    const int sa = thread_score(pid, a);
+    const int sb = thread_score(pid, b);
+    if (sa != sb) return sa > sb;
+    return a < b;
+  });
+  return tids;
+}
+
 void RemoteProcess::seize() {
   // PTRACE_SEIZE, not PTRACE_ATTACH.  ATTACH is subject to yama's
   // ptrace_scope: outside a parent/child relationship it fails with EPERM, and a
@@ -188,37 +295,102 @@ void RemoteProcess::seize() {
   // the reference implementation uses it: it can attach a live process that is not
   // our child, where ATTACH is refused.
   //
+  // The attachment is per THREAD, and that is the whole point of this function.
+  // Measured on this kernel against a live 7-thread target:
+  //
+  //   SEIZE(tid, non-leader)   -> 0      only that tid's TracerPid changes
+  //   SEIZE(same tid) again    -> EPERM  "already traced"
+  //   SEIZE(a sibling tid)     -> 0      unaffected by the first
+  //   SEIZE(leader)            -> 0      also only that one tid
+  //
+  // So a thread left under a tracer that never detached -- the failure the live
+  // runs kept hitting, where TracerPid points at a dead process and every fresh
+  // attach gets EPERM -- spoils that thread only.  Enumerating the group and
+  // taking the first tid that accepts us makes the injector immune to it, which
+  // is exactly how the reference implementation survives the same situation.
+  //
+  // Note what a tid-based attach does NOT do: /proc/<pid>/status keeps reporting
+  // TracerPid 0, because the kernel reports the group leader's tracer there.
+  // Every leak check must read /proc/<pid>/task/<tid>/status instead.
+  std::vector<pid_t> tids = enumerate_threads(pid_);
+  if (tids.empty()) {
+    fail(format("target process %d has no attachable thread besides the group leader",
+                pid_));
+  }
+
+  // Collect failures instead of throwing on the first: after a crashed injector
+  // the interesting fact is *which* threads are stuck, and that is the only
+  // diagnostic that distinguishes "someone else holds a thread" from a genuine
+  // permission problem.
+  std::string tried;
+  for (const pid_t tid : tids) {
+    errno = 0;
+    // addr and data are both null: no options requested.  A non-zero PTRACE_O_*
+    // set here would change the stop semantics the rest of this file depends on
+    // (in particular it would replace the INTERRUPT stop's event code).
+    if (::ptrace(PTRACE_SEIZE, tid, nullptr, nullptr) == 0) {
+      tracer_tid_ = tid;
+      break;
+    }
+    const int saved_errno = errno;
+    if (!tried.empty()) tried += ", ";
+    tried += format("tid %d: %s", tid, std::strerror(saved_errno));
+  }
+
+  if (tracer_tid_ == 0) {
+    fail(format("no thread of pid %d could be seized (%s)", pid_, tried.c_str()));
+  }
+
+  dbg("[hz] seized tid %d of pid %d\n", tracer_tid_, pid_);
+
   // SEIZE leaves the tracee running, so a stop has to be requested explicitly.
   // INTERRUPT gives a group-stop, and PTRACE_GETREGSET/SETREGSET work from it.
-  if (::ptrace(PTRACE_SEIZE, pid_, nullptr, nullptr) != 0) {
-    fail(format("PTRACE_SEIZE failed for pid %d: %s", pid_, std::strerror(errno)));
-  }
-  if (::ptrace(PTRACE_INTERRUPT, pid_, nullptr, nullptr) != 0) {
-    fail(format("PTRACE_INTERRUPT failed for pid %d: %s", pid_, std::strerror(errno)));
-  }
-
-  int status = 0;
-  for (;;) {
-    const pid_t w = ::waitpid(pid_, &status, __WALL);
-    if (w < 0) {
-      if (errno == EINTR) continue;
-      fail(format("target wait failed for pid %d: %s", pid_, std::strerror(errno)));
+  //
+  // From here on any failure has to give the tracee back, or we become the zombie
+  // tracers this rewrite exists to survive: PTRACE_DETACH on a thread that is
+  // still RUNNING fails with ESRCH (measured), so simply returning would leak the
+  // attachment with no way for anyone to clear it.
+  try {
+    if (::ptrace(PTRACE_INTERRUPT, tracer_tid_, nullptr, nullptr) != 0) {
+      fail(format("PTRACE_INTERRUPT failed for tid %d: %s", tracer_tid_,
+                  std::strerror(errno)));
     }
-    if (WIFSTOPPED(status)) break;
-    if (WIFEXITED(status) || WIFSIGNALED(status)) {
-      fail(format("target process %d exited while attaching", pid_));
-    }
-  }
 
-  // Record the initial stop so stop_target() does not interrupt again.
-  if (saved_ == nullptr) saved_ = new SavedRegs();
-  regs_get(pid_, saved_->regs);
-  saved_->valid = true;
+    int status = 0;
+    for (;;) {
+      // __WALL is required and sufficient for a non-leader tracee.  Measured:
+      // with __WALL, 0, __WCLONE, and __WALL|__WCLONE the stop is reported
+      // identically, so there is no non-leader-specific masking rule to get
+      // wrong here -- and __WALL keeps working if we ever trace the leader.
+      const pid_t w = ::waitpid(tracer_tid_, &status, __WALL);
+      if (w < 0) {
+        if (errno == EINTR) continue;
+        fail(format("target wait failed for tid %d: %s", tracer_tid_,
+                    std::strerror(errno)));
+      }
+      if (WIFSTOPPED(status)) break;
+      if (WIFEXITED(status) || WIFSIGNALED(status)) {
+        fail(format("target thread %d exited while attaching", tracer_tid_));
+      }
+    }
+
+    // Record the initial stop so stop_target() does not interrupt again.
+    if (saved_ == nullptr) saved_ = new SavedRegs();
+    regs_get(tracer_tid_, saved_->regs);
+    saved_->valid = true;
+  } catch (...) {
+    // Best effort, and deliberately swallowing: the original exception says more
+    // than anything a cleanup failure could add.  After a successful stop a
+    // DETACH is valid; while still running it fails harmlessly with ESRCH.
+    ::ptrace(PTRACE_DETACH, tracer_tid_, nullptr, nullptr);
+    tracer_tid_ = 0;
+    throw;
+  }
 }
 
 void RemoteProcess::interrupt() {
-  if (::ptrace(PTRACE_INTERRUPT, pid_, nullptr, nullptr) != 0) {
-    fail(format("PTRACE_INTERRUPT failed for pid %d: %s", pid_, std::strerror(errno)));
+  if (::ptrace(PTRACE_INTERRUPT, tracer_tid_, nullptr, nullptr) != 0) {
+    fail(format("PTRACE_INTERRUPT failed for tid %d: %s", tracer_tid_, std::strerror(errno)));
   }
   wait_for_stop();
 }
@@ -232,8 +404,8 @@ int RemoteProcess::wait_for_stop_until(std::chrono::steady_clock::time_point dea
   constexpr int kTickMicros = 10000;
   for (;;) {
     int status = 0;
-    const pid_t w = ::waitpid(pid_, &status, __WALL | WNOHANG);
-    if (w == pid_) {
+    const pid_t w = ::waitpid(tracer_tid_, &status, __WALL | WNOHANG);
+    if (w == tracer_tid_) {
       last_wait_status_ = status;
       if (WIFEXITED(status)) {
         fail(format("target process %d exited during injection (code %d)", pid_,
@@ -243,11 +415,11 @@ int RemoteProcess::wait_for_stop_until(std::chrono::steady_clock::time_point dea
         fail(format("target process %d was killed by signal %d during injection", pid_,
                     WTERMSIG(status)));
       }
-      return pid_;
+      return tracer_tid_;
     }
     if (w < 0) {
       if (errno == EINTR) continue;
-      fail(format("target wait failed for pid %d: %s", pid_, std::strerror(errno)));
+      fail(format("target wait failed for tid %d: %s", tracer_tid_, std::strerror(errno)));
     }
     // w == 0: nothing to report yet.
     if (std::chrono::steady_clock::now() > deadline) return -1;
@@ -255,18 +427,72 @@ int RemoteProcess::wait_for_stop_until(std::chrono::steady_clock::time_point dea
   }
 }
 
+void RemoteProcess::recover_after_failed_call() {
+  // Any throw out of remote_call() happens with the tracee RUNNING (we resumed it
+  // to let the callee execute) but with saved_->valid still set, because
+  // stop_target() recorded a stop on entry.  That inconsistency is what turns a
+  // failed call into a leaked tracer: the next operation believes the target is
+  // stopped, issues PTRACE_GETREGS against a running task, gets ESRCH, and the
+  // detach in the destructor fails -- leaving TracerPid pointing at us with the
+  // tracee resumed on registers we rewrote.
+  //
+  // Restore the invariant instead of papering over it: get the tracee stopped
+  // again, put its original registers back, and mark it stopped.  Then unwinding
+  // into ~RemoteProcess() -> detach() -> restore_and_continue() finds a target it
+  // can actually detach from.
+  dbg("[hz] recovery: entered, saved_valid=%d\n",
+      (saved_ != nullptr && saved_->valid) ? 1 : 0);
+  if (::ptrace(PTRACE_INTERRUPT, tracer_tid_, nullptr, nullptr) != 0) {
+    // Already stopped (EIO/ESRCH happen when there is nothing to interrupt), or
+    // gone.  Either way there is nothing further we can do here.
+    dbg("[hz] recovery: PTRACE_INTERRUPT failed: %s\n", std::strerror(errno));
+  } else {
+    dbg("[hz] recovery: PTRACE_INTERRUPT ok\n");
+  }
+  // Bounded wait: a thread wedged in a stop we cannot clear must not block the
+  // unwinding path, which is the whole reason we are here.
+  const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+  for (;;) {
+    int status = 0;
+    const pid_t w = ::waitpid(tracer_tid_, &status, __WALL | WNOHANG);
+    if (w == tracer_tid_ && WIFSTOPPED(status)) break;
+    if (w < 0 && errno != EINTR) break;
+    if (std::chrono::steady_clock::now() > deadline) break;
+    ::usleep(10000);
+  }
+  dbg("[hz] recovery: wait loop done\n");
+  try {
+    if (saved_ != nullptr && saved_->valid) {
+      regs_set(tracer_tid_, saved_->regs);
+      // saved_->valid deliberately STAYS true.  It means "the tracee is stopped
+      // and saved_->regs is its pre-call register state", and both are still true
+      // here.  Clearing it would make the next stop_target() believe the tracee is
+      // running and issue an INTERRUPT it does not need; since the tracee is
+      // already stopped, no new stop ever arrives and that wait times out -- which
+      // is precisely how the first version of this recovery leaked a tracer.
+      // Restoring twice is harmless: regs_set is idempotent.
+      dbg("[hz] recovery: registers restored\n");
+    }
+  } catch (const Error& e) {
+    // Leave the flag alone: detach() will still try, and a detach that only gets
+    // as far as PTRACE_DETACH is better than none.
+    dbg("[hz] recovery: could not restore registers: %s\n", e.what());
+  }
+}
+
 void RemoteProcess::wait_for_stop() {
   int status = 0;
   for (;;) {
-    const pid_t w = ::waitpid(pid_, &status, __WALL);
+    const pid_t w = ::waitpid(tracer_tid_, &status, __WALL);
     if (w < 0) {
       if (errno == EINTR) continue;
-      fail(format("target wait failed for pid %d: %s", pid_, std::strerror(errno)));
+      fail(format("target wait failed for tid %d: %s", tracer_tid_, std::strerror(errno)));
     }
     if (WIFSTOPPED(status)) {
       const int sig = WSTOPSIG(status);
       const int event = static_cast<int>(status >> 16);
-      dbg("[hz] stopped pid=%d sig=%d (%s) event=%d\n", pid_, sig, ::strsignal(sig), event);
+      dbg("[hz] stopped tid=%d sig=%d (%s) event=%d\n", tracer_tid_, sig,
+          ::strsignal(sig), event);
       return;
     }
     if (WIFEXITED(status)) {
@@ -481,7 +707,29 @@ uint64_t RemoteProcess::remote_call_detached(uint64_t fn, const std::vector<uint
   constexpr size_t kStackSize = 128 * 1024;
   const uint64_t region = scratch_buffer(kTrampSize + kStackSize);
 
-  const uint8_t park[2] = {0xeb, 0xfe};  // jmp $
+  // Park the returning thread in a blocking syscall, not a userspace spin.
+  //
+  // A spin -- `jmp $` (EB FE), or even a yielding `pause`/`wfe` loop -- keeps the
+  // thread runnable, so it holds a full core forever and every injection leaks
+  // one.  On a two-core box two injections starved every other thread and the
+  // target's heartbeat froze.  A payload lives as long as the session, so that is
+  // not an acceptable failure mode.
+  //
+  // A blocking syscall is what we want, and one that ends only the thread would be
+  // wrong: exit_group would kill the whole target.  pause(2) blocks the calling
+  // thread indefinitely and never returns on Linux:
+  //   x86-64 : mov eax, 34 ; syscall        (B8 22 00 00 00 0F 05)
+  //   aarch64: mov x8, #101 ; svc #0        (movz x8,#101 : D2800CA8, svc : D4000001)
+  // pause(2) blocks indefinitely and, being interruptible only by a fatal signal,
+  // costs no CPU.  If it ever returns, fall through into a spin so the thread
+  // cannot run off the end of the mapped page into arbitrary code.
+#if defined(__aarch64__)
+  const uint8_t park[12] = {0xa8, 0x0c, 0x80, 0xd2, 0x01, 0x00, 0x00, 0xd4,
+                            0x00, 0x00, 0x00, 0x14};  // movz x8,#101; svc #0; b .
+#else
+  const uint8_t park[12] = {0xb8, 0x22, 0x00, 0x00, 0x00, 0x0f, 0x05,
+                            0xeb, 0xfe, 0x90, 0x90, 0x90};  // mov eax,34; syscall; jmp $
+#endif
   write_exact(region, park, sizeof(park));
 
   const uint64_t stack_top = (region + kTrampSize + kStackSize) & ~static_cast<uint64_t>(0xf);
@@ -490,7 +738,7 @@ uint64_t RemoteProcess::remote_call_detached(uint64_t fn, const std::vector<uint
 
   stop_target();
   Regs baseline{};
-  regs_get(pid_, baseline);
+  regs_get(tracer_tid_, baseline);
 
   Regs regs = baseline;
   regs.rip = fn;
@@ -508,7 +756,7 @@ uint64_t RemoteProcess::remote_call_detached(uint64_t fn, const std::vector<uint
   regs.rcx = argc > 3 ? args[3] : 0;
   regs.r8 = argc > 4 ? args[4] : 0;
   regs.r9 = argc > 5 ? args[5] : 0;
-  regs_set(pid_, regs);
+  regs_set(tracer_tid_, regs);
 
   dbg("[hz] remote_call_detached fn=0x%llx rsp=0x%llx\n",
       static_cast<unsigned long long>(fn), static_cast<unsigned long long>(new_rsp));
@@ -516,8 +764,8 @@ uint64_t RemoteProcess::remote_call_detached(uint64_t fn, const std::vector<uint
   // Hand the target back to itself and let the call run on its own threads.
   // Nothing below waits: the scratch window is left mapped on purpose, because
   // unmapping it would pull the callee's stack out from under it.
-  if (::ptrace(PTRACE_DETACH, pid_, nullptr, nullptr) != 0) {
-    fail(format("PTRACE_DETACH failed for pid %d: %s", pid_, std::strerror(errno)));
+  if (::ptrace(PTRACE_DETACH, tracer_tid_, nullptr, nullptr) != 0) {
+    fail(format("PTRACE_DETACH failed for tid %d: %s", tracer_tid_, std::strerror(errno)));
   }
   attached_ = false;
 
@@ -545,6 +793,8 @@ void RemoteProcess::leak_scratch() {
 }
 
 void RemoteProcess::detach() {
+  dbg("[hz] detach: entered attached_=%d saved_valid=%d\n", attached_ ? 1 : 0,
+      (saved_ != nullptr && saved_->valid) ? 1 : 0);
   if (!attached_) return;
   // The scratch window is NOT released here any more.  It may be holding a live
   // callee stack (see remote_call_detached), and we cannot tell from here whether
@@ -553,21 +803,24 @@ void RemoteProcess::detach() {
   try {
     restore_and_continue();
   } catch (...) {
+    dbg("[hz] detach: restore_and_continue threw\n");
     attached_ = false;
     throw;
   }
+  dbg("[hz] detach: done\n");
   attached_ = false;
 }
 
 void RemoteProcess::restore_and_continue() {
   if (saved_ != nullptr && saved_->valid) {
     // Put the original registers back so the target never observes our state.
-    regs_set(pid_, saved_->regs);
+    regs_set(tracer_tid_, saved_->regs);
     saved_->valid = false;
   }
-  if (::ptrace(PTRACE_DETACH, pid_, nullptr, nullptr) != 0) {
-    fail(format("PTRACE_DETACH failed for pid %d: %s", pid_, std::strerror(errno)));
+  if (::ptrace(PTRACE_DETACH, tracer_tid_, nullptr, nullptr) != 0) {
+    fail(format("PTRACE_DETACH failed for tid %d: %s", tracer_tid_, std::strerror(errno)));
   }
+  dbg("[hz] restore_and_continue: PTRACE_DETACH ok\n");
 }
 
 // ---------------------------------------------------------------------------
@@ -588,25 +841,80 @@ void RemoteProcess::stop_target() {
 
   // PTRACE_SEIZE does not stop the tracee, and a group-stop obtained via
   // INTERRUPT is not a signal-delivery-stop: modifying registers from it works,
-  // but resuming with SINGLESTEP is unreliable.  Delivering SIGSTOP and waiting
-  // for the resulting signal-delivery-stop gives a stop state that every ptrace
-  // operation behaves predictably from.
-  if (::ptrace(PTRACE_INTERRUPT, pid_, nullptr, nullptr) != 0) {
-    fail(format("PTRACE_INTERRUPT failed for pid %d: %s", pid_, std::strerror(errno)));
+  // but resuming with SINGLESTEP does not.
+  //
+  // That difference is not cosmetic, it is the hang that made this loader look
+  // like it wedged the target.  Measured on this kernel, from a group-stop
+  // produced by INTERRUPT:
+  //
+  //   GETREGS    -> succeeds
+  //   SINGLESTEP -> returns 0
+  //   waitpid    -> NEVER returns; the step never completes
+  //
+  // The single-step completion is what the syscall trampoline waits for, so every
+  // mmap/munmap in the target stalled forever with the tracee held under our
+  // ptrace session -- the target frozen, TracerPid non-zero, and the injector
+  // blocked inside the wait.  The same sequence after a real signal-delivery-stop
+  // completes immediately.  Reproduced deterministically, single-threaded.
+  //
+  // So: interrupt to get the tracee stopped, then turn that group-stop into a
+  // signal-delivery-stop by resuming it and delivering SIGSTOP.  SIGSTOP is the
+  // right signal because it cannot be caught, blocked or ignored, so the stop we
+  // get back is guaranteed and carries no handler side effects in the target.
+  // If the tracee is already stopped -- which happens when the previous call
+  // threw and the recovery path left it stopped -- INTERRUPT is unnecessary and
+  // its stop is already pending.  Sending it again makes waitpid() below consume
+  // the *old* stop while the new one stays queued, and every subsequent wait is
+  // then off by one: the injector blocks forever on a stop that already arrived.
+  // That is exactly how the timeout path leaked a tracer.
+  const bool was_stopped = (saved_ != nullptr && saved_->valid);
+  if (!was_stopped) {
+    if (::ptrace(PTRACE_INTERRUPT, tracer_tid_, nullptr, nullptr) != 0) {
+      fail(format("PTRACE_INTERRUPT failed for tid %d: %s", tracer_tid_, std::strerror(errno)));
+    }
   }
-  wait_for_stop();
+  // Every wait below is deadline-bounded.  These are the waits that can wedge:
+  // they are entered with the tracee in a stop state produced by a signal rather
+  // than by our own instruction, and if any of them never arrives the injector
+  // would sit in do_wait with the target held as a tracee -- the exact freeze the
+  // live runs produced.
+  const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
 
-  regs_get(pid_, saved_->regs);
+  // Consume the group-stop.  This one is not used for register writes; it only
+  // clears the group-stop state.
+  if (!was_stopped) {
+    if (wait_for_stop_until(deadline) < 0) {
+      fail("timed out waiting for the interrupt stop");
+    }
+  }
+  //
+  // Resuming WITH the SIGSTOP as PTRACE_CONT's data does not work: the kernel
+  // folds the stop request into the group-stop that is already pending and the
+  // tracee simply runs, with no second stop to wait for.  Measured, three times
+  // in a row.  The signal has to arrive *after* the tracee is running again, so
+  // the target has a genuine signal to deliver and we get a genuine
+  // signal-delivery-stop.
+  if (::ptrace(PTRACE_CONT, tracer_tid_, nullptr, nullptr) != 0) {
+    fail(format("PTRACE_CONT failed for tid %d: %s", tracer_tid_, std::strerror(errno)));
+  }
+  if (::kill(tracer_tid_, SIGSTOP) != 0) {
+    fail(format("could not deliver SIGSTOP to tid %d: %s", tracer_tid_, std::strerror(errno)));
+  }
+  if (wait_for_stop_until(deadline) < 0) {
+    fail("timed out waiting for SIGSTOP delivery");
+  }
+
+  regs_get(tracer_tid_, saved_->regs);
   saved_->valid = true;
 }
 
 void RemoteProcess::resume_target() {
   if (saved_ != nullptr && saved_->valid) {
-    regs_set(pid_, saved_->regs);
+    regs_set(tracer_tid_, saved_->regs);
     saved_->valid = false;
   }
-  if (::ptrace(PTRACE_CONT, pid_, nullptr, nullptr) != 0) {
-    fail(format("PTRACE_CONT failed for pid %d: %s", pid_, std::strerror(errno)));
+  if (::ptrace(PTRACE_CONT, tracer_tid_, nullptr, nullptr) != 0) {
+    fail(format("PTRACE_CONT failed for tid %d: %s", tracer_tid_, std::strerror(errno)));
   }
 }
 
@@ -654,7 +962,7 @@ uint64_t RemoteProcess::remote_syscall6(uint64_t number, uint64_t a1, uint64_t a
   // operations each move rip, and restoring the original record would rewind the
   // target to wherever it was when we attached.
   Regs baseline{};
-  regs_get(pid_, baseline);
+  regs_get(tracer_tid_, baseline);
 
   Regs regs = baseline;
   regs.rax = number;
@@ -668,27 +976,27 @@ uint64_t RemoteProcess::remote_syscall6(uint64_t number, uint64_t a1, uint64_t a
   // Resume on the instruction after `syscall` so we stop again right away.
   regs.orig_rax = static_cast<uint64_t>(-1);
 
-  regs_set(pid_, regs);
+  regs_set(tracer_tid_, regs);
 
   dbg("[hz] syscall nr=%llu site=0x%llx orig_rip=0x%llx\n",
       static_cast<unsigned long long>(number),
       static_cast<unsigned long long>(syscall_site_),
       static_cast<unsigned long long>(regs.rip));
 
-  if (::ptrace(PTRACE_SINGLESTEP, pid_, nullptr, nullptr) != 0) {
-    fail(format("PTRACE_SINGLESTEP failed for pid %d: %s", pid_, std::strerror(errno)));
+  if (::ptrace(PTRACE_SINGLESTEP, tracer_tid_, nullptr, nullptr) != 0) {
+    fail(format("PTRACE_SINGLESTEP failed for tid %d: %s", tracer_tid_, std::strerror(errno)));
   }
   wait_for_stop();
 
   Regs after{};
-  regs_get(pid_, after);
+  regs_get(tracer_tid_, after);
   dbg("[hz] after syscall rax=0x%llx rip=0x%llx (expected rip 0x%llx)\n",
       static_cast<unsigned long long>(after.rax),
       static_cast<unsigned long long>(after.rip),
       static_cast<unsigned long long>(syscall_site_ + 2));
 
   // Restore the pre-syscall register state; the tracee stays stopped.
-  regs_set(pid_, saved_->regs);
+  regs_set(tracer_tid_, saved_->regs);
 
   dbg("[hz] call returned rax=0x%llx\n", static_cast<unsigned long long>(after.rax));
   return after.rax;
@@ -739,7 +1047,7 @@ uint64_t RemoteProcess::remote_syscall6(uint64_t number, uint64_t a1, uint64_t a
   stop_target();
 
   Regs baseline{};
-  regs_get(pid_, baseline);
+  regs_get(tracer_tid_, baseline);
 
   Regs regs = baseline;
   regs.x8 = number;
@@ -751,25 +1059,25 @@ uint64_t RemoteProcess::remote_syscall6(uint64_t number, uint64_t a1, uint64_t a
   regs.x5 = a6;
   regs.pc = syscall_site_;
 
-  regs_set(pid_, regs);
+  regs_set(tracer_tid_, regs);
 
   dbg("[hz] syscall nr=%llu site=0x%llx\n", static_cast<unsigned long long>(number),
       static_cast<unsigned long long>(syscall_site_));
 
-  if (::ptrace(PTRACE_SINGLESTEP, pid_, nullptr, nullptr) != 0) {
-    fail(format("PTRACE_SINGLESTEP failed for pid %d: %s", pid_, std::strerror(errno)));
+  if (::ptrace(PTRACE_SINGLESTEP, tracer_tid_, nullptr, nullptr) != 0) {
+    fail(format("PTRACE_SINGLESTEP failed for tid %d: %s", tracer_tid_, std::strerror(errno)));
   }
   wait_for_stop();
 
   Regs after{};
-  regs_get(pid_, after);
+  regs_get(tracer_tid_, after);
   dbg("[hz] after syscall x0=0x%llx pc=0x%llx (expected pc 0x%llx)\n",
       static_cast<unsigned long long>(after.x0),
       static_cast<unsigned long long>(after.pc),
       static_cast<unsigned long long>(syscall_site_ + 4));
 
   // Restore what we found; the tracee stays stopped for the caller.
-  regs_set(pid_, baseline);
+  regs_set(tracer_tid_, baseline);
   return after.x0;
 }
 #endif  // __aarch64__
@@ -785,6 +1093,10 @@ uint64_t RemoteProcess::remote_syscall6(uint64_t number, uint64_t a1, uint64_t a
 #if defined(__x86_64__)
 uint64_t RemoteProcess::remote_call(uint64_t fn, const std::vector<uint64_t>& args,
                                     size_t argc) {
+  // Everything below runs with the tracee resumed at some point, so any throw has
+  // to put it back into a detachable state before it leaves this function.  See
+  // recover_after_failed_call() for what goes wrong when it does not.
+  try {
   // Prepare every memory resource BEFORE touching registers.  scratch_buffer() and
   // write_value() can issue syscalls through the trampoline, which itself stops and
   // resumes the tracee; doing that after we have built a call frame would discard
@@ -808,7 +1120,7 @@ uint64_t RemoteProcess::remote_call(uint64_t fn, const std::vector<uint64_t>& ar
   // Snapshot the live registers: earlier trampolines have moved rip, so the
   // attach-time record is not a valid baseline.
   Regs baseline{};
-  regs_get(pid_, baseline);
+  regs_get(tracer_tid_, baseline);
 
   Regs regs = baseline;
   regs.rip = fn;
@@ -830,13 +1142,13 @@ uint64_t RemoteProcess::remote_call(uint64_t fn, const std::vector<uint64_t>& ar
       static_cast<unsigned long long>(fn), static_cast<unsigned long long>(new_rsp),
       static_cast<unsigned long long>(baseline.rip));
 
-  regs_set(pid_, regs);
+  regs_set(tracer_tid_, regs);
 
   // Read back: this is the single most useful diagnostic when a step misbehaves,
   // because it distinguishes "the kernel did not accept rip" from "the instruction
   // faulted".
   Regs applied{};
-  regs_get(pid_, applied);
+  regs_get(tracer_tid_, applied);
   dbg("[hz] applied rip=0x%llx rsp=0x%llx (wanted 0x%llx/0x%llx)\n",
       static_cast<unsigned long long>(applied.rip),
       static_cast<unsigned long long>(applied.rsp),
@@ -858,33 +1170,38 @@ uint64_t RemoteProcess::remote_call(uint64_t fn, const std::vector<uint64_t>& ar
   // Run the function to completion.  The `data` argument is the signal to inject;
   // passing 0 resumes without delivering anything, which is what we want since the
   // stop from attaching has already been consumed by waitpid.
-  if (::ptrace(PTRACE_CONT, pid_, nullptr, nullptr) != 0) {
-    fail(format("PTRACE_CONT failed for pid %d: %s", pid_, std::strerror(errno)));
+  if (::ptrace(PTRACE_CONT, tracer_tid_, nullptr, nullptr) != 0) {
+    fail(format("PTRACE_CONT failed for tid %d: %s", tracer_tid_, std::strerror(errno)));
   }
 
-  int status = 0;
   for (;;) {
-    // wait_for_stop() polls with a bounded timeout rather than blocking in
+    // wait_for_stop_until() polls with a bounded timeout rather than blocking in
     // waitpid().  A blocking wait cannot be bounded: a callee that never returns
     // would park this thread in do_wait forever, and the deadline above would
     // never be evaluated.  That is not hypothetical -- it is what the hang test
     // did the first time round: the target sat healthy in S with TracerPid still
     // pointing at us, and the injector sat in do_wait.
+    //
+    // The status of the stop it found comes back through last_wait_status_, not
+    // through an out-parameter: leaving a local `status` unassigned here makes
+    // WIFEXITED(0) true -- macro-arithmetically "exited with code 0" -- so every
+    // single stop was misreported as "target died inside the callee".
     const int w = wait_for_stop_until(deadline);
     if (w < 0) {
       fail(format("call into 0x%llx timed out after %d s; the callee or one of "
                   "its threads never resumed",
                   static_cast<unsigned long long>(fn), call_timeout_seconds_));
     }
+    const int status = last_wait_status_;
     if (WIFEXITED(status) || WIFSIGNALED(status)) {
-      fail(format("target process %d died inside 0x%llx", pid_,
+      fail(format("target thread %d died inside 0x%llx", tracer_tid_,
                   static_cast<unsigned long long>(fn)));
     }
     if (!WIFSTOPPED(status)) continue;
 
     const int sig = WSTOPSIG(status);
     Regs now{};
-    regs_get(pid_, now);
+    regs_get(tracer_tid_, now);
     dbg("[hz] stop sig=%d rip=0x%llx (sled 0x%llx..0x%llx)\n", sig,
         static_cast<unsigned long long>(now.rip),
         static_cast<unsigned long long>(region),
@@ -894,7 +1211,7 @@ uint64_t RemoteProcess::remote_call(uint64_t fn, const std::vector<uint64_t>& ar
     if (sig == SIGTRAP && now.rip >= region && now.rip < region + kTrampSize) {
       const uint64_t result = now.rax;
       // Restore the target to how we found it.
-      regs_set(pid_, baseline);
+      regs_set(tracer_tid_, baseline);
       dbg("[hz] call returned rax=0x%llx\n", static_cast<unsigned long long>(result));
       return result;
     }
@@ -906,7 +1223,7 @@ uint64_t RemoteProcess::remote_call(uint64_t fn, const std::vector<uint64_t>& ar
     // stops as failures aborted the call with "raised signal 5 at rip 0x..." from
     // an address nowhere near the callee.  Forward the signal and keep waiting
     // for the main thread's return into the sled.
-    if (w != pid_) {
+    if (w != tracer_tid_) {
       const int deliver = sig == SIGTRAP ? 0 : sig;
       if (::ptrace(PTRACE_CONT, w, nullptr,
                    reinterpret_cast<void*>(static_cast<intptr_t>(deliver))) != 0) {
@@ -930,8 +1247,8 @@ uint64_t RemoteProcess::remote_call(uint64_t fn, const std::vector<uint64_t>& ar
     if (sig == SIGTRAP && offSledTraps < kMaxOffSledTraps &&
         (now.rip < fn || now.rip > fn + (1u << 20))) {
       ++offSledTraps;
-      if (::ptrace(PTRACE_CONT, pid_, nullptr, nullptr) != 0) {
-        fail(format("cannot resume pid %d: %s", pid_, std::strerror(errno)));
+      if (::ptrace(PTRACE_CONT, tracer_tid_, nullptr, nullptr) != 0) {
+        fail(format("cannot resume tid %d: %s", tracer_tid_, std::strerror(errno)));
       }
       continue;
     }
@@ -942,16 +1259,16 @@ uint64_t RemoteProcess::remote_call(uint64_t fn, const std::vector<uint64_t>& ar
     // is what turned a working payload into a dead QQ: the first trap from a
     // freshly spawned listener thread looked exactly like a crash.
     if (sig == SIGCHLD || sig == SIGPIPE) {
-      if (::ptrace(PTRACE_CONT, pid_, nullptr, nullptr) != 0) {
-        fail(format("cannot resume pid %d inside 0x%llx: %s", pid_,
+      if (::ptrace(PTRACE_CONT, tracer_tid_, nullptr, nullptr) != 0) {
+        fail(format("cannot resume tid %d inside 0x%llx: %s", tracer_tid_,
                     static_cast<unsigned long long>(fn), std::strerror(errno)));
       }
       continue;
     }
     if (sig == SIGTRAP && offSledTraps < kMaxOffSledTraps) {
       ++offSledTraps;
-      if (::ptrace(PTRACE_CONT, pid_, nullptr, nullptr) != 0) {
-        fail(format("cannot resume pid %d inside 0x%llx: %s", pid_,
+      if (::ptrace(PTRACE_CONT, tracer_tid_, nullptr, nullptr) != 0) {
+        fail(format("cannot resume tid %d inside 0x%llx: %s", tracer_tid_,
                     static_cast<unsigned long long>(fn), std::strerror(errno)));
       }
       continue;
@@ -961,6 +1278,10 @@ uint64_t RemoteProcess::remote_call(uint64_t fn, const std::vector<uint64_t>& ar
     fail(format("call to 0x%llx raised signal %d at rip 0x%llx",
                 static_cast<unsigned long long>(fn), sig,
                 static_cast<unsigned long long>(now.rip)));
+  }
+  } catch (...) {
+    recover_after_failed_call();
+    throw;
   }
 }
 #endif  // __x86_64__
@@ -998,7 +1319,7 @@ uint64_t RemoteProcess::remote_call(uint64_t fn, const std::vector<uint64_t>& ar
   stop_target();
 
   Regs baseline{};
-  regs_get(pid_, baseline);
+  regs_get(tracer_tid_, baseline);
 
   Regs regs = baseline;
   regs.pc = fn;
@@ -1016,36 +1337,36 @@ uint64_t RemoteProcess::remote_call(uint64_t fn, const std::vector<uint64_t>& ar
       static_cast<unsigned long long>(region),
       static_cast<unsigned long long>(baseline.pc));
 
-  regs_set(pid_, regs);
+  regs_set(tracer_tid_, regs);
 
   Regs applied{};
-  regs_get(pid_, applied);
+  regs_get(tracer_tid_, applied);
   dbg("[hz] applied pc=0x%llx sp=0x%llx (wanted 0x%llx/0x%llx)\n",
       static_cast<unsigned long long>(applied.pc),
       static_cast<unsigned long long>(applied.rsp),
       static_cast<unsigned long long>(fn),
       static_cast<unsigned long long>(stack_top));
 
-  if (::ptrace(PTRACE_CONT, pid_, nullptr, nullptr) != 0) {
-    fail(format("PTRACE_CONT failed for pid %d: %s", pid_, std::strerror(errno)));
+  if (::ptrace(PTRACE_CONT, tracer_tid_, nullptr, nullptr) != 0) {
+    fail(format("PTRACE_CONT failed for tid %d: %s", tracer_tid_, std::strerror(errno)));
   }
 
   int status = 0;
   for (;;) {
-    const pid_t w = ::waitpid(pid_, &status, __WALL);
+    const pid_t w = ::waitpid(tracer_tid_, &status, __WALL);
     if (w < 0) {
       if (errno == EINTR) continue;
-      fail(format("target wait failed for pid %d: %s", pid_, std::strerror(errno)));
+      fail(format("target wait failed for tid %d: %s", tracer_tid_, std::strerror(errno)));
     }
     if (WIFEXITED(status) || WIFSIGNALED(status)) {
-      fail(format("target process %d died inside 0x%llx", pid_,
+      fail(format("target thread %d died inside 0x%llx", tracer_tid_,
                   static_cast<unsigned long long>(fn)));
     }
     if (!WIFSTOPPED(status)) continue;
 
     const int sig = WSTOPSIG(status);
     Regs now{};
-    regs_get(pid_, now);
+    regs_get(tracer_tid_, now);
     dbg("[hz] stop sig=%d pc=0x%llx (sled 0x%llx..0x%llx)\n", sig,
         static_cast<unsigned long long>(now.pc),
         static_cast<unsigned long long>(region),
@@ -1053,7 +1374,7 @@ uint64_t RemoteProcess::remote_call(uint64_t fn, const std::vector<uint64_t>& ar
 
     if (sig == SIGTRAP && now.pc >= region && now.pc < region + kTrampSize) {
       const uint64_t result = now.x0;
-      regs_set(pid_, baseline);
+      regs_set(tracer_tid_, baseline);
       dbg("[hz] call returned x0=0x%llx\n", static_cast<unsigned long long>(result));
       return result;
     }
@@ -1064,7 +1385,7 @@ uint64_t RemoteProcess::remote_call(uint64_t fn, const std::vector<uint64_t>& ar
     // stops as failures aborted the call with "raised signal 5 at pc 0x..." from
     // an address nowhere near the callee, which is exactly what we saw: pc
     // 0xb27e16027624 against a callee at 0xe6f62bfbdf3c.
-    if (w != pid_) {
+    if (w != tracer_tid_) {
       const int deliver = sig == SIGTRAP ? 0 : sig;
       if (::ptrace(PTRACE_CONT, w, nullptr,
                    reinterpret_cast<void*>(static_cast<intptr_t>(deliver))) != 0) {
@@ -1082,14 +1403,14 @@ uint64_t RemoteProcess::remote_call(uint64_t fn, const std::vector<uint64_t>& ar
     // traced state afterwards.  Cap it and fail loudly instead.
     if (sig == SIGTRAP && offSledTraps < kMaxOffSledTraps) {
       ++offSledTraps;
-      if (::ptrace(PTRACE_CONT, pid_, nullptr, nullptr) != 0) {
-        fail(format("cannot resume pid %d inside 0x%llx: %s", pid_,
+      if (::ptrace(PTRACE_CONT, tracer_tid_, nullptr, nullptr) != 0) {
+        fail(format("cannot resume tid %d inside 0x%llx: %s", tracer_tid_,
                     static_cast<unsigned long long>(fn), std::strerror(errno)));
       }
       continue;
     }
 
-    regs_set(pid_, baseline);
+    regs_set(tracer_tid_, baseline);
     fail(format("call to 0x%llx raised signal %d at pc 0x%llx",
                 static_cast<unsigned long long>(fn), sig,
                 static_cast<unsigned long long>(now.pc)));

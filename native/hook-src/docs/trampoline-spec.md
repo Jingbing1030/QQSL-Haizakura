@@ -230,12 +230,37 @@ bool select_trampoline(Session* s, std::string* err) {
 
    - 打分函数开头还有一次 `compare("0")`（`0x16a40` → `0x428f9` 附近）：**`/wchan` 内容为 `"0"` 直接给 0 分**（内核隐藏 wchan 时）。
    - 上述字符串全部在 `.rodata` `0x42930`–`0x429da`，**`ep_poll` 在 `0x42977` 没有 ADRP+ADD xref**（推测被 `do_epoll` 的 `find` 顺带覆盖，属【推断】）。
-4. **排序**：把 `(score, tid)` 打包成 64 位 `tid | (score << 32)`，用 `std::sort`（`0x23d18` 是 `__introsort_loop`，`0x23f90` 是 `__final_insertion_sort`）。
-   - 比较器按 **低 32 位（tid）升序**比较。
-   - 所以排序结果是 **tid 升序**，`score` 只随之携带、**不参与排序**。
-   - 【推断】作者本意大概是按 score 排（否则不用打包），但比较器写的是 tid → 实际效果 = **按 tid 从小到大试**。这个结论对「复现」很重要：score 表基本没起作用。
+4. **排序**：把 `(tid, score)` 打包成 64 位 `tid | (score << 32)` —— **tid 在低 32 位（偏移 +0），score 在高 32 位（偏移 +4）**：
+   ```
+   0x2196c  ldr  w24, [x27]              ; w24 = tid        → 元素低 32 位
+   0x21980  bl   0x16a14                 ; w0  = score
+   0x21984  mov  w25, w0
+   0x21958  bfi  x24, x25, #32, #7       ; 把 score 插到 bit32 → 高 32 位
+   0x2195c  str  x24, [x22], #8          ; 8 字节元素 { tid(+0), score(+4) }
+   ```
+   然后 `std::sort`（`0x23d18` = `__introsort_loop`，`0x23f90` = `__final_insertion_sort`，两者 `comp` 参数都是 `0` → 默认 `operator<`）。
 
-   > 【未证实】「score 不参与排序」是我从 `0x23d30`–`0x23e60` 的比较链推断的：那段反复出现 `cmp w10,w11` / `cmp w11,w9` / `cmp w10,w9` 且参与比较的都是相邻元素的 `[elem+12]`/`[elem+4]`（即 8 字节元素的 +4 → 高 32 位）。我**没有**在真实数据上验证排序输出顺序。想证实只需构造 4 个 wchan 不同的线程、看它先 attach 哪个。
+   **排序键是 `score`（高 32 位），方向是降序（分高的先试）。**
+
+   【推断·强】证据：`0x23d18` 里所有参与比较的操作数都落在 8 字节元素的 **`+4`（高 32 位 = score）**：
+   ```
+   0x023d84  ldr w10, [x19, #12]         ; 第 2 个元素的 +4 = score
+   0x023d90  ldr w11, [x9, #4]           ; 某元素 score
+   0x023d94  ldur w9, [x20, #-4]         ; 前一元素 score
+   0x023e24  ldr w8,  [x19, #4]          ; pivot score
+   0x023e2c  ldr w9,  [x26, #12]         ; 下一个元素 score
+   0x023e44  ldur w10,[x20, #-4]         ; 前一个元素 score
+   ```
+   方向来自插入排序内层循环（`0x23e44`–`0x23e50`）：
+   ```
+   0x023e4c  cmp w8, w10                 ; pivot.score ? prev.score
+   0x023e50  b.gt 23e44                  ; 只要 pivot > prev 就继续往前挪
+   ```
+   「pivot 大于前驱时继续后移」= 大的排前面 = **降序**。
+
+   **这与打分表的设计意图一致**：`ep_poll/do_epoll` = 100 分（最优先），所以它**先挑停在 epoll/poll/nanosleep 里的线程**，最后才挑分 0 的空闲线程。
+
+   > 【未证实·方向】降序是我从上面那条 `b.gt` 推的，`__introsort_loop` 的 median-of-3 分支我没完整走通。**想立刻证实**：起一个 4 线程目标，让它们的 `/wchan` 分别是 `ep_poll` / `futex_wait` / `hrtimer_nanosleep` / 空，看它第一个 `SEIZE` 的是哪个 tid（`strace -f -e trace=ptrace` 一行就够）。
 
 5. **重试**：对排序后的列表**顺序逐个尝试，没有次数上限**（= 线程数），但受 20 秒总 deadline 约束：
    - 只要 `s->tids` 还空且 `now < deadline` 就换下一个（`0x21afc`–`0x21b14`）；
@@ -402,7 +427,32 @@ str    xzr, [x19]                        // 0x27034  *out = 0
 
 **为什么这个设计很巧：** 不需要在目标里放任何自造指令（无 sled、无需 `mprotect` 可执行、无需找可写可执行页）；`x30=0` 只是把「返回点」指向一个必然 fault 的空地址，用**内核自己产生的 SIGSEGV** 当断点。而 `pc < 0x1000` 的检查刚好把「真正的空指针解引用崩溃」（一般 `si_addr` 也小，但 `pc` 会在正常代码段）与「我们制造的 `ret` 到 0」区分开 —— 严格说**这个区分不够强**（见下），但实践中够用。
 
-**可能的误判（原版的弱点，写在这里以免踩坑）：** 如果目标线程**自己**因为 `pc` 落在低地址（例如 JIT 的空指针、`mprotect` 后跳转到 0）而 `SIGSEGV`，也会被当成「正常返回」，返回一个垃圾 `x0` —— **静默错误**。原版没有额外的 sanity check（没有比对 `si_addr`、没有校验 `x30` 是否为 0）。我们实现时**建议加一条**：`si_addr < 0x1000 && pc < 0x1000`（而不是只看 `pc`），或者「返回值必须 = 调用前后 `sp` 已复原」。
+**★ 本机实测验证（2026-11-19，甲骨文 aarch64 服务器，目标是我自己 fork 的进程，非 QQ）：**
+
+我按 `0x26fd4` 的语义写了最小复现（`/tmp/rc.c`：父进程 `SEIZE` 子进程的一个 worker tid → `INTERRUPT` → `GETREGSET` 备份 → 按原版方式改写寄存器 → `SETREGSET` → `PTRACE_CONT`），结果：
+
+```
+child=1461382 tid=1461383 fn=0xc21d3c8d0de8
+stopped status=0x80057f WSTOPSIG=5                     ← INTERRUPT 产生的 SIGTRAP
+saved: pc=0xfc7008315aac sp=0xfc700827e820 x30=277558103933952
+set: pc=0xc21d3c8d0de8 x30=0 sp=0xfc700827e7a0          ← pc=fn, LR=0, sp=(saved-0x80)&~0xF
+after CONT: WIFSTOPPED=1 sig=11 (SIGSEGV=11)            ← ★ 果然是 SIGSEGV
+si_addr=(nil) si_code=1                                 ← ★ si_addr 精确为 0
+pc=(nil) x0=3735928859 (0xdeadc01b) expect 0xdeadc01b   ← ★ x0 = 返回值
+>>> pc<0x1000? YES   VALUE MATCH
+done
+```
+
+**结论**：
+- `x30 = 0` → 函数 `ret` 跳到地址 `0` → 内核送 **`SIGSEGV`**，`si_addr == 0`、`pc == 0`。
+- **`x0` 就是返回值**，与 `0xdeadbeef + 100 + 200` 完全吻合。
+- 原版的 `pc < 0x1000` 判定等价于 `pc == 0`。
+- `sp = (saved_sp - 0x80) & ~0xF` 对「只调用一层函数」确实够用（我这个测试函数的栈用量 < 128 B 成立）。
+- **整条链路（`SEIZE` → `INTERRUPT` → `waitpid` → `GETREGSET` → `SETREGSET` → `CONT` → `SIGSEGV` → 取 `x0` → `DETACH`）在本机跑通，目标进程存活、干净退出。**
+
+> 顺带证实：`PTRACE_SEIZE` 同一线程第二次会 `EPERM`，且**父进程不能 `SEIZE` 自己的线程**（必须 `fork` 出子进程再 `SEIZE` 它 —— 我第一次试就撞到 `SEIZE: Operation not permitted`）。这对我们的注入器没有影响（node 与 QQ 是两个进程），但如果写单进程自测会踩坑。
+
+****可能的误判（原版的弱点，写在这里以免踩坑）：** 如果目标线程**自己**因为 `pc` 落在低地址（例如 JIT 的空指针、`mprotect` 后跳转到 0）而 `SIGSEGV`，也会被当成「正常返回」，返回一个垃圾 `x0` —— **静默错误**。原版没有额外的 sanity check（没有比对 `si_addr`、没有校验 `x30` 是否为 0）。我们实现时**建议加一条**：`si_addr < 0x1000 && pc < 0x1000`（而不是只看 `pc`），或者「返回值必须 = 调用前后 `sp` 已复原」。
 
 ### 3.4 现场恢复【确认】
 
@@ -772,7 +822,7 @@ void detach_all(Session* s, string* err) {
 | # | 结论 | 我做了什么 / 卡在哪 |
 |---|---|---|
 | 1 | ~~返回值在 `pc` 槽里~~ | **已解决**（见 §3.3）：初读把 `0x26fc0`（`ldr x0,[x0,#256]` = 读 **pc**）当成了取返回值，实际它只用于**判定** `pc < 0x1000`；**返回值来自 `0x26fc8`（`ldr x0,[x0]` = 读 x0）**。机制 = `pc=fn` + `x30=0` → 函数 `ret` 跳 0 → SIGSEGV → 判 `sig==11 && pc<0x1000` → 取 `x0`。【确认】 |
-| 2 | 排序比较器用的是 tid 而非 score | 从 `0x23d30`–`0x23e60` 的比较链推断【推断】。没有真实多线程 wchan 分布下的观测验证。 |
+| 2 | ~~排序比较器用的是 tid 而非 score~~ | **已推翻**：初读看错字段偏移。实际 `(tid@+0, score@+4)`，比较器全部读 **`+4`（score）**，插入排序内层 `cmp pivot.score, prev.score; b.gt` → **降序（分高优先）**。`tid` 只在 score 相同时按 `std::sort` 的不稳定性决定，**没有保证**。见 §2.4 第 4 点。 |
 | 3 | ~~`0x21814` 成功后立刻 DETACH~~ | **已推翻**：初读把 `0x21af0 bl 0x220bc` 当成成功路径，实际它是 `GETREGSET` 失败后的清理。成功路径 `0x21ae4 tbnz → 0x21c68`（置 `hasStopped`）→ `0x21d48 return true`，**不 detach**。【确认】 |
 | 4 | 远程 scratch buffer 是否泄漏 | 【未证实】只看到镜像 base 被 `munmap`（`0x1f2d8`），没找到 `0x1000`/`0x10000` 那两块的 `munmap`。 |
 | 5 | `ep_poll`（`0x42977`）如何被用到 | 它没有 ADRP+ADD xref。推测是 `do_epoll` 的 `find` 覆盖到，或者是个未被引用的死字符串。 |
@@ -803,7 +853,8 @@ void detach_all(Session* s, string* err) {
 2. **自己做线程枚举 + 逐个重试，别指望「一次 attach 整进程」。**
    - `opendir("/proc/<pid>/task")` → `readdir` → 纯数字名 → `strtol` → `>0`。
    - **跳过 `tid == pid`**（原版 `0x21974` 明确这么做）。
-   - **按 tid 升序**顺序试（原版排序实际按 tid，score 未参与 —— §2.4 第 4 点【推断】），**失败就试下一个**，受 20 s 总 deadline 约束；全失败才报错。
+   - **按 score 降序**顺序试（epoll/poll 线程优先，§2.4 第 4 点），**失败就试下一个**，受 20 s 总 deadline 约束；全失败才报错。
+     > 但注意：**「打分」是可选的**。我们自己实现时如果懒得读 `/wchan`，退化成「随便挑一个非主线程 tid、失败就换下一个」也能工作 —— 打分只是提高首次命中率，不影响正确性。
    - 这套流程的唯一价值就是容错：bad 线程跳过、换下一个。
    > 反过来说：如果你们确认 QQ 上现在已经没有僵尸 tracer，**「直接 SEIZE 一个固定 tid」也能work**；但这不具备鲁棒性，换个环境（别的调试器/上一次崩溃残留）就又 EPERM。**建议照原版做，成本很低。**
 
@@ -836,7 +887,8 @@ void detach_all(Session* s, string* err) {
    ```
    - 优点：不占目标地址空间、不需要恢复 mmap、不会留下 128 KB 垃圾。
    - 风险：`start_dynamic` 若用栈较深（它起 `pthread_create` + `bind`，实测栈用量可能超过 128 B）会踩坏目标线程栈。**原版用 128 B 说明它赌 `start_dynamic` 第一层不深**。
-   - **折中建议**：保留 mmap 栈（安全），但**改用 `fn` 当 `x30`** 并**在调用后 `munmap`**（或至少记录在手柄里，让 `unload` 释放）。不要把 128 KB 泄漏当特性。
+   - **实测数据**：我验证用的测试函数栈用量 < 128 B，`sp=(saved-0x80)&~0xF` 完全够。但 `start_dynamic` 会 `pthread_create` + `bind`，第一层帧如果是 `sub sp,sp,#0x200` 那种就会踩到目标线程自己的栈数据 —— **原版赌的是它第一层不深**。
+   - **折中建议**：保留 mmap 栈（安全），但把 `pc`/`x30` 改成原版语义（`pc=fn, x30=0`），并在调用后 `munmap`（或至少记录在手柄里，让 `unload` 释放）。不要把 128 KB 泄漏当特性。
 
 6. **加 `PTRACE_O_EXITKILL`（`0x100000`）**：原版**没有**（我确认 `x3=0` 且全库搜索 `0x100000` 在 ptrace 上下文中不存在）。这是原版的一个**缺陷**：如果注入器崩了，目标线程会永久停在断点。建议我们加上，用 `PTRACE_SEIZE(tid, 0, PTRACE_O_EXITKILL)` 或在 SEIZE 后补一次 `PTRACE_SETOPTIONS`。
    > 但注意：**如果目标是 QQ，`EXITKILL` 意味着注入器退出 = QQ 线程被杀。** 要么别加，要么只在调试构建里加。原版不设它可能是有意的。
@@ -862,7 +914,7 @@ attach:   ptrace(PTRACE_SEIZE=0x4206, tid, 0, 0)        // 单 tid！不传 opti
              → waitpid(tid, &st, __WALL|WNOHANG) 轮询 + nanosleep
 选择:     opendir("/proc/<pid>/task") → 纯数字 → strtol → >0
           跳过 tid==pid；打分只看 /proc/<tid>/task/<tid>/wchan
-          实际排序 = tid 升序（score 未参与）   ← 推断
+          排序键 = score（高32位），**降序**（100 分的 epoll 线程先试）  ← 推断·强
           逐个试，20s deadline，全失败 → "no thread could be attached as trampoline"
              （一个线程都没有 → "target process has no task threads"）
 调用:     GETREGSET(0x4204, tid, NT_PRSTATUS=1, &regs272)
@@ -881,6 +933,9 @@ attach:   ptrace(PTRACE_SEIZE=0x4206, tid, 0, 0)        // 单 tid！不传 opti
             其余 stop             → 跳出
           GETREGSET → 判定 sig==SIGSEGV && regs.pc < 0x1000
                       *result = regs.x[0]
+          ★ 这条已在 aarch64 实测通过（§3.3）：
+            sig=11, si_addr=nil, pc=nil, x0=返回值 —— 完全吻合
+          建议加强：再查 si_addr < 0x1000（PTRACE_GETSIGINFO），防误判
 恢复:     remote_write 写回 saved_sp；SETREGSET 写回整块 regs272；
           写回被改的指令字节；对每个 tid：ptrace(PTRACE_DETACH=0x11, tid, 0, 0)
           任何一步失败 → 往 error 串里追加 "; stack restore: " / "; recovery: " /

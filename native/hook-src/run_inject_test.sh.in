@@ -1,0 +1,22 @@
+#!/bin/sh
+# End-to-end injection test, staged so it can run from `ctest`.
+#
+# The target grants PR_SET_PTRACER_ANY, which is one of the only ways an
+# unprivileged tracer may attach to a process it did not fork when
+# kernel.yama.ptrace_scope=1.  Running as the target's parent would also work but
+# would not exercise the interesting path.
+set -e
+stage=@CMAKE_CURRENT_BINARY_DIR@/inject-stage
+rm -rf "$stage"
+mkdir -p "$stage"
+cp @CMAKE_CURRENT_BINARY_DIR@/fake_target "$stage/"
+cp @CMAKE_CURRENT_BINARY_DIR@/payload.so "$stage/"
+cp @CMAKE_CURRENT_BINARY_DIR@/fake-wrapper.node "$stage/"
+cp @CMAKE_CURRENT_BINARY_DIR@/payload-hang.so "$stage/"
+exec @CMAKE_CURRENT_BINARY_DIR@/thread_inject_test \
+  --target "$stage/fake_target" \
+  --payload "$stage/payload.so" \
+  --wrapper "$stage/fake-wrapper.node" \
+  --allow-any \
+  --rounds 2 \
+  --call-timeout 5

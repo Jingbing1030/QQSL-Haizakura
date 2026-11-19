@@ -128,3 +128,41 @@ target_include_directories(thread_inject_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 add_dependencies(thread_inject_test payload fake_wrapper fake_target)
+
+# Contended-attach test.  ptrace attachment is per-thread, so a thread stuck under
+# a tracer that never detached spoils that thread only -- and the old SEIZE(pid)
+# died with EPERM whenever the stuck thread happened to be the group leader.
+# This test parks an independent process on chosen threads of a multithreaded
+# target and requires the injector to attach and work anyway.  Needs a live
+# target, so like thread_inject_test it is driven by ctest, not by selftest.
+add_executable(thread_contend_test test/thread_contend_test.cc
+  src/common.cc
+  src/remote.cc
+)
+target_include_directories(thread_contend_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+add_dependencies(thread_contend_test fake_wrapper fake_target)
+
+# A payload whose start_dynamic never returns.  It exists so the call timeout and
+# the "no tracer left behind" guarantee are exercised by a real stuck callee
+# rather than by reasoning about one.
+add_library(payload_hang SHARED test/payload_hang.cc)
+set_target_properties(payload_hang PROPERTIES PREFIX "" SUFFIX ".so" OUTPUT_NAME "payload-hang")
+target_compile_options(payload_hang PRIVATE -fno-stack-protector -fno-exceptions -fno-rtti)
+
+# Register the end-to-end injection test with CTest so `ctest` is not a no-op.
+# It is written as a wrapper script because the test needs a staged directory, an
+# orphaned multithreaded target and a yama-allowed tracer -- none of which fit in
+# a bare add_test() command line.
+configure_file(run_inject_test.sh.in ${CMAKE_CURRENT_BINARY_DIR}/run_inject_test.sh @ONLY)
+add_test(NAME thread_inject
+         COMMAND ${CMAKE_COMMAND} -E env
+                 ${CMAKE_CURRENT_BINARY_DIR}/run_inject_test.sh)
+set_tests_properties(thread_inject PROPERTIES TIMEOUT 300)
+
+configure_file(run_contend_test.sh.in ${CMAKE_CURRENT_BINARY_DIR}/run_contend_test.sh @ONLY)
+add_test(NAME thread_contend
+         COMMAND ${CMAKE_COMMAND} -E env
+                 ${CMAKE_CURRENT_BINARY_DIR}/run_contend_test.sh)
+set_tests_properties(thread_contend PROPERTIES TIMEOUT 300)

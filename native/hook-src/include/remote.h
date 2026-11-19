@@ -32,6 +32,13 @@ class RemoteProcess {
 
   int pid() const { return pid_; }
 
+  // The thread we actually hold ptrace control of.  ptrace is per-thread on
+  // Linux (see seize()), so this is not the same value as pid(): the pid names
+  // the address space and stays the argument for process_vm_readv/writev and
+  // /proc/<pid>/..., while every ptrace request and every waitpid() must name
+  // this tid.  0 until attach() succeeds.
+  int tracer_tid() const { return tracer_tid_; }
+
   // True once we hold ptrace control of the target.
   bool attached() const { return attached_; }
 
@@ -143,7 +150,23 @@ class RemoteProcess {
   int call_timeout_seconds() const { return call_timeout_seconds_; }
 
  private:
+  // Attaches to one runnable thread of the target, not to the process.  ptrace
+  // attachment is per-thread on Linux: /proc/<tid>/status.TracerPid is a
+  // per-task field, a second SEIZE of an already-traced tid fails with EPERM,
+  // and SEIZE of a *sibling* tid still succeeds.  So a thread wedged under a
+  // dead tracer only spoils that thread -- enumerate the group and take one
+  // that is free.
   void seize();
+
+  // Enumerates /proc/<pid>/task, keeping only plain numeric tids and dropping
+  // the group leader.  Returned best-first: threads parked in a syscall are
+  // preferred over ones actively running, because stealing a thread that holds
+  // a lock or is mid-instruction perturbs the target far more.
+  std::vector<pid_t> enumerate_threads(pid_t pid);
+
+  // The thread-preference score for one tid, derived from /proc/<tid>/wchan.
+  static int thread_score(pid_t pid, pid_t tid);
+
   void interrupt();
   void wait_for_stop();
   // Same as wait_for_stop() but bounded by a deadline: returns the stopped pid,
@@ -151,10 +174,20 @@ class RemoteProcess {
   // waitpid() cannot be bounded.  The status of the stop it returns is left in
   // last_wait_status_ for callers that need it.
   int wait_for_stop_until(std::chrono::steady_clock::time_point deadline);
+
+  // Puts the tracee back into the "stopped, original registers restored" state
+  // after a failed call, so unwinding can detach cleanly instead of leaving a
+  // tracer behind that points at a running process.  Reads the pre-call register
+  // snapshot that stop_target() already recorded in saved_->regs.
+  void recover_after_failed_call();
   void restore_and_continue();
   void ensure_syscall_site();
 
   int pid_ = 0;
+  // The one thread we traced.  Distinct from pid_ from the moment attach()
+  // succeeds: ptrace is per-thread, so every ptrace request and waitpid() uses
+  // this, and every /proc/<pid>/... and process_vm_* keeps using pid_.
+  int tracer_tid_ = 0;
   bool attached_ = false;
   bool last_stop_ours_ = false;
 
