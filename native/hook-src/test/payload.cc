@@ -400,6 +400,35 @@ static std::uint64_t monotonic_ms() {
          static_cast<std::uint64_t>(ts.tv_nsec) / 1000000ull;
 }
 
+// The four commands the reference accepts on op 2.
+//
+// Copied as strings rather than derived, because in the reference they are not strings at all:
+// the .rodata bytes at 0x580e3 and its neighbours are obfuscated, and the plaintext is produced
+// by per-string decryptors during static initialisation. `strings` over the shipped library finds
+// none of these names, which is why they had to be recovered by emulating the decryptors.
+//
+// Lengths are 10, 14, 22, 22 -- matching the four `mov esi,<len>` sites in the whitelist function.
+static const char* const kReferenceWhitelist[] = {
+    "hb_pc_grab",
+    "hb_pc_pre_pack",
+    "OidbSvcTrpcTcp.0x7c2_5",
+    "OidbSvcTrpcTcp.0x8a1_7",
+};
+
+// True when `cmd` is one of the reference's accepted commands.
+//
+// Compares the whole span and the length, so a command that merely starts with one of these --
+// "hb_pc_grab_extra" -- is not accepted. The reference does the same: its whitelist function
+// compares length first and then calls bcmp over the full length.
+static bool is_reference_whitelisted_cmd(const char* cmd, std::uint32_t len) {
+  for (const char* const allowed : kReferenceWhitelist) {
+    const std::size_t n = std::strlen(allowed);
+    if (n != static_cast<std::size_t>(len)) continue;
+    if (std::memcmp(cmd, allowed, n) == 0) return true;
+  }
+  return false;
+}
+
 static void do_announce_login(long long uin) {
   g_login_uin = uin;
   g_logged_in = 1;
@@ -652,6 +681,36 @@ void serve_connection(int fd, const char* pipe_path, int pid) {
       if (!send_frame(fd, ack, nullptr, nullptr, nullptr)) return;
       std::printf("[payload] login hint accepted: 0x%llx, keepalive %llums\n",
                   static_cast<unsigned long long>(h.value0), 60000ull);
+      std::fflush(stdout);
+      continue;
+    }
+
+    // op 2, commands on the reference's whitelist: accept with an empty ACK and, if the peer
+    // asked for a reply, an empty reply.
+    //
+    // These four are the *whole* of the reference's acceptance path. Disassembly settles what
+    // they do: nothing. The accept branch contains exactly two calls (0x1212f answers op 3 and
+    // 0x121a6 answers op 4), both to the payload's own frame writer, and both with a zeroed
+    // 24-byte body. `send@plt` has two call sites in the entire library -- the payload's own
+    // socket and that same frame writer. The one path that can reach QQ's real send entry
+    // ([dispatch+0x30] at 0x12c0f) is the *non*-whitelisted branch, which hands the request to
+    // the client's own dispatch table.
+    //
+    // So the honest implementation matches the reference by acknowledging and doing nothing.
+    // The alternative -- treating these names as a cue to send messages -- would invent a
+    // capability the original never had, and an invented send path is a risk surface, not
+    // progress. See docs/parity-table.md, including its note on why this was first mis-graded
+    // P0.
+    if (h.op == kOpRequest && is_reference_whitelisted_cmd(cmd, h.cmd_len)) {
+      const FrameHeader accepted = make_header(kOpAck, h.request_id, 0, 0, 0, 0, 0, 0);
+      if (!send_frame(fd, accepted, nullptr, nullptr, nullptr)) return;
+      // The reference masks the inbound flags down to bit 0 before deciding, and only then
+      // sends op 4.
+      if ((h.flags & kFlagWantReply) != 0) {
+        const FrameHeader replied = make_header(kOpReply, h.request_id, 0, 0, 0, 0, 0, 0);
+        if (!send_frame(fd, replied, nullptr, nullptr, nullptr)) return;
+      }
+      std::printf("[payload] op2 accepted (whitelisted): cmd=\"%s\"\n", cmd);
       std::fflush(stdout);
       continue;
     }
@@ -912,6 +971,14 @@ __attribute__((constructor)) static void hz_register_constructor() {
 // test: a socket file left behind by a dead process refuses the connection with ECONNREFUSED,
 // while a live listener accepts it, so the two cases are distinguishable without guessing from
 // the file's existence.
+//
+// The probe is not free, and the cost is worth stating rather than discovering later: the connect
+// succeeds, the connection sits in the other process's accept queue, and closing it here leaves a
+// dead entry behind. Against our own payload that is harmless -- the accept loop takes it and
+// read() returns 0, which it already handles as a disconnect. Against the reference implementation
+// the entry stays queued until it accepts, and a queue filled by repeated probes would eventually
+// make it drop new connections. That is why this runs once per bind rather than per call, and why
+// it is not used as a general liveness check.
 static bool socket_is_live(const char* path) {
   struct stat st;
   if (::stat(path, &st) != 0) return false;
