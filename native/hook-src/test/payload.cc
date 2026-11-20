@@ -163,6 +163,8 @@ constexpr std::uint16_t kOpLoginState = 7;
 constexpr std::uint16_t kOpPacket = 6;
 constexpr std::uint16_t kOpClientMessageReceipt = 21;
 constexpr std::uint16_t kOpPrivateMsgReporting = 22;
+// Inbound only. The client tells the payload who it is; see the handler for the value0 shape.
+constexpr std::uint16_t kOpLoginIdentityHint = 17;
 constexpr std::uint32_t kFlagWantReply = 1;
 constexpr std::uint32_t kFlagLoggedIn = 4;
 constexpr std::uint32_t kMaxCmd = 4096;
@@ -198,13 +200,33 @@ bool read_exact(int fd, void* buf, std::size_t len) {
   return true;
 }
 
+// Writes a socket frame without either blocking the caller or signalling the process.
+//
+// Two failure modes matter here more than anywhere else in the payload, because this runs on
+// QQ's own threads:
+//
+//   * SIGPIPE. A peer that closes before we finish writing makes plain write() raise SIGPIPE,
+//     whose default action is to terminate the process. That is the whole client gone because a
+//     diagnostic client went away -- and it is reachable from the login path, where op 7 is
+//     pushed to every connected peer.
+//   * Blocking. A peer that stops reading fills the socket buffer and write() then blocks the
+//     QQ thread it was called on, which for op 7 is the thread signing in.
+//
+// MSG_NOSIGNAL covers the first and MSG_DONTWAIT the second. A partial or refused write is
+// reported as failure rather than retried: dropping a frame to a peer that is not reading is
+// better than stalling a login.
 bool write_exact(int fd, const void* buf, std::size_t len) {
   const auto* p = static_cast<const std::uint8_t*>(buf);
   std::size_t put = 0;
   while (put < len) {
-    const ssize_t n = ::write(fd, p + put, len - put);
-    if (n <= 0) return false;
-    put += static_cast<std::size_t>(n);
+    const ssize_t n = ::send(fd, p + put, len - put, MSG_NOSIGNAL | MSG_DONTWAIT);
+    if (n > 0) {
+      put += static_cast<std::size_t>(n);
+      continue;
+    }
+    if (n < 0 && (errno == EINTR)) continue;
+    // EAGAIN means the peer is not draining; the frame is abandoned rather than blocking.
+    return false;
   }
   return true;
 }
@@ -361,6 +383,23 @@ volatile int g_logged_in = 0;
 // Idempotent by design.  QQ can re-announce a login (a reconnect, or the callback firing again),
 // and re-sending op 7 with unchanged state is harmless because the Node side only wakes its
 // waiters when the values actually change.
+// The last accepted login identity hint, and the deadline it opened.
+//
+// A deadline rather than a flag: the question anyone asks is "is this still valid now", and a
+// flag plus a timestamp invites the two to drift apart. Written only from the connection thread
+// that accepted the hint, read only by diagnostics, so no lock is needed.
+static volatile std::uint64_t g_login_hint = 0;
+static volatile std::uint64_t g_keepalive_deadline_ms = 0;
+
+// Milliseconds from an arbitrary origin -- only differences are used, so CLOCK_MONOTONIC is
+// right and CLOCK_REALTIME would be wrong: a wall-clock jump must not open or close the window.
+static std::uint64_t monotonic_ms() {
+  struct timespec ts;
+  if (::clock_gettime(CLOCK_MONOTONIC, &ts) != 0) return 0;
+  return static_cast<std::uint64_t>(ts.tv_sec) * 1000ull +
+         static_cast<std::uint64_t>(ts.tv_nsec) / 1000000ull;
+}
+
 static void do_announce_login(long long uin) {
   g_login_uin = uin;
   g_logged_in = 1;
@@ -391,6 +430,22 @@ static void do_announce_login(long long uin) {
   if (g_recv_peer >= 0) {
     send_frame(g_recv_peer, logged, nullptr, uin_text, nullptr);
   }
+
+  // op 22: the account report, which the reference sends alongside every login-state change.
+  //
+  // It carries the session id in value0 and nothing else -- no cmd, no msg, no body. Its purpose
+  // is not to say *what* happened (op 7 already did) but to say *whose* stream this is, for
+  // consumers that attach to the recv channel and get payloads which say nothing about the
+  // account. The reference's requestId here is its inverted presence flag, (id == 0) ? 1 : 0,
+  // copied rather than tidied because a consumer written against it may read the field.
+  const FrameHeader account_report = make_header(
+      kOpPrivateMsgReporting, uin == 0 ? 1 : 0, 0, 0, 0, 0, 0,
+      static_cast<std::uint64_t>(uin));
+  if (g_listen_fd >= 0) broadcast_to_peers(account_report, nullptr, nullptr);
+  if (g_recv_peer >= 0) {
+    send_frame(g_recv_peer, account_report, nullptr, nullptr, nullptr);
+  }
+
   std::printf("[payload] login announced: uin=%s (clients=%d recv=%d)\n", uin_text,
               g_control_peer_count, g_recv_peer);
   std::fflush(stdout);
@@ -531,6 +586,26 @@ void serve_connection(int fd, const char* pipe_path, int pid) {
     }
 
     // Hook every export large enough to patch. The next login then names its own entry points.
+    // Removes every hook without stopping the payload.
+    //
+    // This exists because the remove path is reachable from stop_dynamic, which is what runs when
+    // the client shuts down or the hook is toggled -- so a fault in it takes the process down at
+    // the moment nobody is watching for it. It used to do exactly that: every hook was undone as
+    // a vtable slot, function-entry hooks carried vtable == 0 into a throwing check, and the
+    // exception escaped an extern "C" into std::terminate. Install the export probe, then stop,
+    // and the client died. Exposing removal over the wire makes that testable without stopping
+    // anything.
+    if (h.op == kOpRequest && h.cmd_len == 6 && cmd[0] == 'U' && cmd[1] == 'N' &&
+        cmd[2] == 'H' && cmd[3] == 'O' && cmd[4] == 'O' && cmd[5] == 'K') {
+      const int before = hz_hook_count();
+      hz_hook_remove_all();
+      const int after = hz_hook_count();
+      const FrameHeader ack = make_header(kOpAck, 0, 0, 0, h.request_id, 0, 0,
+                                          static_cast<std::uint64_t>(before - after));
+      if (g_control_peer_count > 0) broadcast_to_peers(ack, nullptr, nullptr);
+      continue;
+    }
+
     if (h.op == kOpRequest && h.cmd_len == 5 && cmd[0] == 'P' && cmd[1] == 'R' &&
         cmd[2] == 'O' && cmd[3] == 'B' && cmd[4] == 'E') {
       const int got = hz_hook_all_exports(200);
@@ -549,6 +624,35 @@ void serve_connection(int fd, const char* pipe_path, int pid) {
       const FrameHeader ack =
           make_header(kOpAck, 0, 0, 0, h.request_id, 0, 0, static_cast<std::uint64_t>(got));
       if (g_control_peer_count > 0) broadcast_to_peers(ack, nullptr, nullptr);
+      continue;
+    }
+
+    // op 17: the login identity hint, inbound only.
+    //
+    // The reference accepts this frame, validates the shape of value0, records it, opens a
+    // 60-second keepalive window and answers op 3; a value that does not fit is answered with
+    // op 5 and -EINVAL. It is *not* sent by the payload -- that direction belongs to the client,
+    // which is the opposite of how an earlier revision of the Node side had it.
+    //
+    // value0 is a packed pair, high word == 1 and low word < 10000, not an account number. A
+    // uin has a high word of 0, so a payload that sent one would be refused on every frame while
+    // looking like it worked, and the keepalive window it was meant to open would never start.
+    if (h.op == kOpLoginIdentityHint) {
+      const std::uint64_t base = 0x100000000ull;
+      const bool in_range = h.value0 >= base && (h.value0 - base) < 10000ull;
+      if (!in_range) {
+        const FrameHeader bad = make_header(kOpError, h.request_id, -22, 0, 0, 0, 0, 0);
+        static const char kWhy[] = "invalid login identity hint";
+        if (!send_frame(fd, bad, kWhy, nullptr, nullptr)) return;
+        continue;
+      }
+      g_login_hint = h.value0;
+      g_keepalive_deadline_ms = monotonic_ms() + 60000ull;
+      const FrameHeader ack = make_header(kOpAck, h.request_id, 0, 0, 0, 0, 0, 0);
+      if (!send_frame(fd, ack, nullptr, nullptr, nullptr)) return;
+      std::printf("[payload] login hint accepted: 0x%llx, keepalive %llums\n",
+                  static_cast<unsigned long long>(h.value0), 60000ull);
+      std::fflush(stdout);
       continue;
     }
 
@@ -759,12 +863,24 @@ static bool emit_packet(const char* service_cmd, const char* uin, int32_t ret_co
   if (service_cmd == nullptr) service_cmd = "";
   if (uin == nullptr) uin = "";
 
+  // The receipt goes first, matching the reference's order in the same loop: it emits op 21 and
+  // then op 6 for each live endpoint.
+  //
+  // It carries the sequence in value0 and has no payload, so a consumer that missed a packet can
+  // still see the sequence advance instead of waiting forever for something already sent. Sent
+  // unconditionally, not only on success: the point is to record that a publish was attempted
+  // for this sequence, and ret_code already says how it went.
+  const FrameHeader receipt =
+      make_header(kOpClientMessageReceipt, 0, 0, 0, 0, 0, 0, seq);
+  const bool receipt_ok = send_frame(g_recv_peer, receipt, nullptr, nullptr, nullptr);
+
   const FrameHeader h = make_header(kOpPacket, 0, ret_code, 0,
                                     static_cast<std::uint32_t>(std::strlen(service_cmd)),
                                     static_cast<std::uint32_t>(std::strlen(uin)),
                                     body_len, seq);
   // send_frame takes the body length from h.body_len, so the header has to carry it.
-  return send_frame(g_recv_peer, h, service_cmd, uin, body);
+  const bool packet_ok = send_frame(g_recv_peer, h, service_cmd, uin, body);
+  return receipt_ok && packet_ok;
 }
 
 extern "C" void hz_payload_constructor() {
@@ -790,7 +906,44 @@ __attribute__((constructor)) static void hz_register_constructor() {
 // Factored out because the payload now owns two channels and they must be set up identically:
 // a recv channel that skipped the unlink step would fail to rebind after a restart with
 // EADDRINUSE, and the symptom ("works once") is a long way from the cause.
+// Returns true when something is already listening on `path`.
+//
+// Used to avoid stealing a socket that belongs to a live peer. Connecting is the only reliable
+// test: a socket file left behind by a dead process refuses the connection with ECONNREFUSED,
+// while a live listener accepts it, so the two cases are distinguishable without guessing from
+// the file's existence.
+static bool socket_is_live(const char* path) {
+  struct stat st;
+  if (::stat(path, &st) != 0) return false;
+  if (::lstat(path, &st) != 0 || (st.st_mode & S_IFMT) != S_IFSOCK) return false;
+
+  const int fd = ::socket(AF_UNIX, SOCK_STREAM, 0);
+  if (fd < 0) return false;
+  struct sockaddr_un addr;
+  std::memset(&addr, 0, sizeof(addr));
+  addr.sun_family = AF_UNIX;
+  std::strncpy(addr.sun_path, path, sizeof(addr.sun_path) - 1);
+  const bool live =
+      ::connect(fd, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) == 0;
+  ::close(fd);
+  return live;
+}
+
 static int listen_unix(const char* path, int backlog) {
+  // Refuse to take a socket another instance is serving, instead of unlinking it.
+  //
+  // unlink-then-bind is right for cleaning up after a crash, and wrong when the previous owner is
+  // still running: it silently deletes a live control channel and the peer that owned it keeps
+  // waiting on a socket nobody can reach. The reference implementation has this same hazard, so
+  // this is deliberately stricter rather than byte-for-byte identical -- a stolen channel on a
+  // signed-in account is not a failure worth reproducing.
+  //
+  // The one case that must still work is re-entry after our own crash, where the file is left
+  // behind but nothing listens; socket_is_live() distinguishes that by connecting.
+  if (socket_is_live(path)) {
+    std::printf("[payload] refusing to steal live socket %s\n", path);
+    return -6;
+  }
   ::unlink(path);
   if (std::strlen(path) >= sizeof(sockaddr_un::sun_path)) {
     std::printf("[payload] socket path too long: %s\n", path);
@@ -806,6 +959,24 @@ static int listen_unix(const char* path, int backlog) {
     std::printf("[payload] bind(%s) failed\n", path);
     ::close(fd);
     return -3;
+  }
+
+  // Owner-only, matching the reference implementation's srw------- .
+  //
+  // bind() creates the socket with the process umask applied, which is not something this code
+  // controls -- the payload inherits QQ's umask, and QQ does not set one. The result was
+  // srwxr-xr-x: any local user could connect and drive the control protocol, which means sending
+  // op 2 as the logged-in account. The directory is 0700 so that is not reachable in a correctly
+  // configured install, but the socket should not depend on the directory to be safe.
+  //
+  // fchmod rather than chmod on the path, and it is done after bind because the file does not
+  // exist before then: a chmod beforehand would create a plain file that bind then refuses with
+  // EADDRINUSE. A failure here is fatal -- a control channel readable by other users is worse
+  // than no control channel.
+  if (::fchmod(fd, 0600) != 0) {
+    std::printf("[payload] fchmod(%s, 0600) failed\n", path);
+    ::close(fd);
+    return -5;
   }
   if (::listen(fd, backlog) != 0) {
     ::close(fd);
@@ -972,8 +1143,24 @@ static void* login_dir_main(void*) {
 static void* hits_main(void*) {
   for (;;) {
     const int count = hz_hook_count();
-    char line[128];
+    char line[256];
     int n = 0;
+    // The keepalive state rides along with the hit counts: both are diagnostics that only make
+    // sense read over time, and a second file would be a second thing to remember to look at.
+    {
+      const std::uint64_t now = monotonic_ms();
+      const std::uint64_t dl = g_keepalive_deadline_ms;
+      const char* state = dl == 0 ? "keepalive=none" : (now < dl ? "keepalive=live" : "keepalive=expired");
+      for (const char* q = state; *q; ++q) line[n++] = *q;
+      line[n++] = ' ';
+      const char* pre = "hint=0x";
+      for (const char* q = pre; *q; ++q) line[n++] = *q;
+      const char* hex = "0123456789abcdef";
+      for (int sh = 60; sh >= 0; sh -= 4) {
+        line[n++] = hex[(g_login_hint >> sh) & 0xf];
+      }
+      line[n++] = ' ';
+    }
     const char* pre = "hits";
     for (int i = 0; pre[i] != '\0'; ++i) line[n++] = pre[i];
     for (int i = 0; i < count; ++i) {
@@ -1365,6 +1552,57 @@ extern "C" void hz_sweep_observer(uint32_t slot, uint64_t original) {
 // three syscalls plus a lock -- the client stops responding and then dies. Reporting only the
 // first entry gives the same answer (which exports were reached) at a cost paid once.
 static volatile unsigned char g_probe_seen[256];
+
+// Logs the four prologue words of a function about to be patched.
+//
+// Exists purely to make a crash during the sweep diagnosable: without it the log stops at "about
+// to try <name>", and the only way to learn what was in those bytes is to reproduce the address
+// offline. With it the log shows the exact instruction words, so a decision about whether the
+// prologue was safe can be made from the log alone.
+extern "C" void hz_note_prologue(uint64_t target, uint32_t w0, uint32_t w1, uint32_t w2,
+                                 uint32_t w3) {
+  const int fd = ::open("/tmp/hz-prologue.log", O_WRONLY | O_CREAT | O_APPEND | O_CLOEXEC, 0644);
+  if (fd < 0) return;
+  char line[128];
+  std::size_t n = 0;
+  const char* hex = "0123456789abcdef";
+  auto put_hex8 = [&](uint32_t v) {
+    line[n++] = '0'; line[n++] = 'x';
+    for (int sh = 28; sh >= 0; sh -= 4) line[n++] = hex[(v >> sh) & 0xf];
+  };
+  const char* pfx = "prologue ";
+  for (const char* q = pfx; *q; ++q) line[n++] = *q;
+  put_hex8(static_cast<uint32_t>(target & 0xffffffffu));
+  line[n++] = ':';
+  const uint32_t words[4] = {w0, w1, w2, w3};
+  for (int k = 0; k < 4; ++k) { line[n++] = ' '; put_hex8(words[k]); }
+  line[n++] = '\n';
+  const ssize_t ig = ::write(fd, line, n);
+  (void)ig;
+  ::close(fd);
+}
+
+// Records why a function entry was refused. Separate from the prologue log because a refusal is a
+// decision, and the decision needs to be readable without the bytes.
+extern "C" void hz_note_refusal(uint64_t target, int reason, uint32_t ins) {
+  const int fd =
+      ::open("/tmp/hz-refuse.log", O_WRONLY | O_CREAT | O_APPEND | O_CLOEXEC, 0644);
+  if (fd < 0) return;
+  char line[128];
+  std::size_t n = 0;
+  const char* tag = reason == 1 ? "pc-relative" : reason == 2 ? "literal-load" : "branch";
+  const char* pfx = "refuse ";
+  for (const char* q = pfx; *q; ++q) line[n++] = *q;
+  for (const char* q = tag; *q; ++q) line[n++] = *q;
+  line[n++] = ' ';
+  const char* hex = "0123456789abcdef";
+  line[n++] = '0'; line[n++] = 'x';
+  for (int sh = 28; sh >= 0; sh -= 4) line[n++] = hex[(ins >> sh) & 0xf];
+  line[n++] = '\n';
+  const ssize_t ig = ::write(fd, line, n);
+  (void)ig;
+  ::close(fd);
+}
 
 extern "C" void hz_probe_observer(uint32_t hook, uint64_t original) {
   (void)original;

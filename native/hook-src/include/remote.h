@@ -167,6 +167,12 @@ class RemoteProcess {
   // The thread-preference score for one tid, derived from /proc/<tid>/wchan.
   static int thread_score(pid_t pid, pid_t tid);
 
+  // Per-thread tracer and liveness checks. TracerPid has to come from the thread's own status
+  // file: /proc/<pid>/status reports only the group leader's tracer, so a tid-held attachment is
+  // invisible there and a re-injection would seize a thread someone else already owns.
+  static bool thread_is_traced(pid_t pid, pid_t tid);
+  static bool thread_is_alive(pid_t pid, pid_t tid);
+
   void interrupt();
   void wait_for_stop();
   // Same as wait_for_stop() but bounded by a deadline: returns the stopped pid,

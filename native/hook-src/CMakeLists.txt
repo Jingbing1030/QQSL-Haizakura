@@ -224,6 +224,21 @@ target_include_directories(slot_relay_test PRIVATE
 )
 add_test(NAME slot_relay COMMAND slot_relay_test)
 
+# Function-entry hooking is AArch64-only. On x86_64 the correct behaviour is an
+# explicit refusal, because a silent fixed-width overwrite of a live function is a
+# crash inside the target far from the cause. This asserts the refusal and its
+# wording, on both architectures.
+add_executable(arch_guard_test test/arch_guard_test.cc
+  src/vtable_hook.cc
+  src/slot_relay.cc
+  src/elf_image.cc
+  src/common.cc
+)
+target_include_directories(arch_guard_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+add_test(NAME arch_guard COMMAND arch_guard_test)
+
 # End-to-end vtable hooking: needs a live target with the subject library mapped, so it is
 # driven by run_vtable_e2e.sh.in rather than by ctest directly.
 add_executable(vtable_hook_e2e_test test/vtable_hook_e2e_test.cc

@@ -482,11 +482,38 @@ SlotCheck check_code_address(uint64_t at) {
   return out;
 }
 
+// Declared weak so the core library does not depend on the payload's logger.
+extern "C" void hz_note_prologue(uint64_t target, uint32_t w0, uint32_t w1, uint32_t w2,
+                                uint32_t w3) __attribute__((weak));
+extern "C" void hz_note_refusal(uint64_t target, int reason, uint32_t ins)
+    __attribute__((weak));
+
 HookedFunction hook_function_relayed_in_process(uint64_t target, SlotObserver observer,
                                                 uint32_t id) {
   if (target == 0) throw Error("cannot hook a null function");
-  if ((target & 3) != 0) throw Error("function entry is not 4-byte aligned");
   if (observer == nullptr) throw Error("observer is null");
+  if ((target & 3) != 0) throw Error("function entry is not 4-byte aligned");
+
+#if !defined(__aarch64__)
+  // Entry patching is AArch64-only, and refusing is the honest behaviour.
+  //
+  // Everything below -- the patch encoding, the fixed 16-byte width, the replay stub, and even
+  // the prologue scan that decides whether displaced instructions can be relocated -- is written
+  // against AArch64's fixed 4-byte instruction length. x86 has none of that: instructions are
+  // variable length, so a fixed 16-byte overwrite lands mid-instruction as a rule rather than by
+  // bad luck, and the prologue scan below would read arbitrary x86 bytes and compare them against
+  // AArch64 masks (adrp, ldr-literal), rejecting valid functions and accepting dangerous ones.
+  //
+  // This is not a missing branch. The reference implementation on x86_64 patches nothing but
+  // vtable slots -- verified: its only writes are `lock cmpxchg` to slot addresses, with no
+  // function-entry patching anywhere in the binary. So vtable hooking is the whole mechanism that
+  // was ever required, and it works on both architectures.
+  //
+  // Making this work on x86_64 would mean a length disassembler plus a different patch shape
+  // (`jmp [rip+0]` with a 14-byte form), and the reference implementation demonstrates it is not
+  // needed for parity.
+  throw Error("function-entry hooking is AArch64-only; on x86_64 only vtable slots can be hooked");
+#endif
 
   HookedFunction out;
   out.target = target;
@@ -508,6 +535,17 @@ HookedFunction hook_function_relayed_in_process(uint64_t target, SlotObserver ob
 
   uint8_t original[kPatchLen];
   std::memcpy(original, reinterpret_cast<const void*>(target), kPatchLen);
+
+  // Record the four prologue words before deciding anything, so a crash during the sweep names
+  // the exact bytes being patched rather than leaving the last log line at "about to try".
+  {
+    uint32_t w0 = 0, w1 = 0, w2 = 0, w3 = 0;
+    std::memcpy(&w0, original + 0, 4);
+    std::memcpy(&w1, original + 4, 4);
+    std::memcpy(&w2, original + 8, 4);
+    std::memcpy(&w3, original + 12, 4);
+    if (hz_note_prologue != nullptr) hz_note_prologue(target, w0, w1, w2, w3);
+  }
   out.saved_len = kPatchLen;
   std::memcpy(out.saved, original, kPatchLen);
 
@@ -519,18 +557,34 @@ HookedFunction hook_function_relayed_in_process(uint64_t target, SlotObserver ob
     std::memcpy(&ins, original + i, 4);
     // adrp / adr
     if ((ins & 0x1F000000u) == 0x10000000u || (ins & 0x9F000000u) == 0x90000000u) {
-      throw Error(format("function prologue at 0x%llx uses pc-relative addressing (0x%08x)",
-                         static_cast<unsigned long long>(target), ins));
+      // Refuse without throwing across the C boundary.
+      //
+      // This used to `throw Error(format(...))`, and the throw itself crashed the host: the
+      // payload is linked with --unresolved-symbols=ignore-all and does not carry libstdc++'s
+      // exception machinery as its own, so constructing and raising a std::runtime_error from a
+      // manually-loaded module reached through a NULL a GCC-generated reference. The refusal path
+      // was therefore more dangerous than the thing it was refusing.
+      //
+      // An error code is dumber and cannot fail. The message is reported through the payload's
+      // logger instead of an exception object.
+      hz_note_refusal(target, 1, ins);
+      out.relay = 0;
+      out.saved_len = 0;
+      return out;
     }
     // ldr/ldrsw literal
     if ((ins & 0x3B000000u) == 0x18000000u) {
-      throw Error(format("function prologue at 0x%llx loads a literal (0x%08x)",
-                         static_cast<unsigned long long>(target), ins));
+      hz_note_refusal(target, 2, ins);
+      out.relay = 0;
+      out.saved_len = 0;
+      return out;
     }
     // b/bl/b.cond/cbz/tbz inside the patch window: the branch would be relocated.
     if ((ins & 0x7C000000u) == 0x14000000u || (ins & 0xFF000010u) == 0x54000000u) {
-      throw Error(format("function prologue at 0x%llx branches (0x%08x)",
-                         static_cast<unsigned long long>(target), ins));
+      hz_note_refusal(target, 3, ins);
+      out.relay = 0;
+      out.saved_len = 0;
+      return out;
     }
   }
 

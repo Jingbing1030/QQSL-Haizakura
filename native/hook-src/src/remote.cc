@@ -20,6 +20,7 @@
 #include <sys/uio.h>
 #include <sys/user.h>
 #include <sys/wait.h>
+#include <fcntl.h>
 #include <unistd.h>
 
 namespace hz {
@@ -210,6 +211,36 @@ void RemoteProcess::attach() {
 // wherever we last pointed it.  That is why the destructor path below (which
 // restores registers before DETACH) is the one that must be airtight.
 
+// Reads TracerPid from a *thread's* own status file.
+//
+// /proc/<pid>/status reports the group leader's tracer, so a thread held by a tracer that never
+// detached looks unclaimed from there -- the exact confusion this project exists to avoid.
+bool RemoteProcess::thread_is_traced(pid_t pid, pid_t tid) {
+  const std::string path = format("/proc/%d/task/%d/status", pid, tid);
+  const int fd = ::open(path.c_str(), O_RDONLY | O_CLOEXEC);
+  if (fd < 0) return false;
+  char buf[4096];
+  const ssize_t n = ::read(fd, buf, sizeof(buf) - 1);
+  ::close(fd);
+  if (n <= 0) return false;
+  buf[n] = '\0';
+  const char* p = std::strstr(buf, "TracerPid:");
+  if (p == nullptr) return false;
+  p += 10;
+  while (*p == ' ' || *p == '\t') ++p;
+  long v = 0;
+  while (*p >= '0' && *p <= '9') v = v * 10 + (*p++ - '0');
+  return v != 0;
+}
+
+// True when the thread still exists.  Cheap and race-free enough: the decision it feeds is only
+// an ordering preference, and a thread that dies a moment later is caught by the SEIZE/GETREGS
+// error path this is meant to avoid.
+bool RemoteProcess::thread_is_alive(pid_t pid, pid_t tid) {
+  const std::string path = format("/proc/%d/task/%d", pid, tid);
+  return ::access(path.c_str(), F_OK) == 0;
+}
+
 int RemoteProcess::thread_score(pid_t pid, pid_t tid) {
   // Preference order for "which thread should we steal".  A thread parked in a
   // syscall is not holding up anyone else and is not mid-computation, so seizing
@@ -304,14 +335,38 @@ std::vector<pid_t> RemoteProcess::enumerate_threads(pid_t pid) {
     // the one a previous tracer is most likely to be holding, and its stop has
     // group-wide effects; the reference implementation skips it too.
     if (tid == pid) continue;
+
+    // Skip a thread that already has a tracer, and one that is on its way out.
+    //
+    // Both produce the same ESRCH from PTRACE_GETREGS a few instructions later, and both are
+    // common on a re-injection: the payload the first injection left behind owns threads, and a
+    // listener thread that is exiting passes the SEIZE check and is gone by the time registers
+    // are read. Measured on the re-injection path -- `PTRACE_GETREGS failed: No such process`
+    // against a tid that no longer existed, while the process itself was healthy.
+    //
+    // TracerPid is read from the per-thread status because the kernel reports only the group
+    // leader's tracer in /proc/<pid>/status; a tid-held attachment is invisible there.
+    // A thread someone else already holds is still worth attempting: SEIZE fails with EPERM and
+    // the tid lands in the diagnostic list, which is exactly what makes a fully-contended target
+    // explainable. An already-traced thread is therefore ranked last instead of dropped, and the
+    // SEIZE outcome decides. Only a thread that is already gone is skipped outright, because
+    // there is nothing to learn from racing its exit.
+    if (!thread_is_alive(pid, tid)) continue;
     tids.push_back(tid);
   }
   ::closedir(d);
 
   // Best-first by wchan score, ties broken by tid so a run is reproducible.
-  std::sort(tids.begin(), tids.end(), [pid](pid_t a, pid_t b) {
-    const int sa = thread_score(pid, a);
-    const int sb = thread_score(pid, b);
+  //
+  // A thread that already reports a tracer sorts last, but stays in the list so the SEIZE
+  // failure it produces is reported rather than silently reducing the candidate set to nothing.
+  const pid_t self = pid;
+  std::sort(tids.begin(), tids.end(), [self](pid_t a, pid_t b) {
+    const bool ta = thread_is_traced(self, a);
+    const bool tb = thread_is_traced(self, b);
+    if (ta != tb) return !ta;  // unclaimed threads first
+    const int sa = thread_score(self, a);
+    const int sb = thread_score(self, b);
     if (sa != sb) return sa > sb;
     return a < b;
   });

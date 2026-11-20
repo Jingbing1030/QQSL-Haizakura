@@ -21,6 +21,26 @@ int g_observed = 0;
 uint32_t g_last_slot = 0;
 uint64_t g_last_original = 0;
 
+// Deliberately clobbers every floating-point register it is allowed to.
+//
+// This is what caught the relay keeping only q0..q5 when the ABI gives a function eight. A
+// passive observer -- one that only touches globals -- never writes q6/q7, so the omission stayed
+// invisible for as long as the hooked slots happened to take six or fewer doubles. A real
+// observer is an ordinary C function and has no such restraint, and the export probe installs two
+// hundred hooks at once on functions that may pass doubles in q6/q7.
+//
+// Writing to all eight with distinct values means a relay that forgets one of them restores a
+// wrong number into the callee and the sum comes back visibly different.
+__attribute__((noinline)) void fp_clobber_observer(uint32_t slot, uint64_t original) {
+  volatile double sink[8];
+  sink[0] = 101.0; sink[1] = 102.0; sink[2] = 103.0; sink[3] = 104.0;
+  sink[4] = 105.0; sink[5] = 106.0; sink[6] = 107.0; sink[7] = 108.0;
+  (void)sink;
+  ++g_observed;
+  g_last_slot = slot;
+  g_last_original = original;
+}
+
 void observer(uint32_t slot, uint64_t original) {
   ++g_observed;
   g_last_slot = slot;
@@ -111,6 +131,21 @@ int main() {
     const double relayed = fn(1.5, 2.25, 3.125, 4.0625, 5.5, 6.5, 7.5, 8.5);
     std::printf("  doubles: direct=%.6f relayed=%.6f\n", direct, relayed);
     check(std::fabs(direct - relayed) < 1e-12, "eight double arguments arrive intact");
+    hz::slot_relay_remove(relay);
+  }
+
+  {
+    // Same eight doubles, but the observer writes every FP register first.
+    const uint64_t relay = hz::slot_relay_install(
+        0, reinterpret_cast<uint64_t>(&sum_doubles), &fp_clobber_observer);
+    auto fn = reinterpret_cast<double (*)(double, double, double, double, double, double,
+                                          double, double)>(relay);
+    // Distinct magnitudes so a swapped or zeroed register changes the sum.
+    const double direct = sum_doubles(1.5, 2.25, 3.125, 4.0625, 5.5, 6.5, 7.5, 8.5);
+    const double relayed = fn(1.5, 2.25, 3.125, 4.0625, 5.5, 6.5, 7.5, 8.5);
+    std::printf("  doubles w/ clobbering observer: direct=%.6f relayed=%.6f\n", direct, relayed);
+    check(std::fabs(direct - relayed) < 1e-12,
+          "eight doubles survive an observer that clobbers q6/q7");
     hz::slot_relay_remove(relay);
   }
 

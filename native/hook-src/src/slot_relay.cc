@@ -193,22 +193,30 @@ void emit_trampoline(uint8_t* p, const RelayState* state, uint64_t entry) {
 
 #elif defined(__aarch64__)
 // x9 holds the state pointer on entry.  aarch64 passes integer arguments in x0..x7 and
-// returns the struct-pointer in x8, so all eight are saved; q0..q7 carry float and
-// SIMD arguments and are saved too.  SP must stay 16-byte aligned at every instruction
-// boundary -- the trap the detached-call path hit -- so the save area is a multiple of
-// 16.
+// returns the struct-pointer in x8, so all eight are saved.  q0..q7 carry float and SIMD
+// arguments -- all EIGHT of them, not six.
 //
-// Layout of the 192-byte frame: x0..x7 at 0..64, the state pointer at 72, q0..q5 at
-// 80..175, x29/x30 at 176.  192 % 16 == 0, which aarch64 requires at every instruction
-// boundary.
+// Saving only q0..q5 was a real corruption bug, and it stayed hidden because of how it was
+// reached: the vtable slots hooked first happen to take at most six floating-point arguments, so
+// the relay never had anything in q6/q7 to destroy. The export probe then hooked two hundred
+// functions at once, any one of which may pass its seventh or eighth double in q6/q7, and the
+// observer call -- an ordinary C function -- is free to clobber both. The client died during
+// installation with no diagnostics, which reads as "the probe is broken" rather than "the relay
+// keeps six of the eight registers it promised".
+//
+// SP must stay 16-byte aligned at every instruction boundary -- the trap the detached-call path
+// hit -- so the save area is a multiple of 16.
+//
+// Layout of the 224-byte frame: x0..x7 at 0..64, x8 at 64, the state pointer at 72, q0..q7 at
+// 80..208, x29/x30 at 208.  224 % 16 == 0, which aarch64 requires at every instruction.
 asm(R"(
   .text
   .p2align 4
   .globl hz_slot_relay_entry
   .type  hz_slot_relay_entry, %function
 hz_slot_relay_entry:
-  sub  sp, sp, #192
-  stp  x29, x30, [sp, #176]
+  sub  sp, sp, #224
+  stp  x29, x30, [sp, #208]
   stp  x0, x1, [sp, #0]
   stp  x2, x3, [sp, #16]
   stp  x4, x5, [sp, #32]
@@ -220,6 +228,7 @@ hz_slot_relay_entry:
   stp  q0, q1, [sp, #80]
   stp  q2, q3, [sp, #112]
   stp  q4, q5, [sp, #144]
+  stp  q6, q7, [sp, #176]
 
   # Count the entry.  x9 still holds the state pointer here, and `hits` sits at offset 32
   # -- past the four fields the rest of this stub reads, so adding it moved nothing.
@@ -249,8 +258,9 @@ hz_slot_relay_entry:
   ldp  q0, q1, [sp, #80]
   ldp  q2, q3, [sp, #112]
   ldp  q4, q5, [sp, #144]
-  ldp  x29, x30, [sp, #176]
-  add  sp, sp, #192
+  ldp  q6, q7, [sp, #176]
+  ldp  x29, x30, [sp, #208]
+  add  sp, sp, #224
 
   # Tail-branch to the original through x9, which is free again.
   ldr  x9, [x9, #8]
@@ -392,6 +402,21 @@ uint64_t slot_relay_install_function(uint64_t target, const uint8_t* saved, uint
   // The relay's tail branch goes to the stub, not to the function.
   state->original = reinterpret_cast<uint64_t>(stub);
   (void)off;
+
+  // Publish the generated code before anything can execute it.
+  //
+  // The page is mapped writable at this point, so writing instructions is fine -- but on AArch64
+  // the instruction cache is not coherent with the data cache, and nothing here has told the core
+  // that these addresses now hold code. Without this the first execution can run whatever stale
+  // lines the I-cache already had for these addresses, which for a page being filled for the first
+  // time is usually harmless and occasionally is not. `__builtin___clear_cache` compiles to
+  // `bl __clear_cache`, which issues the required DC/IC maintenance.
+  //
+  // Done before mprotect so the bytes are in place while the page is still known-writable, and
+  // before the relay is returned to the caller -- after that a target thread may enter it at any
+  // moment.
+  __builtin___clear_cache(reinterpret_cast<char*>(mem),
+                          reinterpret_cast<char*>(reinterpret_cast<uint8_t*>(mem) + kPageSize));
 
   if (::mprotect(mem, kPageSize, PROT_READ | PROT_WRITE | PROT_EXEC) != 0) {
     ::munmap(mem, kPageSize);

@@ -64,6 +64,16 @@ struct InstalledHook {
   std::uint64_t original = 0;
   std::uint64_t relay = 0;
   char class_name[80] = {0};
+
+  // Function-entry hooks need the displaced prologue bytes to be undoable.
+  //
+  // These were missing, which made every function hook permanent and made removal fatal: the
+  // undo path assumed a vtable slot, so it fed vtable == 0 to a check that threw, inside an
+  // extern "C" with no handler -- std::terminate, host process gone. Installing the PROBE sweep
+  // and then stopping was enough to kill the client.
+  bool is_function = false;
+  std::uint32_t saved_len = 0;
+  std::uint8_t saved[20] = {0};
 };
 
 // 64 rather than 8: the sweep that locates the live login slot needs to hook several slots
@@ -352,7 +362,13 @@ extern "C" int hz_hook_install_login_observer(hz_hook_observer observer) {
 
   // Then the QR slot, as a secondary signal.  Failure here is reported and survived: a QQ
   // build whose QR class moved should cost the QR signal, not the whole hook.
-  {
+  //
+  // The try is not defensive decoration. hook_vtable_slot_relayed_in_process throws when a slot
+  // address fails its mapping check, and this function is extern "C" with no handler above it,
+  // so an unguarded throw becomes std::terminate and takes the client with it. The trunk branch
+  // above has always had this guard; this one did not, which made the comment directly above
+  // false -- the very case it promised to survive would have killed the process.
+  try {
     const std::optional<hz::VtableInfo> target = hz::primary_vtable(image, all, kLoginClass);
     if (target.has_value() && target->slots > kLoginSlot) {
       const std::uint64_t vt_live = base + target->address;
@@ -375,6 +391,10 @@ extern "C" int hz_hook_install_login_observer(hz_hook_observer observer) {
     } else {
       note("%s unavailable, QR signal disabled\n", kLoginClass);
     }
+  } catch (const std::exception& e) {
+    note("qr hook failed, login signal disabled: %s\n", e.what());
+  } catch (...) {
+    note("qr hook failed, login signal disabled\n");
   }
   return 0;
 }
@@ -411,7 +431,30 @@ extern "C" int hz_hook_all_exports(std::size_t max_hooks) {
   for (const hz::DynSymbol& sym : syms) {
     if (static_cast<std::size_t>(installed) >= max_hooks) break;
     if (!sym.defined || sym.value == 0) continue;
-    if (sym.size != 0 && sym.size < 16) { ++skipped_short; continue; }
+
+    // Only real functions. An ELF symbol table mixes code with data, and patching data breaks
+    // whatever owns it in a way that has nothing to do with hooks.
+    //
+    // This is what the sweep hit next after the size check went in: `_ZTINSt2Cr10__function...`,
+    // a typeinfo object, which is a *data* symbol of exactly 16 bytes -- so it passed the
+    // "large enough to patch" test and its 16 bytes of RTTI were overwritten with a jump. Every
+    // subsequent dynamic_cast in the client reads that object.
+    // STT_FUNC (2) is the only thing that can be entry-patched; STT_GNU_IFUNC (10) resolves to a
+    // function too and is accepted.
+    if (sym.type != 2 && sym.type != 10) { ++skipped_short; continue; }
+
+    // size == 0 must be refused, not allowed through.
+    //
+    // The condition used to be `size != 0 && size < 16`, which let unknown-size symbols past the
+    // guard -- and size 0 is exactly what a stripped or section-less entry looks like. Patching 16
+    // bytes there overwrites whatever follows in .text, which is how the client died mid-sweep
+    // with the log ending on `probe: try  at 0x... size=0`: an empty name, an unknown size, and
+    // then nothing.
+    //
+    // An empty name is refused for the same reason: it means the symbol table has no name to
+    // report, so a hit on it could never be acted on even if the hook were safe.
+    if (sym.name.empty()) { ++skipped_short; continue; }
+    if (sym.size < 16) { ++skipped_short; continue; }
 
     std::size_t index = kMaxHooks;
     for (std::size_t i = 0; i < kMaxHooks; ++i) {
@@ -431,15 +474,33 @@ extern "C" int hz_hook_all_exports(std::size_t max_hooks) {
     }
     if (already) continue;
 
+    // Every attempt is logged before it happens, because a fault inside the patch takes the
+    // process down with no chance to write anything afterwards -- the last line in the log is the
+    // only record of which function was being patched.
+    note("probe: try %s at 0x%llx size=%llu\n", sym.name.c_str(),
+         static_cast<unsigned long long>(target),
+         static_cast<unsigned long long>(sym.size));
     try {
       const hz::HookedFunction hooked = hz::hook_function_relayed_in_process(
           target, reinterpret_cast<hz::SlotObserver>(hz_probe_observer),
           static_cast<std::uint32_t>(index));
+      if (hooked.relay == 0) {
+        // Refused, not failed: the prologue could not be relocated safely. Reported through the
+        // prologue/refusal log rather than an exception, because raising one from this module
+        // crashes the client (see hook_function_relayed_in_process).
+        ++refused;
+        continue;
+      }
       g_hooks[index].used = true;
       g_hooks[index].vtable = 0;
       g_hooks[index].slot = 0;
       g_hooks[index].original = target;
       g_hooks[index].relay = hooked.relay;
+      g_hooks[index].is_function = true;
+      g_hooks[index].saved_len = hooked.saved_len;
+      for (std::uint32_t b = 0; b < hooked.saved_len && b < sizeof(g_hooks[index].saved); ++b) {
+        g_hooks[index].saved[b] = hooked.saved[b];
+      }
       std::size_t k = 0;
       while (k < sym.name.size() && k + 1 < sizeof(g_hooks[index].class_name)) {
         g_hooks[index].class_name[k] = sym.name[k];
@@ -452,10 +513,14 @@ extern "C" int hz_hook_all_exports(std::size_t max_hooks) {
       if ((installed % 16) == 0) {
         note("probe: %d installed so far, at %s\n", installed, sym.name.c_str());
       }
+      note("probe: OK %s relay=0x%llx\n", sym.name.c_str(),
+           static_cast<unsigned long long>(hooked.relay));
     } catch (const std::exception& e) {
       ++refused;
+      note("probe: refused %s: %s\n", sym.name.c_str(), e.what());
     } catch (...) {
       ++refused;
+      note("probe: refused %s: unknown\n", sym.name.c_str());
     }
   }
   note("probe: installed %d export hooks (%d too short, %d refused)\n", installed,
@@ -497,11 +562,18 @@ extern "C" int hz_hook_exports_matching(const char* needle, int max_hooks) {
   for (const hz::DynSymbol& sym : syms) {
     if (installed >= max_hooks) break;
     if (!sym.defined || sym.value == 0) continue;
-    // Skip functions shorter than the patch. Patching 16 bytes into an 8-byte getter
-    // overwrites the start of the next function in .text, which crashes the client in code that
-    // has nothing to do with the hook -- and did, before this check existed. Many MSFSDK
-    // accessors (currentConnSeq, isConnected, ...) are exactly this shape.
-    if (sym.size != 0 && sym.size < 16) {
+    // Only functions: see the note in hz_hook_all_exports about typeinfo objects being data.
+    if (sym.type != 2 && sym.type != 10) { ++refused; continue; }
+    // Skip functions shorter than the patch, and those whose size is unknown.
+    // Patching 16 bytes into an 8-byte getter overwrites the start of the next function in
+    // .text, which crashes the client in code that has nothing to do with the hook -- and did,
+    // before this check existed. Many MSFSDK accessors (currentConnSeq, isConnected, ...) are
+    // exactly this shape.
+    //
+    // A size of 0 is not "no constraint", it is "unknown", and an unknown extent cannot be
+    // checked against a 16-byte overwrite. The guard previously tested `size != 0 && size < 16`,
+    // which let every unknown-size symbol through -- the one case that cannot be verified at all.
+    if (sym.size < 16) {
       ++refused;
       continue;
     }
@@ -525,6 +597,11 @@ extern "C" int hz_hook_exports_matching(const char* needle, int max_hooks) {
       g_hooks[index].slot = 0;
       g_hooks[index].original = target;
       g_hooks[index].relay = hooked.relay;
+      g_hooks[index].is_function = true;
+      g_hooks[index].saved_len = hooked.saved_len;
+      for (std::uint32_t b = 0; b < hooked.saved_len && b < sizeof(g_hooks[index].saved); ++b) {
+        g_hooks[index].saved[b] = hooked.saved[b];
+      }
       std::size_t k = 0;
       while (k < nm.size() && k + 1 < sizeof(g_hooks[index].class_name)) {
         g_hooks[index].class_name[k] = nm[k];
@@ -608,6 +685,11 @@ extern "C" int hz_hook_export_login_observer(hz_hook_observer observer) {
     g_hooks[index].slot = 0;
     g_hooks[index].original = target;
     g_hooks[index].relay = hooked.relay;
+    g_hooks[index].is_function = true;
+    g_hooks[index].saved_len = hooked.saved_len;
+    for (std::uint32_t b = 0; b < hooked.saved_len && b < sizeof(g_hooks[index].saved); ++b) {
+      g_hooks[index].saved[b] = hooked.saved[b];
+    }
     const char* nm = "export:notifyLoginSuccess";
     std::size_t k = 0;
     while (nm[k] != '\0' && k + 1 < sizeof(g_hooks[index].class_name)) {
@@ -730,14 +812,37 @@ extern "C" int hz_hook_slot_of(int index) {
 // safe to call twice: a hook that cannot be undone cannot be reloaded, and QQ reloads
 // wrapper.node on some updates.
 extern "C" void hz_hook_remove_all() {
+  // Dispatch on how the hook was installed, and let one failure not abort the rest.
+  //
+  // Two bugs met here. Every hook was undone as a vtable slot, so a function-entry hook carried
+  // vtable == 0 into a check that throws; and this function is extern "C", so that exception had
+  // no handler and became std::terminate. Net effect: install the export probe, then stop the
+  // payload, and the client died. A stale hook is worth a diagnostic, not the host process.
   for (std::size_t i = 0; i < kMaxHooks; ++i) {
     if (!g_hooks[i].used) continue;
-    hz::HookedSlot hooked;
-    hooked.vtable = g_hooks[i].vtable;
-    hooked.slot = g_hooks[i].slot;
-    hooked.original = g_hooks[i].original;
-    hooked.relay = g_hooks[i].relay;
-    hz::unhook_vtable_slot_relayed_in_process(hooked);
+    try {
+      if (g_hooks[i].is_function) {
+        hz::HookedFunction hooked;
+        hooked.target = g_hooks[i].original;
+        hooked.relay = g_hooks[i].relay;
+        hooked.saved_len = g_hooks[i].saved_len;
+        for (std::uint32_t b = 0; b < g_hooks[i].saved_len && b < sizeof(hooked.saved); ++b) {
+          hooked.saved[b] = g_hooks[i].saved[b];
+        }
+        hz::unhook_function_in_process(hooked);
+      } else {
+        hz::HookedSlot hooked;
+        hooked.vtable = g_hooks[i].vtable;
+        hooked.slot = g_hooks[i].slot;
+        hooked.original = g_hooks[i].original;
+        hooked.relay = g_hooks[i].relay;
+        hz::unhook_vtable_slot_relayed_in_process(hooked);
+      }
+    } catch (const std::exception& e) {
+      note("remove_all: hook %zu could not be undone: %s\n", i, e.what());
+    } catch (...) {
+      note("remove_all: hook %zu could not be undone\n", i);
+    }
     g_hooks[i] = InstalledHook{};
   }
 }
