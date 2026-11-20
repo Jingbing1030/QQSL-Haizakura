@@ -277,9 +277,54 @@ char g_control_path[108] = {0};
 // wait for a reply without stalling the client.
 int g_recv_fd = -1;      // the listening socket
 int g_recv_peer = -1;    // the accepted Node-side connection
-int g_control_peer = -1;  // the accepted control connection, for pushing op 7 unprompted
+// Every live control connection, not just the last one.
+//
+// A single stored fd was wrong: the second client to connect overwrote the first, and the first
+// then sat on an open socket that would never receive another frame. Ten concurrent clients
+// produced one delivery and nine nulls. The Node side is not guaranteed to be the only client --
+// a second window, a retry after a dropped connection, a diagnostic probe alongside the real
+// one -- so pushing a state change has to reach all of them.
+constexpr int kMaxClients = 16;
+int g_control_peers[kMaxClients] = {-1, -1, -1, -1, -1, -1, -1, -1,
+                                    -1, -1, -1, -1, -1, -1, -1, -1};
+volatile int g_control_peer_count = 0;
+
+// Registers a control fd, returning false when the table is full.
+static bool control_peer_add(int fd) {
+  for (int i = 0; i < kMaxClients; ++i) {
+    int expected = -1;
+    if (__atomic_compare_exchange_n(&g_control_peers[i], &expected, fd, false,
+                                    __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE)) {
+      __atomic_add_fetch(&g_control_peer_count, 1, __ATOMIC_ACQ_REL);
+      return true;
+    }
+  }
+  return false;
+}
+
+static void control_peer_remove(int fd) {
+  for (int i = 0; i < kMaxClients; ++i) {
+    if (__atomic_load_n(&g_control_peers[i], __ATOMIC_ACQUIRE) == fd) {
+      __atomic_store_n(&g_control_peers[i], -1, __ATOMIC_RELEASE);
+      __atomic_sub_fetch(&g_control_peer_count, 1, __ATOMIC_ACQ_REL);
+      return;
+    }
+  }
+}
+
+// Sends a frame to every live control connection.
+//
+// Body length lives in the header, so there is no separate length argument to get wrong.
+static void broadcast_to_peers(const FrameHeader& h, const char* msg, const void* body) {
+  for (int i = 0; i < kMaxClients; ++i) {
+    const int fd = __atomic_load_n(&g_control_peers[i], __ATOMIC_ACQUIRE);
+    if (fd >= 0) send_frame(fd, h, nullptr, msg, body);
+  }
+}
 int g_login_hits = 0;
-constexpr long long kTestUin = 3XXXXXXXXXLL;
+// A placeholder account, not a real one. Any nine-digit value works: the tests exercise the
+// framing and the state machine, not a particular account.
+constexpr long long kTestUin = 3000000000LL;
 
 // The account the hook itself observed, as opposed to any constant compiled in.
 //
@@ -342,14 +387,12 @@ static void do_announce_login(long long uin) {
   const FrameHeader logged = make_header(
       kOpLoginState, 0, 1, kFlagLoggedIn, 0,
       static_cast<std::uint32_t>(n), 0, static_cast<std::uint64_t>(uin));
-  if (g_listen_fd >= 0 && g_control_peer >= 0) {
-    send_frame(g_control_peer, logged, nullptr, uin_text, nullptr);
-  }
+  if (g_listen_fd >= 0) broadcast_to_peers(logged, uin_text, nullptr);
   if (g_recv_peer >= 0) {
     send_frame(g_recv_peer, logged, nullptr, uin_text, nullptr);
   }
-  std::printf("[payload] login announced: uin=%s (control=%d recv=%d)\n", uin_text,
-              g_control_peer, g_recv_peer);
+  std::printf("[payload] login announced: uin=%s (clients=%d recv=%d)\n", uin_text,
+              g_control_peer_count, g_recv_peer);
   std::fflush(stdout);
 }
 
@@ -364,14 +407,12 @@ static void do_announce_login_unknown() {
 
   const FrameHeader logged =
       make_header(kOpLoginState, 0, 1, kFlagLoggedIn, 0, 0, 0, 0);
-  if (g_listen_fd >= 0 && g_control_peer >= 0) {
-    send_frame(g_control_peer, logged, nullptr, nullptr, nullptr);
-  }
+  if (g_listen_fd >= 0) broadcast_to_peers(logged, nullptr, nullptr);
   if (g_recv_peer >= 0) {
     send_frame(g_recv_peer, logged, nullptr, nullptr, nullptr);
   }
   std::printf("[payload] login announced: uin unknown (control=%d recv=%d)\n",
-              g_control_peer, g_recv_peer);
+              g_control_peer_count, g_recv_peer);
   std::fflush(stdout);
 }
 
@@ -485,7 +526,7 @@ void serve_connection(int fd, const char* pipe_path, int pid) {
                                      : hz_hook_export_login_observer(hz_login_observer);
       const FrameHeader ack =
           make_header(kOpAck, 0, 0, 0, h.request_id, 0, 0, static_cast<std::uint64_t>(rc));
-      if (g_control_peer >= 0) send_frame(g_control_peer, ack, nullptr, nullptr, nullptr);
+      if (g_control_peer_count > 0) broadcast_to_peers(ack, nullptr, nullptr);
       continue;
     }
 
@@ -495,7 +536,7 @@ void serve_connection(int fd, const char* pipe_path, int pid) {
       const int got = hz_hook_all_exports(200);
       const FrameHeader ack =
           make_header(kOpAck, 0, 0, 0, h.request_id, 0, 0, static_cast<std::uint64_t>(got));
-      if (g_control_peer >= 0) send_frame(g_control_peer, ack, nullptr, nullptr, nullptr);
+      if (g_control_peer_count > 0) broadcast_to_peers(ack, nullptr, nullptr);
       continue;
     }
 
@@ -507,7 +548,7 @@ void serve_connection(int fd, const char* pipe_path, int pid) {
       const int got = hz_hook_sweep_login_classes(3);
       const FrameHeader ack =
           make_header(kOpAck, 0, 0, 0, h.request_id, 0, 0, static_cast<std::uint64_t>(got));
-      if (g_control_peer >= 0) send_frame(g_control_peer, ack, nullptr, nullptr, nullptr);
+      if (g_control_peer_count > 0) broadcast_to_peers(ack, nullptr, nullptr);
       continue;
     }
 
@@ -550,6 +591,21 @@ void serve_connection(int fd, const char* pipe_path, int pid) {
   }
 }
 
+struct ConnArgs {
+  int fd;
+  char control[108];
+};
+
+static void* conn_thread_main(void* raw) {
+  ConnArgs* conn = static_cast<ConnArgs*>(raw);
+  const int fd = conn->fd;
+  serve_connection(fd, conn->control, static_cast<int>(::getpid()));
+  control_peer_remove(fd);
+  ::close(fd);
+  ::free(conn);
+  return nullptr;
+}
+
 void* listener_main(void* raw) {
   const ListenerArgs* a = static_cast<const ListenerArgs*>(raw);
   std::printf("[payload] listener thread up, socket %s\n", a->control);
@@ -580,15 +636,43 @@ void* listener_main(void* raw) {
     // that moment has nothing to do with a request arriving.  Without this the frame can only be
     // sent as a reply, so a client that connected before login would wait forever for a state
     // change it never hears about.
-    g_control_peer = fd;
+    if (!control_peer_add(fd)) {
+      // Table full: accepting and immediately closing is honest, and the client sees a reset
+      // rather than a connection that silently never answers.
+      ::close(fd);
+      continue;
+    }
     // If a login already happened before this connection arrived, tell it now: the Node side
     // treats a fresh connection as unknown state, not as "still logged out".
     if (g_logged_in != 0) {
       do_announce_login(g_login_uin);
     }
-    serve_connection(fd, a->control, static_cast<int>(::getpid()));
-    if (g_control_peer == fd) g_control_peer = -1;
-    ::close(fd);
+
+    // One thread per connection, because serving inline meant the listener was blocked for the
+    // life of the first client -- so a second connect() sat in the backlog and was answered only
+    // after the first disconnected. With one client that is invisible; with two it looks like the
+    // hook stopped reporting.
+    ConnArgs* conn = static_cast<ConnArgs*>(::malloc(sizeof(ConnArgs)));
+    if (conn == nullptr) {
+      control_peer_remove(fd);
+      ::close(fd);
+      continue;
+    }
+    conn->fd = fd;
+    int cn = 0;
+    while (cn + 1 < 108 && a->control[cn] != '\0') {
+      conn->control[cn] = a->control[cn];
+      ++cn;
+    }
+    conn->control[cn] = '\0';
+    pthread_t th = 0;
+    if (::pthread_create(&th, nullptr, conn_thread_main, conn) == 0) {
+      ::pthread_detach(th);
+    } else {
+      control_peer_remove(fd);
+      ::close(fd);
+      ::free(conn);
+    }
   }
   return nullptr;
 }
