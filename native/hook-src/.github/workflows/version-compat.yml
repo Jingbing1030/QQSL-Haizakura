@@ -52,6 +52,14 @@ jobs:
         working-directory: build
         run: ctest --output-on-failure
 
+      - name: TypeScript policy tests
+        # The policy half -- frame codec, session identity, RTTI name parsing, the login hint and
+        # its keepalive window -- lives in ts/ and is not covered by ctest.  It was not run here
+        # at all, so a change that broke, say, the value0 bounds in the hint decoder would have
+        # passed CI while refusing every hint at runtime.
+        working-directory: ts
+        run: npm ci && npm test
+
       - name: Payload relocations are all supported
         # Static pre-flight: a payload that picks up a TLS or COPY relocation would map and then
         # die partway through relocation, on the target machine.  This catches that on any host.
