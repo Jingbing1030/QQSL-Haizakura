@@ -18,7 +18,7 @@ import {
 const noSleep = { sleep: async () => {} };
 
 test("an unchanged session compares equal", () => {
-  const a: SessionIdentity = { pid: 100, uin: "3083456343", generation: 1 };
+  const a: SessionIdentity = { pid: 100, uin: "3XXXXXXXXX", generation: 1 };
   assert.equal(compareSession(a, { ...a }), null);
 });
 
@@ -26,16 +26,16 @@ test("a replaced process is reported as a new session, not a new account", () =>
   // A supervisor can restart QQ inside the same pid, so pid equality is not identity. The
   // generation is what distinguishes them, and the two failures want different handling:
   // every cached field is stale, versus every queued operation is misaddressed.
-  const before: SessionIdentity = { pid: 100, uin: "3083456343", generation: 1 };
-  assert.equal(compareSession(before, { pid: 100, uin: "3083456343", generation: 2 }),
+  const before: SessionIdentity = { pid: 100, uin: "3XXXXXXXXX", generation: 1 };
+  assert.equal(compareSession(before, { pid: 100, uin: "3XXXXXXXXX", generation: 2 }),
     "session-identity-changed");
-  assert.equal(compareSession(before, { pid: 101, uin: "3083456343", generation: 1 }),
+  assert.equal(compareSession(before, { pid: 101, uin: "3XXXXXXXXX", generation: 1 }),
     "session-identity-changed");
 });
 
 test("a different account is reported separately", () => {
-  const before: SessionIdentity = { pid: 100, uin: "3083456343", generation: 1 };
-  assert.equal(compareSession(before, { pid: 100, uin: "3254926145", generation: 1 }),
+  const before: SessionIdentity = { pid: 100, uin: "3XXXXXXXXX", generation: 1 };
+  assert.equal(compareSession(before, { pid: 100, uin: "3YYYYYYYYY", generation: 1 }),
     "session-account-changed");
 });
 
@@ -43,7 +43,7 @@ test("an unreadable account is not a change", () => {
   // The payload reports null when it could not read the uin. Treating "could not read" as
   // "changed" would fire the expensive path on a diagnostic gap -- exactly the false positive
   // the module exists to avoid.
-  const known: SessionIdentity = { pid: 100, uin: "3083456343", generation: 1 };
+  const known: SessionIdentity = { pid: 100, uin: "3XXXXXXXXX", generation: 1 };
   assert.equal(compareSession(known, { pid: 100, uin: null, generation: 1 }), null);
   assert.equal(compareSession({ pid: 100, uin: null, generation: 1 }, known), null);
   assert.equal(compareSession({ pid: 100, uin: null, generation: 1 }, { pid: 100, uin: null, generation: 1 }), null);

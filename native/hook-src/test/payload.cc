@@ -279,7 +279,7 @@ int g_recv_fd = -1;      // the listening socket
 int g_recv_peer = -1;    // the accepted Node-side connection
 int g_control_peer = -1;  // the accepted control connection, for pushing op 7 unprompted
 int g_login_hits = 0;
-constexpr long long kTestUin = 3083456343LL;
+constexpr long long kTestUin = 3XXXXXXXXXLL;
 
 // The account the hook itself observed, as opposed to any constant compiled in.
 //
@@ -305,7 +305,7 @@ void unsigned_to_dec(long long value, char* out, std::size_t cap) {
 
 // Login state, declared with the rest of the state because the control thread reads it to greet
 // a new connection, and that thread is defined before the announce helper.
-// 64-bit, not int: real QQ numbers exceed 2^31 -- 3083456343 wraps to -1211510953 as a signed
+// 64-bit, not int: real QQ numbers exceed 2^31 -- 3XXXXXXXXX wraps to -1211510953 as a signed
 // 32-bit value, which then went out on the wire as 18446744072498040663. The number looked like a
 // garbage uin rather than a truncation, which cost a round of hunting for the wrong bug.
 long long g_login_uin = 0;
@@ -766,7 +766,7 @@ static void trace(const char* text) {
 //   <home>/.config/QQ/Partitions/qqnt_<uin>/
 //   <home>/.config/QQ/Partitions/qq-browser-<uin>/
 //
-// Measured in the container: clicking login at 01:32 stamped qqnt_3083456343 at 01:32, and
+// Measured in the container: clicking login at 01:32 stamped qqnt_3XXXXXXXXX at 01:32, and
 // auth/login.enc was rewritten at 01:43. So the signal is real, current, and needs nothing from
 // the client's internals: no vtable layout, no exported symbol, no patched code. It also cannot
 // crash QQ, which the function-entry patching did.
@@ -815,7 +815,7 @@ static void* login_dir_main(void*) {
         //
         // readdir order is arbitrary, and this container has qqnt_9210 and qqnt_9211 sitting
         // beside the real account -- leftovers from other tests. Taking the first match reported
-        // uin 9211 for an account that is 3083456343, which is the sort of wrong answer that
+        // uin 9211 for an account that is 3XXXXXXXXX, which is the sort of wrong answer that
         // looks entirely plausible in a log.
         char full[512];
         int fn = 0;
@@ -836,7 +836,7 @@ static void* login_dir_main(void*) {
 
     // The uin comes from the directory name, but the *event* comes from auth/login.enc.
     //
-    // The account directory is persistent: qqnt_3083456343 existed before the sign-in and its
+    // The account directory is persistent: qqnt_3XXXXXXXXX existed before the sign-in and its
     // mtime did not change when one happened. Using the directory as the trigger therefore
     // announced a login that had not occurred, which is exactly the class of mistake this whole
     // exercise exists to stop making.

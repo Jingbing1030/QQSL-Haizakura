@@ -46,7 +46,7 @@ f9cf40e71000-f9cf40e72000 r-xp 00000000 00:00 0     ← 匿名可执行页，无
 | 载荷注入 | ✅ `.eh_frame` 注册成功，无符号解析错误 |
 | socket 重建 | ✅ mtime 从 12:59 变为 **23:09:57** |
 | 载荷 listen | ✅ `ss -xlp` 显示 `qq pid=85885 fd=469` |
-| TS 解码真实帧 | ✅ `magic=827344977`、`op=7 status=1 flags=0x4 msg="3083456343"` |
+| TS 解码真实帧 | ✅ `magic=827344977`、`op=7 status=1 flags=0x4 msg="3XXXXXXXXX"` |
 | 静态偏移正确 | ✅ `selfInfoOnLoginSuccess` = base + `0x1323a20`，实测吻合 |
 
 ## 为了走到这一步修掉的两个真实问题

@@ -19,10 +19,10 @@ decoded 2 frame(s):
   op=1 (hello) status=0 flags=0x0 81B
       msg: "/tmp/runtime-1000/mojo.85885.control.sock"
   op=7 (login) status=1 flags=0x4 50B
-      msg: "3083456343"
+      msg: "3XXXXXXXXX"
 
 login: status=1 flags=0x4
-  state: {"loggedIn":true,"uin":"3083456343"}
+  state: {"loggedIn":true,"uin":"3XXXXXXXXX"}
 ```
 
 ## 这验证了什么（逐条对应之前的推断）
@@ -35,13 +35,13 @@ login: status=1 flags=0x4
 | hello 的 `msg` = 本通道路径全串 | ✅ 正是 control 的完整路径（81 字节） |
 | op 7 = 登录态，`status` 非 0，`flags` bit2 | ✅ `status=1`、`flags=0x4` |
 | `logged_in = (flags & 0x4) \|\| status !== 0` | ✅ 两者都为真 |
-| `uin = msg \|\| value0` | ✅ `msg="3083456343"` |
+| `uin = msg \|\| value0` | ✅ `msg="3XXXXXXXXX"` |
 | **`flags` 是 u32 不是 u16** | ✅ `0x4` 正确解出（若按 u16+reserved 会读成 `0x0004` 且 reserved 非零被拒） |
 
 ## 顺带纠正一处我自己的判断
 
 `docs/uin-is-redundant.md` 里我把「载荷读不到 uin」定性为**不算差距**。
-这次实测证明**闭源载荷能读到真实 uin**（3083456343），所以：
+这次实测证明**闭源载荷能读到真实 uin**（3XXXXXXXXX），所以：
 
 - 「Node 侧本来就知道账号」这条**没错**（`Instance` 构造参数）；
 - 但「载荷不提供 uin 也没损失」这条**说过了头** —— 参考实现提供了这个值，

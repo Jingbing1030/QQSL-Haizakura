@@ -114,7 +114,7 @@ test("drains back-to-back frames from one buffer", () => {
   // A single read() can carry a whole frame plus most of the next; the reader needs
   // to know how many bytes it consumed.
   const a = encodeFrame({ op: Op.hello, msg: "pipe", value0: 1234n });
-  const b = encodeFrame({ op: Op.loginState, flags: Flag.loggedIn, msg: "3083456343" });
+  const b = encodeFrame({ op: Op.loginState, flags: Flag.loggedIn, msg: "3XXXXXXXXX" });
   const joined = Buffer.concat([a, b]);
 
   const first = decodeFrame(joined, 0);
@@ -133,12 +133,12 @@ test("login state: flags bit 2 alone means logged in", () => {
     op: Op.loginState,
     flags: Flag.loggedIn,
     status: 0,
-    msg: "3083456343",
-    value0: 3083456343n,
+    msg: "3XXXXXXXXX",
+    value0: 3XXXXXXXXXn,
   });
   const decoded = decodeFrame(frame);
   assert.ok(decoded.ok);
-  assert.deepEqual(decodeLoginState(decoded.frame), { loggedIn: true, uin: "3083456343" });
+  assert.deepEqual(decodeLoginState(decoded.frame), { loggedIn: true, uin: "3XXXXXXXXX" });
 });
 
 test("login state: non-zero status alone means logged in", () => {
@@ -152,10 +152,10 @@ test("login state: non-zero status alone means logged in", () => {
 });
 
 test("login state: uin falls back to value0 when msg is empty", () => {
-  const frame = encodeFrame({ op: Op.loginState, flags: Flag.loggedIn, value0: 3083456343n });
+  const frame = encodeFrame({ op: Op.loginState, flags: Flag.loggedIn, value0: 3XXXXXXXXXn });
   const decoded = decodeFrame(frame);
   assert.ok(decoded.ok);
-  assert.deepEqual(decodeLoginState(decoded.frame), { loggedIn: true, uin: "3083456343" });
+  assert.deepEqual(decodeLoginState(decoded.frame), { loggedIn: true, uin: "3XXXXXXXXX" });
 });
 
 test("login state: uin is null, not zero, when the payload did not know it", () => {
@@ -169,7 +169,7 @@ test("login state: uin is null, not zero, when the payload did not know it", () 
 });
 
 test("login state: not logged in reports both fields empty", () => {
-  const frame = encodeFrame({ op: Op.loginState, flags: 0, status: 0, msg: "3083456343" });
+  const frame = encodeFrame({ op: Op.loginState, flags: 0, status: 0, msg: "3XXXXXXXXX" });
   const decoded = decodeFrame(frame);
   assert.ok(decoded.ok);
   // A uin is present but must not be reported, because the frame says not logged in.
