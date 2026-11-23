@@ -15,8 +15,10 @@ core.*
 
 # 运行期配置（含凭据：密码哈希、盐值、token）
 # 只入库脱敏模板 *.example.json
-config/*.json
-!config/*.example.json
+# `**/` matters: without it this only matched the top-level config/ dir and let
+# `ts/config/webui.json` (a real password hash) slip through into a commit.
+**/config/*.json
+!**/config/*.example.json
 
 # 运行日志（含 UIN、消息内容）
 logs/
@@ -26,6 +28,10 @@ logs/
 node_modules/
 __pycache__/
 *.pyc
+
+# 参考物：reference/index.mjs 是指向 ../../../restored/dist/index.mjs 的符号链接
+# （同一份 2.4.2 bundle，不重复存储 13MB）。测试硬性依赖它存在，
+# 所以链接本身必须入库；Git 会把它当成普通文件内容（一行路径）提交。
 
 # 开发笔记：含真实 UIN、群号、服务器 IP、token 和内部调试细节，不适合公开
 MEMORY.md

@@ -438,7 +438,7 @@ export class NotificationManager {
  * able to say so.
  */
 export function createDefaultPost(
-  timeoutMs: number = positiveIntEnv("NOTIFICATION_HTTP_TIMEOUT_MS", DEFAULT_POST_TIMEOUT_MS),
+  timeoutMs: number = positiveIntEnv("SNOWLUMA_NOTIFICATION_HTTP_TIMEOUT_MS", DEFAULT_POST_TIMEOUT_MS),
 ): NotificationPost {
   return async (url, body, headers) => {
     try {

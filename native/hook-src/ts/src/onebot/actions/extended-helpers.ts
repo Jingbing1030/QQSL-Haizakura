@@ -32,7 +32,6 @@ import { FieldImpl, MISSING, RULES, type Ok, type Result } from "./kit.js";
 import type { ForwardPreview } from "./context.js";
 export type { ForwardPreview };
 import { GROUP_MESSAGE_EVENT, hashMessageIdInt32 } from "./message-id.js";
-import { readEnvAlias } from "../../bridge/env.js";
 
 // ===========================================================================
 // Essence-message field validation (reference:12000-12400)
@@ -232,7 +231,7 @@ export const DEFAULT_DOWNLOAD_FILE_TIMEOUT_MS = 60_000;
  * timeout, which would make every download fail instantly.
  */
 export function downloadFileTimeoutMs(env: NodeJS.ProcessEnv = process.env): number {
-  const raw = readEnvAlias("DOWNLOAD_FILE_TIMEOUT_MS", env);
+  const raw = env["SNOWLUMA_DOWNLOAD_FILE_TIMEOUT_MS"];
   if (raw === undefined || raw === "") return DEFAULT_DOWNLOAD_FILE_TIMEOUT_MS;
   const parsed = Number(raw);
   return Number.isFinite(parsed) && parsed > 0 && Number.isInteger(parsed)

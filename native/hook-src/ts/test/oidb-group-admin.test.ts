@@ -263,7 +263,7 @@ test("0x8a7_0 the three basic constants are 1/2/1 at fields 1/2/3", () => {
 
 test("0x8a7_0 a group id above 2^31 and the uin are independent uint64s", () => {
   const { bytes: encoded } = encodeRequest(GetAtAllRemain, { groupId: 10001, selfUin: 10001 });
-  assert.equal(hex(encoded), "08a711220f08011002180120914e28914e");
+  assert.equal(hex(encoded), "08a711220c08011002180120914e28914e");
 });
 
 test("0x8a7_0 the response remaps field names and defaults the counters", () => {

@@ -194,7 +194,7 @@ test("interaction & reaction: requests match the reference", () => {
     // reaction_summary
     [encodeRequest(reaction.FetchReactionSummary, { groupId: 111222333, sequence: 7 }), "0884a1021001220910bdbc843518076001"],
     // reaction_summary_big
-    [encodeRequest(reaction.FetchReactionSummary, { groupId: 10001, sequence: 9007199254740993 }), "0884a1021001221110914e1880808080808080106001"],
+    [encodeRequest(reaction.FetchReactionSummary, { groupId: 10001, sequence: 9007199254740993 }), "0884a1021001220e10914e1880808080808080106001"],
     // reaction_unset
     [encodeRequest(reaction.SetReaction, { groupId: 111222333, sequence: 7, code: "76", isSet: false }), "0882a1021002220d10bdbc84351807220237362801"],
   ];
@@ -292,7 +292,7 @@ test("misc (sign / translate / db key / ocr): requests match the reference", () 
     // group_sign
     [encodeRequest(misc.SendGroupSign, { groupId: 111222333, selfUin: 10001 }), "08b71d1001221c121a0a05313030303112093131313232323333331a06392e302e3930"],
     // group_sign_big
-    [encodeRequest(misc.SendGroupSign, { groupId: 10001, selfUin: 3834523403 }), "08b71d1001222212200a0a33383334353233343033120a31303030311a06392e302e3930"],
+    [encodeRequest(misc.SendGroupSign, { groupId: 10001, selfUin: 3834523403 }), "08b71d1001221d121b0a0a33383334353233343033120531303030311a06392e302e3930"],
     // ocr
     [encodeRequest(misc.ImageOcr, { imageUrl: "https://multimedia.nt.qq.com/x.jpg" }), "08871c222a0801180152240a2268747470733a2f2f6d756c74696d656469612e6e742e71712e636f6d2f782e6a7067"],
     // translate
@@ -354,7 +354,7 @@ test("contacts: requests match the reference", () => {
     // share_link
     [encodeRequest(contacts.GetGroupShareLink, { groupId: 111222333, needShortUrl: true, additionalParam: "" }), "08e0a0021003220d0802620908bdbc84351a0020016001"],
     // share_link_long
-    [encodeRequest(contacts.GetGroupShareLink, { groupId: 10001, needShortUrl: false, additionalParam: "x=1" }), "08e0a002100322110802620d08914e1a03783d3120006001"],
+    [encodeRequest(contacts.GetGroupShareLink, { groupId: 10001, needShortUrl: false, additionalParam: "x=1" }), "08e0a0021003220e0802620a08914e1a03783d3120006001"],
     // tuwen_friend
     [encodeRequest(contacts.SendTuwenArk, { targetId: 10001, peerType: 0, title: "T", desc: "", summary: "", previewUrl: "", jumpUrl: "https://j/x" }), "08c21b1022222f0a2608a2e0f22f100118002a02080158914e621408015201546a0b68747470733a2f2f6a2f7872001205080010914e"],
     // tuwen_group

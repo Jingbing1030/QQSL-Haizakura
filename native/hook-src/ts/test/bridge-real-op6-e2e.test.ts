@@ -17,7 +17,7 @@
  *
  * The expected values come from the reference's own log line for this packet:
  *
- *   群 [ChatLuna 闲聊群(123456)] | [郁金香.(10002)]:
+ *   群 [ChatLuna 闲聊群(123456)] | [匿名者.(10002)]:
  *   ID:860800303 流行不了，这种要求一次都不该有。
  *
  * NOT proven here: nothing about op2 send, and nothing about the unknown
@@ -29,6 +29,7 @@ import { test } from "node:test";
 
 import { Bridge, MemoryIdentity } from "../src/bridge/bridge.js";
 import { MSG_PUSH_CMD } from "../src/bridge/msg-push-pipeline.js";
+import { CAPTURE_402_SEQ2526989626 } from "../src/bridge/fixtures/real-op6-captures.js";
 
 /**
  * A real 402-byte `trpc.msg.olpush.OlPushService.MsgPush` body.
@@ -36,19 +37,10 @@ import { MSG_PUSH_CMD } from "../src/bridge/msg-push-pipeline.js";
  * `length=402` in the reference trace matches `hex.length / 2`, which is asserted
  * below so a truncated paste cannot silently weaken the test.
  */
-const REAL_PUSH_BODY_HEX =
-  "0a8f030a6108924e1218755f7730794d30523732386f4978556c366452533639734118e90720f78" +
-  "49f800228914e423008c0c407100118e79e01220ae98381e98791e9a6992e280230013a1243" +
-  "6861744c756e6120e997b2e8818ae7bea41231085220e5d08a4b28d0fe7530c4968ad806380160e5d08ac" +
-  "b8080808001e8019ac262f0010180029ffccda8a59baeafc4011af6010af3010a20080010c4968ad80618e" +
-  "5d08a4b2000280a300038860140024a06e5ae8be4bd9312340a320a30e6b581e8a18ce4b88de4ba86efbc8" +
-  "ce8bf99e7a78de8a681e6b182e4b880e6aca1e983bde4b88de8afa5e69c89e3808212064a040800400112" +
-  "7aaa02775000600068009a016e080020cb50c80100f00100f80100900200980300a00300b00300c00300d0" +
-  "0300e803008a04040802105d90048001b80400c00401ca04023005f8048c800c880500b2060a0a0808001" +
-  "00018002000d8069ac262ea060c080122089c5d2e5370f5a470a0079ffccda8a59baeafc40112158201120" +
-  "a0ae98381e98791e9a6992e180128013a00";
-
-const REAL_PUSH_BODY = Uint8Array.from(Buffer.from(REAL_PUSH_BODY_HEX, "hex"));
+// Taken from the fixture rather than pasted a second time: the same packet lives in
+// `real-op6-captures.ts` as CAPTURE_402, and two independent copies drifted apart under
+// redaction (one kept its length prefix, the other did not). One source, one truth.
+const REAL_PUSH_BODY = CAPTURE_402_SEQ2526989626.bytes;
 
 /** From the reference trace: `seqId=2526989626 ... length=402`. */
 const TRACE_SEQ = 2526989626;
@@ -105,7 +97,7 @@ test("a REAL op6 push produces exactly one group_message event with the referenc
   const event = seen[0] as Record<string, unknown>;
 
   assert.equal(event.kind, "group_message");
-  // 123456 = "ChatLuna 闲聊群", 10002 = "郁金香." — both from the
+  // 123456 = "ChatLuna 闲聊群", 10002 = "匿名者." — both from the
   // reference's own log line for this exact packet.
   assert.equal(event.groupId, 123456);
   assert.equal(event.senderUin ?? event.userId, 10002);

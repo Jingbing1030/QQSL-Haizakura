@@ -82,11 +82,11 @@ HTTP 请求 ──> OneBotApi ──> actionRegistry(222/230) ──> ActionCont
 `ts/src/main.ts` + `ts/test/main.test.ts`（23 测）+ `ts/test/send-seam.test.ts`（5 测）。
 
 **这不是「文档写了」，是真实跑出来的字节。** 用 `HaizakuraRuntime` 走
-`sendGroup(958146070, "测试")`，抓到的真实 op2 请求体：
+`sendGroup(1234567890, "测试")`，抓到的真实 op2 请求体：
 
 ```
 0a08 1206 0896ccf0c803 1202 0801   1a0e 0a0c 120a 0a08 0a06 e6b58be8af95   28 a7d9ad8402
-     └── field1 varint = 958146070 ──┘                                      └─ field5 random ─┘
+     └── field1 varint = 1234567890 ──┘                                      └─ field5 random ─┘
                                                           └─ UTF-8「测试」─┘
 ```
 

@@ -53,9 +53,9 @@ async function wsMain() {
 				setTimeout(function () {
 					adapter.onEvent({
 						time: 1763000000, self_id: 10001, post_type: "message", message_type: "group",
-						message_id: 1018302134, group_id: 391122026, user_id: 2635583281,
+						message_id: 1018302134, group_id: 123456, user_id: 10002,
 						message: [{ type: "text", data: { text: "hello" } }],
-						sender: { user_id: 2635583281, nickname: "郁金香.", card: "郁金香." }
+						sender: { user_id: 10002, nickname: "匿名者.", card: "匿名者." }
 					}, null);
 				}, 150);
 			} else if (msg.op === 2 && !out.pong) out.pong = msg;
@@ -79,9 +79,9 @@ async function wsMain() {
 	rec("event platform", ev && ev.platform, "haizakura");
 	rec("event self_id", ev && ev.self_id, "10001");
 	// Satori spec: resources PROMOTED to top level, NOT inside message
-	rec("event.channel promoted", ev && ev.channel && ev.channel.id, "391122026");
-	rec("event.guild promoted", ev && ev.guild && ev.guild.id, "391122026");
-	rec("event.user promoted", ev && ev.user && ev.user.id, "2635583281");
+	rec("event.channel promoted", ev && ev.channel && ev.channel.id, "123456");
+	rec("event.guild promoted", ev && ev.guild && ev.guild.id, "123456");
+	rec("event.user promoted", ev && ev.user && ev.user.id, "10002");
 	rec("ev.message has NO user", ev && ev.message && ev.message.user === undefined, true);
 	rec("ev.message has NO channel", ev && ev.message && ev.message.channel === undefined, true);
 	rec("ev.message.id is string", ev && typeof ev.message.id, "string");

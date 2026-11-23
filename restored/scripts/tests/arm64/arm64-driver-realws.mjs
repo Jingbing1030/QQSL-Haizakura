@@ -86,8 +86,8 @@ const flow = await new Promise((resolve) => {
       setTimeout(() => {
         adapter.onEvent({
           time: 1763000000, self_id: <uin>, post_type: "message", message_type: "group",
-          sub_type: "normal", message_id: 1018302134, group_id: 391122026, group_name: "ChatLuna 闲聊群",
-          user_id: 2635583281, sender: { user_id: 2635583281, nickname: "郁金香.", card: "郁金香." },
+          sub_type: "normal", message_id: 1018302134, group_id: 123456, group_name: "ChatLuna 闲聊群",
+          user_id: 10002, sender: { user_id: 10002, nickname: "匿名者.", card: "匿名者." },
           message: [{ type: "text", data: { text: "hello" } }, { type: "at", data: { qq: "<uin>" } }]
         }, null);
       }, 200);
@@ -109,9 +109,9 @@ __check("(3) PING -> PONG op=2", flow.pong !== null);
 __check("(4) EVENT op=0 parsed by real client", flow.event !== null);
 const ev = flow.event?.body;
 __check("(4) EVENT type=message-created", ev?.type === "message-created", ev?.type);
-__check("(4) EVENT channel promoted", ev?.channel?.id === "391122026");
-__check("(4) EVENT guild promoted", ev?.guild?.id === "391122026");
-__check("(4) EVENT user promoted", ev?.user?.id === "2635583281");
+__check("(4) EVENT channel promoted", ev?.channel?.id === "123456");
+__check("(4) EVENT guild promoted", ev?.guild?.id === "123456");
+__check("(4) EVENT user promoted", ev?.user?.id === "10002");
 __check("(4) EVENT message stripped of resources", !!ev?.message && !("user" in ev.message) && !("channel" in ev.message) && !("guild" in ev.message));
 __check("(4) EVENT content encoded w/ <at", String(ev?.message?.content).includes("hello") && String(ev?.message?.content).includes("<at"), ev?.message?.content);
 __check("(4) wire snake_case is_bot", ev?.user?.is_bot === false && !("isBot" in (ev?.user ?? {})));

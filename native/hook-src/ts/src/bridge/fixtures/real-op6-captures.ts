@@ -185,9 +185,9 @@ export function sliceUtf8(bytes: Uint8Array, offset: number, length: number): st
 //   @0     PushMsg.message                 len 134
 //   @3       PushMsgBody.responseHead      len  64
 //   @5         ResponseHead.fromUin        = 10001   (5..10)
-//   @11        ResponseHead.fromUid        = "u_x0QTDf32mXJ0UTUj7olMJQ" (13..36)
+//   @11        ResponseHead.fromUid        = "u_anon000000000000000000" (13..36)
 //   @37        ResponseHead.toUin          = 10001  (field 5, varint)
-//   @43        ResponseHead.toUid          = "u_x0QTDf32mXJ0UTUj7olMJQ" (45..68)
+//   @43        ResponseHead.toUid          = "u_anon000000000000000000" (45..68)
 //   @69      PushMsgBody.contentHead       len  48
 //   @71        ContentHead.msgType        = 528         (71..73)
 //   @74        ContentHead.subType        = 382         (74..76)
@@ -213,10 +213,10 @@ export const CAPTURE_137_SEQ2626218455: RealOp6Capture = {
   uin: "10001",
   byteLength: 137,
   hex:
-    "0a86010a4008914e1218755f78305154446633326d584a305554556a376f6c4d4a5128914e" +
-    "3218755f78305154446633326d584a305554556a376f6c4d4a51123008900410fe0218fe0220d2bdafc007" +
-    "28d3bdafc00730b2958ad80660d2bdafc087808080028002efc992b9e0a691d10d1a100a00120c455034" +
-    "43474141675a536741",
+    "0a86010a400891ce8080001218755f616e6f6e3030303030303030303030303030303030302891" +
+    "ce8080003218755f616e6f6e303030303030303030303030303030303030123008900410fe0218" +
+    "fe0220d2bdafc00728d3bdafc00730b2958ad80660d2bdafc087808080028002efc992b9e0a691" +
+    "d10d1a100a00120c45503443474141675a536741",
   bytes: new Uint8Array(0), // filled in below
   expected: {
     head: {
@@ -229,7 +229,7 @@ export const CAPTURE_137_SEQ2626218455: RealOp6Capture = {
       ntMsgSeq: 0,
     },
     fromUin: 10001,
-    fromUid: "u_x0QTDf32mXJ0UTUj7olMJQ",
+    fromUid: "u_anon000000000000000000",
     toUin: 10001,
     groupUin: null,
     memberCard: null,
@@ -261,14 +261,14 @@ export const CAPTURE_137_SEQ2626218455: RealOp6Capture = {
       label: "sender UID",
       offset: 13,
       length: 24,
-      utf8: "u_x0QTDf32mXJ0UTUj7olMJQ",
+      utf8: "u_anon000000000000000000",
       path: "ResponseHead.fromUid",
     },
     {
       label: "recipient UID",
       offset: 45,
       length: 24,
-      utf8: "u_x0QTDf32mXJ0UTUj7olMJQ",
+      utf8: "u_anon000000000000000000",
       path: "ResponseHead.toUid",
     },
     {
@@ -295,9 +295,9 @@ export const CAPTURE_137_SEQ2626218455: RealOp6Capture = {
 //   @0     PushMsg.message                 len 135
 //   @3       PushMsgBody.responseHead      len  64
 //   @5         ResponseHead.fromUin        = 10001   (5..10)
-//   @11        ResponseHead.fromUid        = "u_x0QTDf32mXJ0UTUj7olMJQ" (13..36)
+//   @11        ResponseHead.fromUid        = "u_anon000000000000000000" (13..36)
 //   @37        ResponseHead.toUin          = 10001  (field 5, varint)
-//   @43        ResponseHead.toUid          = "u_x0QTDf32mXJ0UTUj7olMJQ" (45..68)
+//   @43        ResponseHead.toUid          = "u_anon000000000000000000" (45..68)
 //   @69      PushMsgBody.contentHead       len  49
 //   @71        ContentHead.msgType        = 528         (71..73)
 //   @74        ContentHead.subType        = 382         (74..76)
@@ -319,10 +319,10 @@ export const CAPTURE_138_SEQ2564024904: RealOp6Capture = {
   uin: "10001",
   byteLength: 138,
   hex:
-    "0a87010a4008914e1218755f78305154446633326d584a305554556a376f6c4d4a5128914e" +
-    "3218755f78305154446633326d584a305554556a376f6c4d4a51123108900410fe0218fe0220fd9df8cb05" +
-    "28fe9df8cb0530b2958ad80660fd9df8cb85808080028002c4dd85d59ba9fb86a5011a100a00120c4550" +
-    "3443474141675a536741",
+    "0a87010a400891ce8080001218755f616e6f6e3030303030303030303030303030303030302891" +
+    "ce8080003218755f616e6f6e303030303030303030303030303030303030123108900410fe0218" +
+    "fe0220fd9df8cb0528fe9df8cb0530b2958ad80660fd9df8cb85808080028002c4dd85d59ba9fb" +
+    "86a5011a100a00120c45503443474141675a536741",
   bytes: new Uint8Array(0), // filled in below
   expected: {
     head: {
@@ -335,7 +335,7 @@ export const CAPTURE_138_SEQ2564024904: RealOp6Capture = {
       ntMsgSeq: 0,
     },
     fromUin: 10001,
-    fromUid: "u_x0QTDf32mXJ0UTUj7olMJQ",
+    fromUid: "u_anon000000000000000000",
     toUin: 10001,
     groupUin: null,
     memberCard: null,
@@ -367,14 +367,14 @@ export const CAPTURE_138_SEQ2564024904: RealOp6Capture = {
       label: "sender UID",
       offset: 13,
       length: 24,
-      utf8: "u_x0QTDf32mXJ0UTUj7olMJQ",
+      utf8: "u_anon000000000000000000",
       path: "ResponseHead.fromUid",
     },
     {
       label: "recipient UID",
       offset: 45,
       length: 24,
-      utf8: "u_x0QTDf32mXJ0UTUj7olMJQ",
+      utf8: "u_anon000000000000000000",
       path: "ResponseHead.toUid",
     },
     {
@@ -408,7 +408,7 @@ export const CAPTURE_138_SEQ2564024904: RealOp6Capture = {
 //   @54          ResponseGrp.groupUin             = 123456   (54..59)
 //   @60          ResponseGrp.field2 (varint)      = 1           (unknown wire type)
 //   @62          ResponseGrp.field3 (varint)      = 20327       (not in schema)
-//   @66          ResponseGrp.memberCard           = "郁金香."    (68..77)
+//   @66          ResponseGrp.memberCard           = "匿名者."    (68..77)
 //   @78          ResponseGrp.field5 (varint)      = 2
 //   @80          ResponseGrp.field6 (varint)      = 1
 //   @82          ResponseGrp.groupName            = "ChatLuna 闲聊群" (84..101)
@@ -438,7 +438,7 @@ export const CAPTURE_138_SEQ2564024904: RealOp6Capture = {
 //   @266             GeneralFlags.field19  (UNKNOWN TAG 19, len 110, 269..378)
 //   @379         RichText.elems[3]               len  21
 //   @381           Elem.extraInfo                len  18
-//   @384             ExtraInfo.nick              = "郁金香."   (386..395)
+//   @384             ExtraInfo.nick              = "匿名者."   (386..395)
 //   @396             ExtraInfo.level             = 1
 //   @398             ExtraInfo.groupMask         = 1
 //   @400             ExtraInfo.senderTitle       = "" (len 0)
@@ -460,16 +460,17 @@ export const CAPTURE_402_SEQ2526989626: RealOp6Capture = {
   uin: "10001",
   byteLength: 402,
   hex:
-    "0a8f030a6108924e1218755f7730794d30523732386f4978556c366452533639734118e90720f78" +
-    "49f800228914e423008c0c407100118e79e01220ae98381e98791e9a6992e280230013a1243" +
-    "6861744c756e6120e997b2e8818ae7bea41231085220e5d08a4b28d0fe7530c4968ad806380160e5d08ac" +
-    "b8080808001e8019ac262f0010180029ffccda8a59baeafc4011af6010af3010a20080010c4968ad80618e" +
-    "5d08a4b2000280a300038860140024a06e5ae8be4bd9312340a320a30e6b581e8a18ce4b88de4ba86efbc8" +
-    "ce8bf99e7a78de8a681e6b182e4b880e6aca1e983bde4b88de8afa5e69c89e3808212064a040800400112" +
-    "7aaa02775000600068009a016e080020cb50c80100f00100f80100900200980300a00300b00300c00300d0" +
-    "0300e803008a04040802105d90048001b80400c00401ca04023005f8048c800c880500b2060a0a0808001" +
-    "00018002000d8069ac262ea060c080122089c5d2e5370f5a470a0079ffccda8a59baeafc40112158201120" +
-    "a0ae98381e98791e9a6992e180128013a00",
+    "0a8f030a610892ce8080001218755f7730794d30523732386f4978556c366452533639734118e9" +
+    "0720f7849f80022891ce808000423008c0c4878000100118e79e01220ae58cbfe5908de880852e" +
+    "280230013a12436861744c756e6120e997b2e8818ae7bea41231085220e5d08a4b28d0fe7530c4" +
+    "968ad806380160e5d08acb8080808001e8019ac262f0010180029ffccda8a59baeafc4011af601" +
+    "0af3010a20080010c4968ad80618e5d08a4b2000280a300038860140024a06e5ae8be4bd931234" +
+    "0a320a30e6b581e8a18ce4b88de4ba86efbc8ce8bf99e7a78de8a681e6b182e4b880e6aca1e983" +
+    "bde4b88de8afa5e69c89e3808212064a0408004001127aaa02775000600068009a016e080020cb" +
+    "50c80100f00100f80100900200980300a00300b00300c00300d00300e803008a04040802105d90" +
+    "048001b80400c00401ca04023005f8048c800c880500b2060a0a080800100018002000d8069ac2" +
+    "62ea060c080122089c5d2e5370f5a470a0079ffccda8a59baeafc40112158201120a0ae58cbfe5" +
+    "908de880852e180128013a00",
   bytes: new Uint8Array(0), // filled in below
   expected: {
     head: {
@@ -485,7 +486,7 @@ export const CAPTURE_402_SEQ2526989626: RealOp6Capture = {
     fromUid: "u_w0yM0R728oIxUl6dRS69sA",
     toUin: 10001,
     groupUin: 123456,
-    memberCard: "郁金香.",
+    memberCard: "匿名者.",
     groupName: "ChatLuna 闲聊群",
     msgContentLength: 0,
   },
@@ -541,7 +542,7 @@ export const CAPTURE_402_SEQ2526989626: RealOp6Capture = {
       label: "group card (sender display name)",
       offset: 68,
       length: 10,
-      utf8: "郁金香.",
+      utf8: "匿名者.",
       path: "ResponseGrp.memberCard",
     },
     {
@@ -590,7 +591,7 @@ export const CAPTURE_402_SEQ2526989626: RealOp6Capture = {
       label: "extraInfo nick (the same display name, second copy)",
       offset: 386,
       length: 10,
-      utf8: "郁金香.",
+      utf8: "匿名者.",
       path: "Elem.extraInfo.nick",
     },
   ],

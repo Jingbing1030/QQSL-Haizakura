@@ -24,7 +24,7 @@ import { test } from "node:test";
 
 import { Bridge, MemoryIdentity } from "../src/bridge/bridge.js";
 
-const GROUP_ID = 958146070;
+const GROUP_ID = 1234567890;
 const SELF_UIN = "10001";
 
 function makeBridge() {

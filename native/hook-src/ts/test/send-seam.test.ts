@@ -28,7 +28,7 @@ import { describe, test } from "node:test";
 import { HaizakuraRuntime } from "../src/main.js";
 
 const UIN = "10001";
-const GROUP = 958146070;
+const GROUP = 1234567890;
 
 interface SentPacket {
   readonly wireName: string;

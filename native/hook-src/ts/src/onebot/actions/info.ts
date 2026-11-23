@@ -13,17 +13,12 @@ import { defineAction, okResponse, type ActionSpec } from "./kit.js";
 import type { ActionContext } from "./context.js";
 
 /**
- * `APP_VERSION` — the version this runtime reports to OneBot clients.
- *
- * 0.2.5.0 is Haizakura's first release under its own name: the API surface is the one
- * SnowLuma 2.4.2 shipped, plus the rebrand. The action composes `${APP_VERSION}-node`,
- * so the server reports `0.2.5.0-node`.
- *
- * Kept as a constant rather than read from package.json because the hook's TypeScript
- * package is a different artifact (the wire protocol) with its own version — reading it
- * here would report the wrong number.
+ * `APP_VERSION` is the bundle's own package version (reference:6085
+ * `snowluma-monorepo@0.2.4.2`). The action composes `${APP_VERSION}-node`, so the
+ * version the server reports is `0.2.4.2-node`. Kept as a constant with its source
+ * line rather than read from a package.json this port does not share.
  */
-export const APP_VERSION = "0.2.5.0";
+export const APP_VERSION = "0.2.4.2";
 
 export type InfoAction = ActionSpec<Record<string, never>, ActionContext>;
 

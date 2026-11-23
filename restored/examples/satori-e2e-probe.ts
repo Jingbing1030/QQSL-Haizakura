@@ -16,10 +16,10 @@ function e2eApi() {
 			e2eCalls.push({ action: action, params: params });
 			if (action === "get_login_info") return { status: "ok", retcode: 0, data: { user_id: 10001, nickname: "HaizakuraBot" } };
 			if (action === "send_msg") return { status: "ok", retcode: 0, data: { message_id: 1018302134 } };
-			if (action === "get_group_info") return { status: "ok", retcode: 0, data: { group_id: 391122026, group_name: "ChatLuna 闲聊群", member_count: 42, max_member_count: 200 } };
-			if (action === "get_group_list") return { status: "ok", retcode: 0, data: [{ group_id: 391122026, group_name: "ChatLuna 闲聊群", member_count: 42, max_member_count: 200 }] };
-			if (action === "get_msg") return { status: "ok", retcode: 0, data: { message_id: 1018302134, message_type: "group", group_id: 391122026, user_id: 2635583281, message: [{ type: "text", data: { text: "hello" } }], time: 1763000000, sender: { user_id: 2635583281, nickname: "郁金香." } } };
-			if (action === "get_stranger_info") return { status: "ok", retcode: 0, data: { user_id: 2635583281, nickname: "郁金香." } };
+			if (action === "get_group_info") return { status: "ok", retcode: 0, data: { group_id: 123456, group_name: "ChatLuna 闲聊群", member_count: 42, max_member_count: 200 } };
+			if (action === "get_group_list") return { status: "ok", retcode: 0, data: [{ group_id: 123456, group_name: "ChatLuna 闲聊群", member_count: 42, max_member_count: 200 }] };
+			if (action === "get_msg") return { status: "ok", retcode: 0, data: { message_id: 1018302134, message_type: "group", group_id: 123456, user_id: 10002, message: [{ type: "text", data: { text: "hello" } }], time: 1763000000, sender: { user_id: 10002, nickname: "匿名者." } } };
+			if (action === "get_stranger_info") return { status: "ok", retcode: 0, data: { user_id: 10002, nickname: "匿名者." } };
 			// deliberately FAIL like the real backend does (HTTP still 200)
 			return { status: "failed", retcode: 1404, wording: "unknown action" };
 		}
@@ -83,30 +83,30 @@ async function e2eMain() {
 	rec("login.get has features", Array.isArray(loginBody.features) && loginBody.features.length > 0, true);
 
 	// --- message.create (group) ---
-	var created = await httpPost("/v1/message.create", { channel_id: "391122026", content: "hello <at id=\"2635583281\"/>" });
+	var created = await httpPost("/v1/message.create", { channel_id: "123456", content: "hello <at id=\"10002\"/>" });
 	rec("message.create -> 200", created.status, 200);
 	var sendCall = e2eCalls.filter(function (c) { return c.action === "send_msg"; })[0];
 	rec("send_msg message_type", sendCall && sendCall.params.message_type, "group");
-	rec("send_msg group_id", sendCall && sendCall.params.group_id, "391122026");
+	rec("send_msg group_id", sendCall && sendCall.params.group_id, "123456");
 	rec("send_msg has at segment", sendCall && JSON.stringify(sendCall.params.message).indexOf("\"at\"") >= 0, true);
 
 	// --- message.create (private) ---
-	await httpPost("/v1/message.create", { channel_id: "private:2635583281", content: "dm" });
+	await httpPost("/v1/message.create", { channel_id: "private:10002", content: "dm" });
 	var sendCalls = e2eCalls.filter(function (c) { return c.action === "send_msg"; });
 	rec("private send_msg type", sendCalls[1] && sendCalls[1].params.message_type, "private");
-	rec("private send_msg user_id", sendCalls[1] && sendCalls[1].params.user_id, "2635583281");
+	rec("private send_msg user_id", sendCalls[1] && sendCalls[1].params.user_id, "10002");
 
 	// --- other MVP APIs ---
-	var g = await httpPost("/v1/guild.get", { guild_id: "391122026" });
+	var g = await httpPost("/v1/guild.get", { guild_id: "123456" });
 	rec("guild.get -> 200", g.status, 200);
-	rec("guild.get id", JSON.parse(g.body || "{}").id, "391122026");
+	rec("guild.get id", JSON.parse(g.body || "{}").id, "123456");
 	var gl = await httpPost("/v1/guild.list", {});
 	rec("guild.list -> 200", gl.status, 200);
 	rec("guild.list data len", (JSON.parse(gl.body || "{}").data || []).length, 1);
-	var ch = await httpPost("/v1/channel.get", { channel_id: "391122026" });
+	var ch = await httpPost("/v1/channel.get", { channel_id: "123456" });
 	rec("channel.get -> 200", ch.status, 200);
-	rec("channel.get id", JSON.parse(ch.body || "{}").id, "391122026");
-	var mg = await httpPost("/v1/message.get", { channel_id: "391122026", message_id: "1018302134" });
+	rec("channel.get id", JSON.parse(ch.body || "{}").id, "123456");
+	var mg = await httpPost("/v1/message.get", { channel_id: "123456", message_id: "1018302134" });
 	rec("message.get -> 200", mg.status, 200);
 	rec("message.get id is string", typeof JSON.parse(mg.body || "{}").id, "string");
 

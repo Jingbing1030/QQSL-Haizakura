@@ -96,7 +96,6 @@ import type {
   WsServerConfig,
 } from "./config-types.js";
 import { createLogger, errorMessage } from "./log.js";
-import { readEnvAlias } from "../bridge/env.js";
 
 const log = createLogger("OneBot.Config");
 
@@ -1045,16 +1044,16 @@ function wsClientToJson(n: WsClientConfig): Record<string, unknown> {
  * persisted (§4.1 step 7).
  */
 export function applyOneBotListenPortOverrides(config: OneBotConfig, env: NodeJS.ProcessEnv = process.env): OneBotConfig {
-  const httpPort = readListenPort("ONEBOT_HTTP_PORT", env);
-  const wsPort = readListenPort("ONEBOT_WS_PORT", env);
+  const httpPort = readListenPort("SNOWLUMA_ONEBOT_HTTP_PORT", env);
+  const wsPort = readListenPort("SNOWLUMA_ONEBOT_WS_PORT", env);
   if (httpPort === undefined && wsPort === undefined) return config;
   const next = structuredClone(config);
   const httpApplied =
     httpPort !== undefined &&
-    assignFactoryPort(next.networks.httpServers, HTTP_DEFAULT_SERVER, httpPort, "HAIZAKURA_ONEBOT_HTTP_PORT");
+    assignFactoryPort(next.networks.httpServers, HTTP_DEFAULT_SERVER, httpPort, "SNOWLUMA_ONEBOT_HTTP_PORT");
   const wsApplied =
     wsPort !== undefined &&
-    assignFactoryPort(next.networks.wsServers, WS_DEFAULT_SERVER, wsPort, "HAIZAKURA_ONEBOT_WS_PORT");
+    assignFactoryPort(next.networks.wsServers, WS_DEFAULT_SERVER, wsPort, "SNOWLUMA_ONEBOT_WS_PORT");
   if (!httpApplied && !wsApplied) return config;
   try {
     assertValidOneBotConfig(next);
@@ -1067,7 +1066,7 @@ export function applyOneBotListenPortOverrides(config: OneBotConfig, env: NodeJS
 
 /** L5225 `readListenPort` — 1…65535, or `undefined` for absent/blank/invalid. */
 function readListenPort(name: string, env: NodeJS.ProcessEnv): number | undefined {
-  const raw = readEnvAlias(name, env);
+  const raw = env[name];
   if (typeof raw !== "string" || !raw.trim()) return undefined;
   const port = positiveIntEnv(name, 0, { max: 65535, env });
   return port > 0 ? port : undefined;

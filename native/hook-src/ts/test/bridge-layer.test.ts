@@ -48,11 +48,11 @@ test("collection request frame matches the reference's own encoder", () => {
   // Produced by work/bridge-parts/ref/collection.mjs, which is the reference's
   // src/web/collection.ts region loaded verbatim:
   //   requestBytes(10001n, "PSKEY-ABC", 1, 18446744073709551615n)
-  // 80 bytes. Field-by-field: magic 20130329, version 0001, totalLength
-  // 00000050 (= 80), bodyLength 00000017 (= 23), reserved 0000, then
+  // 77 bytes. Field-by-field: magic 20130329, version 0001, totalLength
+  // 0000004d (= 77), bodyLength 00000017 (= 23), reserved 0000, then
   // head 08 914e (uin) … and body 0a 15 … (operation 20000 → 0x9c2 → tags e2 09 11).
   const expected =
-    "2013032900010000005000000017000008914e1001180120a09c0128cfacf8fa85c2013004381b5a0950534b45592d414243700878090a1582e2091120ffffffffffffffffff01280238324001";
+    "2013032900010000004d00000017000008914e1001180120a09c0128cfacf8fa85c2013004381b5a0950534b45592d414243700878090a1582e2091120ffffffffffffffffff01280238324001";
   const actual = Buffer.from(collectionRequestBytes("10001", "PSKEY-ABC", 1, 18446744073709551615n)).toString("hex");
   assert.equal(actual, expected);
 });

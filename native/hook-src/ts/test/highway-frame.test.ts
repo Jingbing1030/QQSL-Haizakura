@@ -154,7 +154,7 @@ test("the head codec is byte-identical to the reference for a real upload", () =
   });
   assert.equal(
     Buffer.from(head).toString("hex"),
-    "0a270801120a31303030311a0c50696355702e44617461557030c4acf8fa05381040ec07" +
+    "0a220801120531303030311a0c50696355702e44617461557030c4acf8fa05381040ec07" +
       "1215108080402080804032030102034202aabb4a02ccdd2a08080818c4acf8fa05",
   );
 });

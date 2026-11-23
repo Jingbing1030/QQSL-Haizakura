@@ -4,11 +4,13 @@
 // The two differential suites here are the important ones, because they are the
 // only way to know the hand-written replacements are faithful:
 //
-//   * `parseQzoneFeedContent` vs `work/bridge-parts/ref/qzone-feed-content.mjs`,
-//     which is the reference region loaded with htmlparser2/domhandler/domutils/
-//     entities still attached (reference/index.mjs:330535–335541). The fixtures
-//     below are shaped like real feed rows — nested divs, an unclosed `<p>`, a
-//     comment subtree, a video cover, protocol-relative image URLs.
+//   * `parseQzoneFeedContent` vs the reference region itself
+//     (`reference/index.mjs:333423-335512`), loaded with htmlparser2/domhandler/
+//     domutils/entities still attached. The slice is taken from the vendored
+//     bundle at run time -- see `sliceOracleSource` below -- so the comparison
+//     cannot silently degrade to a recording when a dev artefact is missing. The
+//     fixtures below are shaped like real feed rows — nested divs, an unclosed
+//     `<p>`, a comment subtree, a video cover, protocol-relative image URLs.
 //   * `parseJsLiteral` vs `JSON.parse` on equivalent input, plus round-trips
 //     through the JS-literal-specific syntax that JSON cannot express.
 //
@@ -101,21 +103,68 @@ type RefParse = (
 ) => RefFeedContent;
 
 /**
- * The reference region loaded as a LIVE module, if the dev artefact is present.
+ * The reference region loaded as a LIVE module, sliced straight out of the vendored bundle.
  *
- * `work/bridge-parts/ref/qzone-feed-content.mjs` is `reference/index.mjs:330535-
- * 335634` re-sliced with prelude stubs, so it still carries the real htmlparser2,
- * domhandler, domutils and entities. Importing it is what makes the differential
- * suite below a comparison rather than a recording of my own output.
+ * The slice is `reference/index.mjs:333423-335512`. Two spans of the bundle meet there:
+ * the vendored HTML stack (entities@6.0.1 + htmlparser2@10.0.0 + domelementtype +
+ * domhandler@5.0.3 + domutils@3.2.2, all still with their real implementations attached)
+ * and the reference's own `../protocol/src/web/qzone-feed-content.ts`. Importing it is
+ * what makes the differential suite below a comparison rather than a recording of my own
+ * output: the oracle IS htmlparser2, not a second opinion about htmlparser2.
+ *
+ * This used to load a checked-out dev artefact (`work/bridge-parts/ref/qzone-feed-content.mjs`)
+ * that was hand-sliced once. `work/` is git-ignored, so a fresh clone had no oracle and
+ * both differential tests failed on a missing file rather than on a real divergence.
+ * Slicing the bundle at runtime removes that hidden dependency: the bundle is the same
+ * vendored artefact the region was taken from, and `reference/index.mjs` is required to
+ * exist by every other byte-level test in this suite.
+ *
+ * The slice is self-contained -- the region declares no imports -- so it is a valid ES
+ * module once the names the tests use are exported. Anchoring on the two `//#region`
+ * markers instead of on line numbers keeps it correct if the bundle is ever re-vendored
+ * with a different preamble length; the line numbers above are only documentation.
  */
-// Resolved from the COMPILED location (`build/test/`), which is three levels
-  // below the repo root, not two. Building the path from `import.meta.url` keeps it
-  // correct under `node --test build/test/*.test.js` without a cwd assumption.
-  const ORACLE_URL = new URL("../../../work/bridge-parts/ref/qzone-feed-content.mjs", import.meta.url);
+const REGION_START = "//#region ../../node_modules/.pnpm/entities@6.0.1/node_modules/entities/dist/esm/generated/decode-data-html.js";
+const REGION_END_MARKER = "//#region ../protocol/src/web/qzone-feed-content.ts";
+
+/**
+ * Resolved from the COMPILED location (`build/test/`), which is three levels below the
+ * repo root, not two. Building the path from `import.meta.url` keeps it correct under
+ * `node --test build/test/*.test.js` without a cwd assumption. This points at the
+ * `reference/` symlink, which resolves to the vendored 2.4.2 bundle.
+ */
+const BUNDLE_PATH = new URL("../../../reference/index.mjs", import.meta.url);
+
+/** The bundle region, as a module URL, or null when the bundle is not readable. */
+function sliceOracleSource(): string | null {
+  let source: string;
+  try {
+    source = readFileSync(BUNDLE_PATH, "utf8");
+  } catch {
+    return null;
+  }
+  const lines = source.split("\n");
+  const startLine = lines.findIndex((line) => line === REGION_START);
+  if (startLine === -1) return null;
+  const contentLine = lines.findIndex((line, index) => index > startLine && line === REGION_END_MARKER);
+  if (contentLine === -1) return null;
+  // The region ends at the `//#endregion` that closes qzone-feed-content.ts, i.e. the first
+  // one after its own start marker.
+  const endLine = lines.findIndex((line, index) => index > contentLine && line.trim() === "//#endregion");
+  if (endLine === -1) return null;
+  const body = lines.slice(startLine, endLine + 1).join("\n");
+  return `${body}\nexport { parseQzoneFeedContent };\n`;
+}
 
 async function loadOracle(): Promise<RefParse | null> {
+  const sliced = sliceOracleSource();
+  if (sliced === null) return null;
+  // A `data:` URL keeps the slice in memory. The region has no relative imports, so it
+  // needs no filesystem base -- and not writing to disk means the test cannot leave a
+  // stale artefact behind for a later run to silently pick up.
+  const url = `data:text/javascript;base64,${Buffer.from(sliced, "utf8").toString("base64")}`;
   try {
-    const module = (await import(ORACLE_URL.href)) as { parseQzoneFeedContent?: unknown };
+    const module = (await import(url)) as { parseQzoneFeedContent?: unknown };
     return typeof module.parseQzoneFeedContent === "function" ? (module.parseQzoneFeedContent as RefParse) : null;
   } catch {
     return null;
@@ -309,7 +358,7 @@ test("the differential corpus is re-verified against the vendored bundle", async
   // htmlparser2/domhandler/domutils/entities, so this is the only evidence that
   // `html.ts` is a faithful replacement for four packages.
   const oracle = await loadOracle();
-  assert.notEqual(oracle, null, `the oracle module failed to load from ${ORACLE_URL.pathname}`);
+  assert.notEqual(oracle, null, `the oracle region could not be sliced out of ${BUNDLE_PATH.pathname}`);
   if (oracle === null) return;
   let checked = 0;
   for (const fixture of FEED_FIXTURES) {
@@ -337,7 +386,7 @@ test("the differential corpus survives generated markup at scale", async () => {
   // A PRNG with a fixed seed keeps this reproducible; a flaky differential test
   // would be worse than none.
   const oracle = await loadOracle();
-  assert.notEqual(oracle, null, "the oracle module is required for the generator");
+  assert.notEqual(oracle, null, "the oracle region is required for the generator");
   if (oracle === null) return;
 
   let seed = 0;

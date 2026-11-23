@@ -4,7 +4,7 @@
 
 > 公式 QQ 客端 MSF 会話寄生之第三国 OneBot / Satori 運行時也。
 
-**版本 0.2.4.2** ・ Linux arm64 ・ Docker
+**版本 0.2.5.0** ・ Linux arm64 ・ Docker
 
 ---
 

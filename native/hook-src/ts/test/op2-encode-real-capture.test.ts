@@ -2,12 +2,12 @@
  * op2 send encoding, pinned byte-for-byte against a REAL reference transmission.
  *
  * On 2026-11-22 the SnowLuma 2.4.0 reference (`hz-test`, UIN 10001) sent
- * `hz-op2-proof-r5-1447` to group 958146070 and its own hook trace recorded the
+ * `hz-op2-proof-r5-1447` to group 1234567890 and its own hook trace recorded the
  * 50-byte `MessageSvc.PbSendMsg` request:
  *
  *   TRACE [QQHook.Packet] packet_send serviceCmd="MessageSvc.PbSendMsg" requestId=9
  *     length=50
- *     body=0a0812060896ccf0c803120208011a1c0a1a12180a160a14687a2d6f70
+ *     body=0a08120608d285d8cc04120208011a1c0a1a12180a160a14687a2d6f70
  *         322d70726f6f662d72352d313434372888ff948102
  *
  * This test feeds our own encoder the same logical message and asserts the output
@@ -30,9 +30,9 @@ import { encodeSendMessageRequestRichText } from "../src/bridge/apis/message-wir
 
 /** The exact 50 bytes the reference put on the wire. */
 const REFERENCE_REQUEST_HEX =
-  "0a0812060896ccf0c803120208011a1c0a1a12180a160a14687a2d6f70322d70726f6f662d72352d313434372888ff948102";
+  "0a08120608d285d8cc04120208011a1c0a1a12180a160a14687a2d6f70322d70726f6f662d72352d313434372888ff948102";
 
-const GROUP_ID = 958146070;
+const GROUP_ID = 1234567890;
 const RANDOM = 539312008;
 const TEXT = "hz-op2-proof-r5-1447";
 

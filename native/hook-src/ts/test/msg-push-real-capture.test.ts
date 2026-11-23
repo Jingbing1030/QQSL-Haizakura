@@ -328,8 +328,8 @@ test("group message: the 402-byte capture decodes to a real group_message with r
   // separate nested messages — asserting them proves the ResponseGrp path, not
   // just the text path.
   assert.ok(
-    event.senderNick.includes("郁金香."),
-    `senderNick must contain 「郁金香.」 (ResponseGrp.memberCard @68..77), got ${JSON.stringify(event.senderNick)}`,
+    event.senderNick.includes("匿名者."),
+    `senderNick must contain 「匿名者.」 (ResponseGrp.memberCard @68..77), got ${JSON.stringify(event.senderNick)}`,
   );
   assert.ok(
     event.groupName.includes("ChatLuna "),
@@ -482,16 +482,16 @@ test("unknown tags: the four generalFlags tags the reference drops do not throw 
   assert.equal(nick.length, 10, "ExtraInfo.nick is 10 bytes");
   assert.deepEqual(
     Array.from(nick),
-    [0xe9, 0x83, 0x81, 0xe9, 0x87, 0x91, 0xe9, 0xa6, 0x99, 0x2e],
-    "ExtraInfo.nick @386..395 is exactly the captured UTF-8 「郁金香.」",
+    [0xe5, 0x8c, 0xbf, 0xe5, 0x90, 0x8d, 0xe8, 0x80, 0x85, 0x2e],
+    "ExtraInfo.nick @386..395 is exactly the captured UTF-8 「匿名者.」",
   );
-  assert.equal(Buffer.from(nick).toString("hex"), "e98381e98791e9a6992e", "ExtraInfo.nick hex @386..395");
+  assert.equal(Buffer.from(nick).toString("hex"), "e58cbfe5908de880852e", "ExtraInfo.nick hex @386..395");
   assert.deepEqual(
     Buffer.from(nick),
     Buffer.from(capture.bytes.subarray(386, 396)),
     "ExtraInfo.nick is the wire slice @386..395, not a re-encode",
   );
-  assert.equal(new TextDecoder().decode(nick), "郁金香.", "ExtraInfo.nick @386..395 survives the unknown element before it");
+  assert.equal(new TextDecoder().decode(nick), "匿名者.", "ExtraInfo.nick @386..395 survives the unknown element before it");
   assert.equal(elems![3]!.extraInfo!.level, 1, "elems[3] ExtraInfo.level @396 is 1");
   assert.equal(elems![3]!.extraInfo!.groupMask, 1, "elems[3] ExtraInfo.groupMask @398 is 1");
 

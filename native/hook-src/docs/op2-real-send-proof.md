@@ -2,14 +2,14 @@
 
 **日期**：2026-11-22 14:45:42（Asia/Shanghai）
 **环境**：甲骨文服务器 `hz-test` 容器，`@snowluma/runtime 2.4.0`，
-QQ 3.2.32-52194，UIN 10001（鱼糕），`SNOWLUMA_LOG_LEVEL=trace`。
+QQ 3.2.32-52194，UIN 10001（TestBot），`SNOWLUMA_LOG_LEVEL=trace`。
 **未触碰**：生产容器 `snowluma-hz`。
 
 ## 1. 触发
 
 ```
 POST http://127.0.0.1:3000/send_group_msg?access_token=<token>
-{"group_id":958146070,"message":[{"type":"text","data":{"text":"hz-op2-proof-r5-1447"}}]}
+{"group_id":1234567890,"message":[{"type":"text","data":{"text":"hz-op2-proof-r5-1447"}}]}
 ```
 
 响应：
@@ -86,7 +86,7 @@ sha1(`${sequence}:${sessionId}:${eventName}`).digest().readInt32BE(0)
 **实测验证**：
 
 ```
-sha1("6035:958146070:group_message") 的前 4 字节 int32BE = -843467800   ← 与返回值完全一致
+sha1("6035:1234567890:group_message") 的前 4 字节 int32BE = -843467800   ← 与返回值完全一致
 ```
 
 Haizakura 的 `ts/src/onebot/actions/message-id.ts:75` 里的
@@ -96,7 +96,7 @@ Haizakura 的 `ts/src/onebot/actions/message-id.ts:75` 里的
 
 - 请求 field 3 里确实逐字节含 `hz-op2-proof-r5-1447`，field 5 = 539312008；
 - 回包 field 11 = 6035，且**回包中不存在**等于返回 id 的 varint；
-- `hashMessageIdInt32(6035, 958146070, GROUP_MESSAGE_EVENT) === -843467800`；
+- `hashMessageIdInt32(6035, 1234567890, GROUP_MESSAGE_EVENT) === -843467800`；
 - 该推导对三个输入都敏感（换任一个都会变），`NaN` 退化为 0 而非 `"NaN"`。
 
 ## 6. 这份证据**不能**证明什么
@@ -118,7 +118,7 @@ docker run ... -e SNOWLUMA_LOG_LEVEL=trace ...
 # 2) 发送
 curl -s -X POST "http://127.0.0.1:3000/send_group_msg?access_token=<TOKEN>" \
   -H 'Content-Type: application/json' \
-  --data-binary '{"group_id":958146070,"message":[{"type":"text","data":{"text":"hz-op2-proof-..."}}]}'
+  --data-binary '{"group_id":1234567890,"message":[{"type":"text","data":{"text":"hz-op2-proof-..."}}]}'
 # 3) 取证（文件日志永远没有 trace，只能 docker logs）
 docker logs --since 3m hz-test 2>&1 | grep -E 'PbSendMsg'
 ```
@@ -131,7 +131,7 @@ docker logs --since 3m hz-test 2>&1 | grep -E 'PbSendMsg'
 ## 8. 补充（同日）：我方编码器与参考请求**逐字节相同**
 
 把参考实现真实发出的那 50 字节作为金标准，用**我方** `encodeSendMessageRequestRichText`
-喂同样逻辑参数（群 958146070、random 539312008、文本 `hz-op2-proof-r5-1447`）：
+喂同样逻辑参数（群 1234567890、random 539312008、文本 `hz-op2-proof-r5-1447`）：
 
 ```
 ours  : 0a0812060896ccf0c803120208011a1c0a1a12180a160a14687a2d6f70322d70726f6f662d72352d313434372888ff948102

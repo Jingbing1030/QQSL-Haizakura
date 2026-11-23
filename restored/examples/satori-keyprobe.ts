@@ -17,8 +17,8 @@ async function kpMain() {
 	var real = new EventEmitter$1(); real.readyState = 1; real.on = function(){}; real.send = function(p){ out = String(p); }; real.close = function(){};
 	a.connections.clear(); a.connections.set(real, { socket: real, identified: true, lastSn: 0, identifyTimer: null });
 	a.onEvent({ time:1763000000, self_id:10001, post_type:"message", message_type:"group",
-		message_id:1018302134, group_id:391122026, user_id:2635583281,
-		message:[{type:"text",data:{text:"hi"}}], sender:{user_id:2635583281,nickname:"N"} }, null);
+		message_id:1018302134, group_id:123456, user_id:10002,
+		message:[{type:"text",data:{text:"hi"}}], sender:{user_id:10002,nickname:"N"} }, null);
 	var ev = JSON.parse(out);
 	kpLog.info("MESSAGE KEYS: %s", JSON.stringify(Object.keys(ev.body.message)));
 	kpLog.info("TOP KEYS: %s", JSON.stringify(Object.keys(ev.body)));

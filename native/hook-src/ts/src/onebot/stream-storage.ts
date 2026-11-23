@@ -44,7 +44,6 @@
 import { lstatSync, mkdirSync, readdirSync, realpathSync, rmdirSync, statSync, unlinkSync, type Stats } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
-import { readEnvAlias } from "../bridge/env.js";
 
 /** `0o700` — owner-only. Written as the reference writes it. */
 const MANAGED_DIRECTORY_MODE = 0o700;
@@ -358,7 +357,7 @@ export function defaultStreamRoot(): string {
  * mutating global state.
  */
 export function createStreamStorage(env: NodeJS.ProcessEnv = process.env): StreamStorage {
-  const raw = readEnvAlias("STREAM_DIR", env)?.trim();
+  const raw = env["SNOWLUMA_STREAM_DIR"]?.trim();
   if (!raw) return new StreamStorage(defaultStreamRoot());
   try {
     return new StreamStorage(raw);

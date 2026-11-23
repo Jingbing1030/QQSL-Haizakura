@@ -14,7 +14,7 @@
    "command": 1751,
    "subCommand": 0,
    "uinForm": true,
-   "hex": "08d70d22190a1708c0c4071a012f220ce688aae59bbee5bd92e6a1a36001",
+   "hex": "08d70d22170a1508c0c4071a012f220ce688aae59bbee5bd92e6a1a36001",
    "body": {
     "create": {
      "groupUin": 123456,
@@ -28,7 +28,7 @@
     "folderName": "截图归档"
    },
    "ctx": {},
-   "wireBody": "0a1708c0c4071a012f220ce688aae59bbee5bd92e6a1a3",
+   "wireBody": "0a1508c0c4071a012f220ce688aae59bbee5bd92e6a1a3",
    "envelopeFields": {
     "command": 1751,
     "subCommand": null,
@@ -45,7 +45,7 @@
    "command": 1751,
    "subCommand": 1,
    "uinForm": true,
-   "hex": "08d70d1001220f120d08c0c4071a056469722d316001",
+   "hex": "08d70d1001220d120b08c0c4071a056469722d316001",
    "body": {
     "delete": {
      "groupUin": 123456,
@@ -57,7 +57,7 @@
     "folderId": "dir-1"
    },
    "ctx": {},
-   "wireBody": "120d08c0c4071a056469722d31",
+   "wireBody": "120b08c0c4071a056469722d31",
    "envelopeFields": {
     "command": 1751,
     "subCommand": 1,
@@ -74,7 +74,7 @@
    "command": 1751,
    "subCommand": 2,
    "uinForm": true,
-   "hex": "08d70d1002221a1a1808c0c4071a056469722d312209e697a7e5bd92e6a1a36001",
+   "hex": "08d70d100222181a1608c0c4071a056469722d312209e697a7e5bd92e6a1a36001",
    "body": {
     "rename": {
      "groupUin": 123456,
@@ -88,7 +88,7 @@
     "newFolderName": "旧归档"
    },
    "ctx": {},
-   "wireBody": "1a1808c0c4071a056469722d312209e697a7e5bd92e6a1a3",
+   "wireBody": "1a1608c0c4071a056469722d312209e697a7e5bd92e6a1a3",
    "envelopeFields": {
     "command": 1751,
     "subCommand": 2,
@@ -105,7 +105,7 @@
    "command": 1752,
    "subCommand": 1,
    "uinForm": true,
-   "hex": "08d80d10012214121208c0c40710071a012f286448018801026001",
+   "hex": "08d80d10012212121008c0c40710071a012f286448018801026001",
    "body": {
     "list": {
      "groupUin": 123456,
@@ -125,7 +125,7 @@
     "startIndex": 0
    },
    "ctx": {},
-   "wireBody": "121208c0c40710071a012f28644801880102",
+   "wireBody": "121008c0c40710071a012f28644801880102",
    "envelopeFields": {
     "command": 1752,
     "subCommand": 1,
@@ -142,7 +142,7 @@
    "command": 1752,
    "subCommand": 1,
    "uinForm": true,
-   "hex": "08d80d10012219121708c0c40710071a042f7375622832480168648801026001",
+   "hex": "08d80d10012217121508c0c40710071a042f7375622832480168648801026001",
    "body": {
     "list": {
      "groupUin": 123456,
@@ -162,7 +162,7 @@
     "startIndex": 100
    },
    "ctx": {},
-   "wireBody": "121708c0c40710071a042f737562283248016864880102",
+   "wireBody": "121508c0c40710071a042f737562283248016864880102",
    "envelopeFields": {
     "command": 1752,
     "subCommand": 1,
@@ -179,7 +179,7 @@
    "command": 1752,
    "subCommand": 2,
    "uinForm": false,
-   "hex": "08d80d1002220c1a0a08c0c40710071806",
+   "hex": "08d80d1002220a1a0808c0c40710071806",
    "body": {
     "count": {
      "groupUin": 123456,
@@ -191,7 +191,7 @@
     "groupId": 123456
    },
    "ctx": {},
-   "wireBody": "1a0a08c0c40710071806",
+   "wireBody": "1a0808c0c40710071806",
    "envelopeFields": {
     "command": 1752,
     "subCommand": 2,
@@ -208,7 +208,7 @@
    "command": 1752,
    "subCommand": 3,
    "uinForm": false,
-   "hex": "08d80d1003220a220808c0c4071007",
+   "hex": "08d80d10032208220608c0c4071007",
    "body": {
     "space": {
      "groupUin": 123456,
@@ -219,7 +219,7 @@
     "groupId": 123456
    },
    "ctx": {},
-   "wireBody": "220808c0c4071007",
+   "wireBody": "220608c0c4071007",
    "envelopeFields": {
     "command": 1752,
     "subCommand": 3,
@@ -236,7 +236,7 @@
    "command": 1753,
    "subCommand": 0,
    "uinForm": false,
-   "hex": "08d90d22140a1208c0c40710071866220666696c652d31",
+   "hex": "08d90d22120a1008c0c40710071866220666696c652d31",
    "body": {
     "transFile": {
      "groupUin": {
@@ -252,7 +252,7 @@
     "fileId": "file-1"
    },
    "ctx": {},
-   "wireBody": "0a1208c0c40710071866220666696c652d31",
+   "wireBody": "0a1008c0c40710071866220666696c652d31",
    "envelopeFields": {
     "command": 1753,
     "subCommand": null,
@@ -333,7 +333,7 @@
    "command": 4246,
    "subCommand": 1,
    "uinForm": false,
-   "hex": "0896211001221308c0c40712097569642d31303030311801",
+   "hex": "0896211001221108c0c40712097569642d31303030311801",
    "body": {
     "groupUin": 123456,
     "uid": "uid-10001",
@@ -366,7 +366,7 @@
    "command": 4246,
    "subCommand": 1,
    "uinForm": false,
-   "hex": "0896211001221108c0c40712097569642d3130303031",
+   "hex": "0896211001220f08c0c40712097569642d3130303031",
    "body": {
     "groupUin": 123456,
     "uid": "uid-10001",
@@ -399,7 +399,7 @@
    "command": 4247,
    "subCommand": 1,
    "uinForm": false,
-   "hex": "0897211001220608c0c407",
+   "hex": "0897211001220408c0c407",
    "body": {
     "groupUin": 123456
    },
@@ -424,7 +424,7 @@
    "command": 4394,
    "subCommand": 2,
    "uinForm": false,
-   "hex": "08aa221002221708914e120f08a29c011209e696b0e698b5e7a7b0",
+   "hex": "08aa221002221408914e120f08a29c011209e696b0e698b5e7a7b0",
    "body": {
     "uin": {
      "__bigint": "10001"
@@ -459,7 +459,7 @@
    "command": 4394,
    "subCommand": 2,
    "uinForm": false,
-   "hex": "08aa221002222408914e120a08a29c0112046e69636b1208086612046e6f74651a0608a99c011001",
+   "hex": "08aa221002222108914e120a08a29c0112046e69636b1208086612046e6f74651a0608a99c011001",
    "body": {
     "uin": {
      "__bigint": "10001"
@@ -508,7 +508,7 @@
    "command": 4394,
    "subCommand": 2,
    "uinForm": false,
-   "hex": "08aa221002220c08914e1a0408a99c01",
+   "hex": "08aa221002220908914e1a0408a99c01",
    "body": {
     "uin": {
      "__bigint": "10001"
@@ -545,7 +545,7 @@
    "command": 4394,
    "subCommand": 2,
    "uinForm": false,
-   "hex": "08aa221002221508914e120d08661209e7adbee5908de6a1a3",
+   "hex": "08aa221002221208914e120d08661209e7adbee5908de6a1a3",
    "body": {
     "uin": {
      "__bigint": "10001"
@@ -578,7 +578,7 @@
    "command": 4398,
    "subCommand": 1,
    "uinForm": false,
-   "hex": "08ae221001221a1881cbd13020072a0562746e2d313202636240c0c4074801",
+   "hex": "08ae22100122181881cbd13020072a0562746e2d313202636240c0c4074801",
    "body": {
     "botAppid": {
      "__bigint": "102000001"
@@ -619,7 +619,7 @@
    "command": 4398,
    "subCommand": 1,
    "uinForm": false,
-   "hex": "08ae22100122161881cbd13020072a0562746e2d3140c0c4074801",
+   "hex": "08ae22100122141881cbd13020072a0562746e2d3140c0c4074801",
    "body": {
     "botAppid": {
      "__bigint": "102000001"
@@ -699,7 +699,7 @@
    "command": 1751,
    "subCommand": 0,
    "uinForm": true,
-   "hex": "08d70d22130a1108c0c4072209726f6f742d6c6573736001",
+   "hex": "08d70d22110a0f08c0c4072209726f6f742d6c6573736001",
    "body": {
     "create": {
      "groupUin": 123456,
@@ -713,7 +713,7 @@
     "folderName": "root-less"
    },
    "ctx": {},
-   "wireBody": "0a1108c0c4072209726f6f742d6c657373",
+   "wireBody": "0a0f08c0c4072209726f6f742d6c657373",
    "envelopeFields": {
     "command": 1751,
     "subCommand": null,
@@ -730,7 +730,7 @@
    "command": 1753,
    "subCommand": 4,
    "uinForm": false,
-   "hex": "08d90d1004221e2a1c08c0c40710021a120866120666696c652d3118ffffffff032801",
+   "hex": "08d90d1004221c2a1a08c0c40710021a120866120666696c652d3118ffffffff032801",
    "body": {
     "body": {
      "groupUin": 123456,
@@ -748,7 +748,7 @@
     "fileId": "file-1"
    },
    "ctx": {},
-   "wireBody": "2a1c08c0c40710021a120866120666696c652d3118ffffffff032801",
+   "wireBody": "2a1a08c0c40710021a120866120666696c652d3118ffffffff032801",
    "envelopeFields": {
     "command": 1753,
     "subCommand": 4,

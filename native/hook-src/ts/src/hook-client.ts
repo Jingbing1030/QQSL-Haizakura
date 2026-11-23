@@ -92,7 +92,6 @@ import type { Frame } from "./protocol.js";
 import type { PacketClient, PacketSendResult } from "./bridge/context.js";
 import { packetTimeoutMs } from "./bridge/context.js";
 import { createLogger, errorMessage } from "./onebot/log.js";
-import { readEnvAlias } from "./bridge/env.js";
 
 const log = createLogger("Hook.Client");
 
@@ -408,7 +407,7 @@ export function readStartedSockets(
 export function resolveHookRuntimeDir(pid: number, env: NodeJS.ProcessEnv = process.env): string {
   const ownUid = typeof process.geteuid === "function" ? process.geteuid() : 0;
   const own = (): string => {
-    const explicit = absoluteDirectory(readEnvAlias("HOOK_RUNTIME_DIR", env));
+    const explicit = absoluteDirectory(env["SNOWLUMA_HOOK_RUNTIME_DIR"]);
     if (explicit) return explicit;
     const xdg = absoluteDirectory(env["XDG_RUNTIME_DIR"]);
     if (xdg) return xdg;
@@ -420,11 +419,11 @@ export function resolveHookRuntimeDir(pid: number, env: NodeJS.ProcessEnv = proc
   let environError: string;
   try {
     const targetEnv = parseEnviron(readFileSync(`/proc/${pid}/environ`, "utf8"));
-    const explicit = absoluteDirectory(readEnvAlias("HOOK_RUNTIME_DIR", targetEnv));
+    const explicit = absoluteDirectory(targetEnv["SNOWLUMA_HOOK_RUNTIME_DIR"]);
     if (explicit) return explicit;
     const xdg = absoluteDirectory(targetEnv["XDG_RUNTIME_DIR"]);
     if (xdg) return xdg;
-    environError = "HAIZAKURA_HOOK_RUNTIME_DIR (or SNOWLUMA_HOOK_RUNTIME_DIR) and XDG_RUNTIME_DIR are not set in the target";
+    environError = "SNOWLUMA_HOOK_RUNTIME_DIR and XDG_RUNTIME_DIR are not set in the target";
   } catch (error) {
     environError = errorMessage(error);
   }

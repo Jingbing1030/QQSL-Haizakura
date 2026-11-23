@@ -79,17 +79,17 @@ async function wlMain() {
 	good.sent.length = 0;
 	adapter.onEvent({
 		time: 1763000000, self_id: 10001, post_type: "message", message_type: "group",
-		message_id: 1018302134, group_id: 391122026, user_id: 2635583281,
+		message_id: 1018302134, group_id: 123456, user_id: 10002,
 		message: [{ type: "text", data: { text: "hi" } }, { type: "at", data: { qq: "10001" } }],
-		sender: { user_id: 2635583281, nickname: "郁金香.", card: "郁金香." }
+		sender: { user_id: 10002, nickname: "匿名者.", card: "匿名者." }
 	}, null);
 	var evt = JSON.parse(good.sent[0] || "{}");
 	rec("EVENT op", evt.op, 0);
 	rec("event type", evt.body.type, "message-created");
 	rec("event sn>0", evt.body.sn > 0, true);
-	rec("event channel promoted", evt.body.channel && evt.body.channel.id, "391122026");
-	rec("event guild promoted", evt.body.guild && evt.body.guild.id, "391122026");
-	rec("event user promoted", evt.body.user && evt.body.user.id, "2635583281");
+	rec("event channel promoted", evt.body.channel && evt.body.channel.id, "123456");
+	rec("event guild promoted", evt.body.guild && evt.body.guild.id, "123456");
+	rec("event user promoted", evt.body.user && evt.body.user.id, "10002");
 	rec("msg has NO channel(key removed)", evt.body.message.channel === undefined, true);
 	rec("msg has NO user", evt.body.message.user === undefined, true);
 	rec("msg id is string", typeof evt.body.message.id, "string");
@@ -105,11 +105,11 @@ async function wlMain() {
 	good.sent.length = 0;
 	adapter.onEvent({
 		time: 1763000001, self_id: 10001, post_type: "message", message_type: "private",
-		message_id: 1018302135, user_id: 2635583281, sub_type: "friend",
-		message: [{ type: "text", data: { text: "dm" } }], sender: { user_id: 2635583281, nickname: "郁金香." }
+		message_id: 1018302135, user_id: 10002, sub_type: "friend",
+		message: [{ type: "text", data: { text: "dm" } }], sender: { user_id: 10002, nickname: "匿名者." }
 	}, null);
 	var priv = JSON.parse(good.sent[0] || "{}");
-	rec("private channel_id prefix", priv.body.channel && priv.body.channel.id, "private:2635583281");
+	rec("private channel_id prefix", priv.body.channel && priv.body.channel.id, "private:10002");
 	rec("private channel type=1", priv.body.channel && priv.body.channel.type, 1);
 
 	// reload resets state

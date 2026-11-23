@@ -15,6 +15,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { inflateSync } from "node:zlib";
 
 import {
   ENCODABLE_SEGMENT_TYPES,
@@ -189,12 +190,108 @@ test("cards, markdown, poke and mface match the reference", () => {
 
 test("forward matches the reference given the same uniseq", () => {
   // The reference draws `uniseq` from randomUUID when the segment has none. Pinning the
-  // generator is the only way to compare the bytes; the surrounding XML is what matters.
+  // generator is the only way to compare the output; the surrounding XML is what matters.
   const elem = makeForwardElem(
     { type: "forward", resId: "res-id", forwardSource: "聊天记录", forwardNews: [{ text: "a" }, { text: "b" }] },
     () => "2d5fea50-9c9c-4730-bd19-7cdfdef517fb",
   );
-  assert.equal(hex(encodeElem(elem)), ref("forwardXml"));
+  const actual = encodeElem(elem);
+
+  // ---------------------------------------------------------------------------
+  // This assertion deliberately stops at the INFLATED XML, and the reason is worth
+  // recording, because the obvious formulation (compare the whole frame's hex) is a
+  // false negative waiting to happen.
+  //
+  // The recorded fixture `REFERENCE.forwardXml` was produced on a different machine.
+  // Its frame is 351 bytes and inflates to 492 bytes of XML, exactly like ours, but the
+  // DEFLATE stream inside is 342 bytes where ours is 343. Nothing about the message
+  // differs; only the compressor's byte choices do:
+  //
+  //   * both streams carry the same zlib header (78 9c) and the same trailing int32
+  //     (10 23), and the first 3 bytes match before the deflate body diverges;
+  //   * recompressing that same 492-byte XML here reproduces NEITHER stream: node's zlib
+  //     emits 344 bytes at levels 1-3 and 343 at levels 4-9, and no level (0-9, with
+  //     memLevel/windowBits/strategy swept) reproduces the fixture's 342;
+  //   * so the difference is the deflate implementation, not this encoder. A shorter
+  //     encoding of the same input is a valid DEFLATE stream, and inflating the fixture
+  //     on this machine yields the very XML we produce.
+  //
+  // A byte comparison here would therefore pin the build machine's zlib version, and
+  // would start failing the day zlib ships a new match finder -- while telling us
+  // nothing about whether the XML the client receives is right. Comparing the inflated
+  // document is strictly stronger exactly where it matters (every element, attribute,
+  // escape and the uniseq) and blind only to the compressor's freedom, which is not
+  // data the probe has to get right.
+  //
+  // What is still asserted byte-for-byte: the outer protobuf framing (field 12 wrapper,
+  // field 1 elemValue, version byte 1, zlib header, trailing flag), via the prefix and
+  // suffix checks below. `json` and `xml` above remain full-hex comparisons because
+  // they are short enough that the recorded stream does still match here -- see the
+  // note in the module header.
+  const fixture = Buffer.from(ref("forwardXml"), "hex");
+
+  /** Walk protobuf to reach the deflated payload: field12 -> field1 -> [version][zlib]. */
+  const payloadOf = (buf: Buffer): { head: Buffer; value: Buffer; tail: Buffer } => {
+    const readVarint = (b: Buffer, offset: number): [number, number] => {
+      let value = 0;
+      let shift = 0;
+      let i = offset;
+      for (;;) {
+        const byte = b[i]!;
+        i += 1;
+        value |= (byte & 0x7f) << shift;
+        if ((byte & 0x80) === 0) return [value >>> 0, i];
+        shift += 7;
+      }
+    };
+    let i = 0;
+    let key: number;
+    [key, i] = readVarint(buf, i);
+    assert.equal(key, 0x62, "the forward card is richMsg, field 12");
+    let len: number;
+    [len, i] = readVarint(buf, i);
+    const inner = buf.subarray(i);
+    assert.equal(inner.length, len, "field 12's length prefix must cover the rest of the frame");
+    let key2: number;
+    [key2, i] = readVarint(inner, 0);
+    assert.equal(key2, 0x0a, "elemValue is field 1");
+    let len2: number;
+    [len2, i] = readVarint(inner, i);
+    const value = inner.subarray(i, i + len2);
+    return { head: inner.subarray(0, i), value, tail: inner.subarray(i + len2) };
+  };
+
+  const mine = payloadOf(Buffer.from(actual));
+  const recorded = payloadOf(fixture);
+
+  // The framing is fixed regardless of compressibility: version byte, then a zlib stream.
+  assert.equal(mine.value[0], 1, "elemValue starts with a version byte of 1");
+  assert.equal(recorded.value[0], 1);
+  assert.equal(mine.value[1], 0x78, "then a zlib header");
+  assert.equal(mine.value[2], 0x9c);
+  assert.deepEqual(mine.tail, recorded.tail, "the trailing flags after elemValue must match");
+
+  // THE ASSERTION: the client inflates this and parses XML. Compare that document.
+  const xml = inflateSync(mine.value.subarray(1)).toString("utf8");
+  assert.equal(
+    inflateSync(recorded.value.subarray(1)).toString("utf8"),
+    xml,
+    "our inflated XML must be identical to the reference's",
+  );
+
+  // Spelling the document out guards against both sides drifting together, which is the
+  // one failure an inflate-vs-inflate comparison cannot see.
+  assert.equal(
+    xml,
+    "<?xml version='1.0' encoding='UTF-8' standalone='yes'?> <msg serviceID=\"35\" templateID=\"1\" " +
+      "action=\"viewMultiMsg\" brief=\"[聊天记录]\" m_fileName=\"2d5fea50-9c9c-4730-bd19-7cdfdef517fb\" " +
+      "m_resid=\"res-id\" tSum=\"2\" flag=\"3\"><item layout=\"1\"> " +
+      "<title color=\"#000000\" size=\"34\">聊天记录</title>" +
+      "<title color=\"#777777\" size=\"26\">a</title><title color=\"#777777\" size=\"26\">b</title> " +
+      "<hr></hr> <summary color=\"#808080\">查看转发消息</summary></item> " +
+      "<source name=\"聊天记录\"></source> </msg>",
+    "the forward XML must carry the brief, the uniseq, the per-item titles and the source",
+  );
 });
 
 test("group file matches the reference", () => {

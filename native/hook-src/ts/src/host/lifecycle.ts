@@ -74,7 +74,6 @@
 // without installing a real handler on the test process.
 
 import { createLogger, errorMessage } from "../onebot/log.js";
-import { readEnvAlias } from "../bridge/env.js";
 
 const log = createLogger("Host.Lifecycle");
 
@@ -96,9 +95,7 @@ export const DEFAULT_DRAIN_TIMEOUT_MS = 10_000;
  * drain bound from the environment. Same name, same semantics: a value that is not a
  * positive safe integer is *ignored* (L344992-L344998), never coerced to 0.
  */
-export const DRAIN_TIMEOUT_ENV = "HAIZAKURA_SESSION_RELEASE_DEADLINE_MS";
-/** Legacy name, still honoured as a fallback so existing units keep working. */
-export const DRAIN_TIMEOUT_ENV_LEGACY = "SNOWLUMA_SESSION_RELEASE_DEADLINE_MS";
+export const DRAIN_TIMEOUT_ENV = "SNOWLUMA_SESSION_RELEASE_DEADLINE_MS";
 
 /** L344989 `MAX_SESSION_RELEASE_DEADLINE_MS` — the ceiling `setTimeout` can hold. */
 export const MAX_DRAIN_TIMEOUT_MS = 2_147_483_647;
@@ -128,7 +125,7 @@ export function parseDrainTimeoutMs(raw: string | undefined): number | undefined
 /** L345000-L345006 `resolveSessionReleaseDeadlineMs`: env wins, unusable env ignored. */
 export function resolveDrainTimeoutMs(
   configured: number | undefined,
-  envRaw: string | undefined = readEnvAlias("SESSION_RELEASE_DEADLINE_MS"),
+  envRaw: string | undefined = process.env[DRAIN_TIMEOUT_ENV],
 ): number {
   const fromEnv = parseDrainTimeoutMs(envRaw);
   if (fromEnv !== undefined) return fromEnv;

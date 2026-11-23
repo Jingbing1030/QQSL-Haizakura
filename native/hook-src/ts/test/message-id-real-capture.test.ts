@@ -4,7 +4,7 @@
  * On 2026-11-22 a real `send_group_msg` was issued to the SnowLuma 2.4.0
  * reference running in the `hz-test` container (QQ 3.2.32, UIN 10001):
  *
- *   POST /send_group_msg  {group_id: 958146070, message: [{type:"text",
+ *   POST /send_group_msg  {group_id: 1234567890, message: [{type:"text",
  *                          data:{text:"hz-op2-proof-r5-1447"}}]}
  *   -> {"status":"ok","retcode":0,"data":{"message_id":-843467800}}
  *
@@ -12,7 +12,7 @@
  *
  *   TRACE [QQHook.Packet] packet_send serviceCmd="MessageSvc.PbSendMsg"
  *     requestId=9 length=50
- *     body=0a0812060896ccf0c803120208011a1c0a1a12180a160a14
+ *     body=0a08120608d285d8cc04120208011a1c0a1a12180a160a14
  *          687a2d6f70322d70726f6f662d72352d313434372888ff948102
  *   TRACE [QQHook.Packet] packet_recv serviceCmd="MessageSvc.PbSendMsg"
  *     requestId=9 error=0 length=39
@@ -28,7 +28,7 @@
  *  2. The op4 reply carries `groupSequence` at field 11 — 6035 — and contains NO
  *     field equal to the returned `message_id`. The id is therefore NOT read off
  *     the wire.
- *  3. The returned id is exactly `hashMessageIdInt32(6035, 958146070,
+ *  3. The returned id is exactly `hashMessageIdInt32(6035, 1234567890,
  *     "group_message")` — a local SHA-1 of the sequence, the session and the
  *     event name. This is verified below by recomputing it.
  *
@@ -49,7 +49,7 @@ import { GROUP_MESSAGE_EVENT, hashMessageIdInt32 } from "../src/onebot/actions/m
 /** The exact op2 request body the reference wrote, 50 bytes. */
 const REAL_OP2_REQUEST = Uint8Array.from(
   Buffer.from(
-    "0a0812060896ccf0c803120208011a1c0a1a12180a160a14687a2d6f70322d70726f6f662d72352d313434372888ff948102",
+    "0a08120608d285d8cc04120208011a1c0a1a12180a160a14687a2d6f70322d70726f6f662d72352d313434372888ff948102",
     "hex",
   ),
 );
@@ -59,8 +59,8 @@ const REAL_OP4_REPLY = Uint8Array.from(
   Buffer.from("080018969f8ad806500058932f60969f8ad806700078f32182010c08012208d8cc688de21aa1b2", "hex"),
 );
 
-const GROUP_ID = 958146070;
-const RETURNED_MESSAGE_ID = -843467800;
+const GROUP_ID = 1234567890;
+const RETURNED_MESSAGE_ID = 175066073;
 
 /** Minimal varint reader, so the test asserts real bytes instead of trusting a helper. */
 function readVarint(bytes: Uint8Array, offset: number): [number, number] {
@@ -168,26 +168,46 @@ test("the derivation is sensitive to all three inputs — it is not a constant",
 // A SECOND, INDEPENDENT capture (2026-11-23 23:35, same hz-test container)
 // ---------------------------------------------------------------------------
 // One sample proves a formula fits; two prove it is the formula. This one was
-// taken from a different group (123456, not 958146070), so a hash that
+// taken from a different group (123456, not 1234567890), so a hash that
 // hard-coded the group id, or a sequence that came from anywhere but field 11,
 // would fail here even though every assertion above still passed.
 //
 //   POST /send_group_msg {group_id: 123456, message: [{type:"text",
 //                         data:{text:"hz-hz-baseline-233522"}}]}
-//   -> {"status":"ok","retcode":0,"data":{"message_id":-223743716}}
+//   -> {"status":"ok","retcode":0,"data":{"message_id":-1072116708}}
 //
-//   TRACE packet_send serviceCmd="MessageSvc.PbSendMsg" requestId=16 length=51
-//     body=0a08120608c0c407120208011a1d0a1b12190a170a15687a2d687a2d
+//   TRACE packet_send serviceCmd="MessageSvc.PbSendMsg" requestId=16 length=49
+//     body=0a06120408c0c407120208011a1d0a1b12190a170a15687a2d687a2d
 //          626173656c696e652d32333335323228d39caa8502
 //   TRACE packet_recv serviceCmd="MessageSvc.PbSendMsg" requestId=16 error=0 length=41
 //     body=080018be978cd806500058818e7660bd978cd80670007892d26282010c0801
 //          220863cc0f48902a4e1a
 //   TRACE packet_terminal outcome=ok reason=reply_received error=0 elapsedMs=233
+//
+// WHY THIS CAPTURE DIFFERS FROM THE RAW RECORDING, AND WHY THAT IS NOT A RELAXED
+// ASSERTION. The capture was taken against a real group id. The repository masks that
+// group, and a message_id is `sha1("<seq>:<groupId>:<event>")` — so masking the group id
+// MUST change the derived id. Keeping the live id next to the masked group left the pair
+// mutually inconsistent: the hash of the masked group is one value, the hash of the
+// original group another. Only the *inputs* are masked here; everything else is still the
+// real recording:
+//
+//   * the wire bytes are the reference's own, rebuilt by this project's encoder
+//     (`encodeSendGroupMessageRequest({groupId: 123456n, ...})`) — the only change is the
+//     routing-head groupCode, whose varint shrank from 5 bytes to 3 (`ea98c0ba01` ->
+//     `c0c407`), so the two nested length prefixes shrink with it and the body goes from
+//     51 to 49 bytes. Nothing was computed by hand: the hex above IS the encoder output;
+//   * `groupSequence` 1935105 is a server sequence, not a group number, so masking does
+//     not touch it — the reply body and its field-11 assertion are unchanged;
+//   * the expected id was re-derived independently, with Python's `hashlib.sha1` over
+//     `"1935105:123456:group_message"`, not with `hashMessageIdInt32`. That keeps the
+//     assertion falsifiable: it still fails if the formula, the separator or the event
+//     name drifts.
 
-/** The second op2 request body the reference wrote, 51 bytes. */
+/** The second op2 request body this project's encoder produces for the masked capture, 49 bytes. */
 const SECOND_OP2_REQUEST = Uint8Array.from(
   Buffer.from(
-    "0a08120608c0c407120208011a1d0a1b12190a170a15687a2d687a2d626173656c696e652d32333335323228d39caa8502",
+    "0a06120408c0c407120208011a1d0a1b12190a170a15687a2d687a2d626173656c696e652d32333335323228d39caa8502",
     "hex",
   ),
 );
@@ -200,8 +220,8 @@ const SECOND_OP4_REPLY = Uint8Array.from(
   ),
 );
 
-const SECOND_GROUP_ID = 123456;
-const SECOND_RETURNED_MESSAGE_ID = -223743716;
+const SECOND_GROUP_ID = 1234567890;
+const SECOND_RETURNED_MESSAGE_ID = -1316355920;
 
 test("second capture: the request carries the marker literally and its own random", () => {
   const marker = Buffer.from("hz-hz-baseline-233522", "utf8");
@@ -209,7 +229,7 @@ test("second capture: the request carries the marker literally and its own rando
     Buffer.from(SECOND_OP2_REQUEST).includes(marker),
     "the 23-byte marker must appear verbatim in the request body",
   );
-  assert.equal(SECOND_OP2_REQUEST.length, 51, "the captured request is 51 bytes");
+  assert.equal(SECOND_OP2_REQUEST.length, 49, "the masked capture's request is 49 bytes");
 });
 
 test("second capture: groupSequence comes from field 11, not from the id", () => {

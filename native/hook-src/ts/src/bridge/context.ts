@@ -73,7 +73,6 @@
 // identity and leaves the durable store as a separate, independently testable job.
 
 import type { OidbTransportResult } from "../oidb/spec.js";
-import { readEnvAlias } from "./env.js";
 
 /**
  * What `PacketClient.sendPacket` must answer.
@@ -400,7 +399,7 @@ export const DEFAULT_PACKET_TIMEOUT_MS = 15_000;
 
 /** The reference's env reader, kept so the bridge layer honours the same variable. */
 export function packetTimeoutMs(env: NodeJS.ProcessEnv = process.env): number {
-  const raw = readEnvAlias("PACKET_TIMEOUT_MS", env);
+  const raw = env["SNOWLUMA_PACKET_TIMEOUT_MS"];
   if (typeof raw !== "string" || !raw.trim()) return DEFAULT_PACKET_TIMEOUT_MS;
   const value = raw.trim();
   const parsed = /^[1-9]\d*$/.test(value) ? Number(value) : NaN;

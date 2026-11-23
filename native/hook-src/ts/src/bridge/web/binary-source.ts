@@ -52,7 +52,7 @@ export const DOWNLOAD_USER_AGENT =
 
 /** `maxBinaryDownloadBytes()` — env-overridable cap. */
 export function maxBinaryDownloadBytes(env: NodeJS.ProcessEnv = process.env): number {
-  return positiveIntEnv("MAX_BINARY_DOWNLOAD_BYTES", DEFAULT_MAX_BINARY_SIZE, {
+  return positiveIntEnv("SNOWLUMA_MAX_BINARY_DOWNLOAD_BYTES", DEFAULT_MAX_BINARY_SIZE, {
     env,
     max: MAX_BINARY_DOWNLOAD_BYTES,
   });
@@ -60,7 +60,7 @@ export function maxBinaryDownloadBytes(env: NodeJS.ProcessEnv = process.env): nu
 
 /** `httpDownloadTimeoutMs()` — env-overridable download timeout. */
 export function httpDownloadTimeoutMs(env: NodeJS.ProcessEnv = process.env): number {
-  return positiveIntEnv("HTTP_DOWNLOAD_TIMEOUT_MS", DEFAULT_HTTP_DOWNLOAD_TIMEOUT_MS, {
+  return positiveIntEnv("SNOWLUMA_HTTP_DOWNLOAD_TIMEOUT_MS", DEFAULT_HTTP_DOWNLOAD_TIMEOUT_MS, {
     env,
     max: 2_147_483_647,
   });

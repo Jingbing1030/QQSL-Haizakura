@@ -6,10 +6,13 @@
 // the wrong port and nobody notices until an operator cannot reach the WebUI, and a
 // silently-truncated unknown key destroys a newer build's settings on the next save.
 //
-// Nothing in this file prints, copies, or asserts on a secret. The one test that reads
-// `config/webui.json` reads it only to prove the secret does *not* appear in the result.
+// Nothing in this file prints, copies, or asserts on a real secret, and nothing in it reads
+// a credential-bearing `config/webui.json` — those files are gitignored precisely because
+// they carry material. The two leak tests build their own `webui.json` from *fake* hex in a
+// throwaway `os.tmpdir()` directory and delete it again, which keeps the assertion real
+// while leaving the checkout free of anything a reader could mistake for a credential.
 
-import { after, test } from "node:test";
+import { after, afterEach, beforeEach, describe, test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
@@ -34,10 +37,16 @@ import {
   validateRuntimeConfig,
 } from "../src/host/runtime-config.js";
 
-// `build/test/*.js` -> repo root. The real config lives at `<root>/config/`.
+// `build/test/*.js` -> repo root.
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
-const REAL_RUNTIME_CONFIG = path.join(REPO_ROOT, "config", "runtime.json");
-const REAL_WEBUI_CONFIG = path.join(REPO_ROOT, "config", "webui.json");
+
+// The live configs are gitignored (`.gitignore`: `config/*.json`, with
+// `!config/*.example.json` passing the templates): a deployment generates
+// `config/runtime.json` and `config/webui.json` on first run, and the WebUI one holds a
+// real password hash and salt. The only config a checkout ships is the template pair, so
+// that is what "the committed config" can mean here.
+const TEMPLATE_RUNTIME_CONFIG = path.join(REPO_ROOT, "config", "runtime.example.json");
+const TEMPLATE_WEBUI_CONFIG = path.join(REPO_ROOT, "config", "webui.example.json");
 
 // Scratch space under `ts/build/`, never `/tmp` — that is tmpfs on this box and the
 // whole 1.9GB of RAM is already spoken for.
@@ -88,9 +97,9 @@ function assertRejects(fn: () => unknown, field: string, reason: RegExp): void {
 // The real committed file
 // ---------------------------------------------------------------------------
 
-test("the real committed config/runtime.json parses and validates", () => {
-  // Read-only: this test proves the shipped file is loadable, and must never rewrite it.
-  const config = loadRuntimeConfig(REAL_RUNTIME_CONFIG);
+test("the committed config/runtime.example.json parses and validates", () => {
+  // Read-only: this test proves the shipped template is loadable, and must never rewrite it.
+  const config = loadRuntimeConfig(TEMPLATE_RUNTIME_CONFIG);
 
   assert.equal(config.webuiPort, 5099);
   assert.equal(config.hookAutoLoad, false);
@@ -102,16 +111,31 @@ test("the real committed config/runtime.json parses and validates", () => {
   assert.equal(config.logPerUin, false);
 });
 
-test("the real committed config has no unknown keys", () => {
-  const raw: unknown = JSON.parse(fs.readFileSync(REAL_RUNTIME_CONFIG, "utf8"));
+test("the committed runtime template has no unknown keys and documents every known one", () => {
+  const raw: unknown = JSON.parse(fs.readFileSync(TEMPLATE_RUNTIME_CONFIG, "utf8"));
   assert.deepEqual(unknownRuntimeConfigKeys(raw), []);
+
+  // A template that dropped a field would hide a default instead of documenting it; one
+  // that kept a retired field would hand a fresh deployment a config this build only
+  // preserves by accident. `updateSource` is absent on purpose: it has no default, and
+  // writing one here would pin an unset value to "auto" (see the `updateSource` tests).
+  assert.deepEqual(Object.keys(raw as Record<string, unknown>).sort(), [
+    "hookAutoLoad",
+    "logMaxTotalMb",
+    "logPerUin",
+    "logRetainDays",
+    "trustProxy",
+    "webuiHost",
+    "webuiPort",
+    "webuiTls",
+  ]);
 });
 
-test("loading the real config does not modify it", () => {
+test("loading the runtime template does not modify it", () => {
   // A loader that normalizes-in-place would corrupt user data; compare bytes across a load.
-  const before = fs.readFileSync(REAL_RUNTIME_CONFIG);
-  loadRuntimeConfig(REAL_RUNTIME_CONFIG);
-  assert.deepEqual(fs.readFileSync(REAL_RUNTIME_CONFIG), before);
+  const before = fs.readFileSync(TEMPLATE_RUNTIME_CONFIG);
+  loadRuntimeConfig(TEMPLATE_RUNTIME_CONFIG);
+  assert.deepEqual(fs.readFileSync(TEMPLATE_RUNTIME_CONFIG), before);
 });
 
 test("the default paths are the reference's paths (reference/index.mjs:403, 356820)", () => {
@@ -611,40 +635,85 @@ test("a run writes nothing next to the file it reads", () => {
 });
 
 // ---------------------------------------------------------------------------
-// config/webui.json — secrets must not escape
+// config/webui.json — secrets must not escape (fixture, never the checkout)
 // ---------------------------------------------------------------------------
 
-test("the real webui.json exposes mustChangePassword and passwordSet only", () => {
-  // Read the real file to get the secret *so the assertion can prove it is absent*. The
-  // values are never printed, never interpolated into an assertion message, never copied.
-  const raw = JSON.parse(fs.readFileSync(REAL_WEBUI_CONFIG, "utf8")) as {
-    passwordHash: string;
-    passwordSalt: string;
-    mustChangePassword: boolean;
-  };
+// The credential-bearing `config/webui.json` is gitignored, so there is no committed file
+// to assert against — and manufacturing one in the checkout would defeat the scrub. These
+// tests therefore supply their own: a fixture written into a fresh `os.tmpdir()` directory
+// (the one place this file does not use `ts/build`), removed in `afterEach`.
+//
+// The hex is a repeated pattern, not anything derived from a password: it satisfies the
+// loader's shape check (128 and 32 hex characters) so a summary *can* be computed, while
+// being self-evidently synthetic. If the summary ever returned it, the assertions below
+// would fail on a value that is impossible to confuse with a real credential.
+const FAKE_HASH = "0123456789abcdef".repeat(8); // 128 hex chars
+const FAKE_SALT = "fedcba9876543210".repeat(2); // 32 hex chars
 
-  const summary = loadWebuiConfig(REAL_WEBUI_CONFIG);
+describe("a deployment's webui.json (synthetic fixture outside the checkout)", () => {
+  let fixtureDir = "";
+  let fixtureFile = "";
 
-  assert.equal(summary.mustChangePassword, true);
-  assert.equal(summary.passwordSet, true);
-  assert.deepEqual(Object.keys(summary).sort(), ["mustChangePassword", "passwordSet"]);
+  beforeEach(() => {
+    fixtureDir = fs.mkdtempSync(path.join(os.tmpdir(), "runtime-config-webui-"));
+    fixtureFile = path.join(fixtureDir, "webui.json");
+    fs.writeFileSync(
+      fixtureFile,
+      JSON.stringify({
+        passwordHash: FAKE_HASH,
+        passwordSalt: FAKE_SALT,
+        mustChangePassword: true,
+        generatedAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-02T00:00:00.000Z",
+      }),
+      "utf8",
+    );
+  });
+
+  afterEach(() => {
+    fs.rmSync(fixtureDir, { recursive: true, force: true });
+  });
+
+  test("the summary exposes mustChangePassword and passwordSet only", () => {
+    const summary = loadWebuiConfig(fixtureFile);
+
+    assert.equal(summary.mustChangePassword, true);
+    assert.equal(summary.passwordSet, true);
+    assert.deepEqual(Object.keys(summary).sort(), ["mustChangePassword", "passwordSet"]);
+  });
+
+  test("no property of the summary equals the hash or the salt", () => {
+    // The contract, stated as an assertion over *every* value the loader returns. A future
+    // field that leaks the material fails here even if it is named something new.
+    const summary = loadWebuiConfig(fixtureFile);
+    const values = Object.values(summary);
+
+    assert.equal(values.includes(FAKE_HASH), false);
+    assert.equal(values.includes(FAKE_SALT), false);
+
+    // Nothing may even *contain* the secret as a substring (e.g. a truncated hash).
+    const serialized = JSON.stringify(summary);
+    assert.equal(serialized.includes(FAKE_HASH), false);
+    assert.equal(serialized.includes(FAKE_SALT), false);
+  });
 });
 
-test("no property of the summary equals the hash or the salt", () => {
-  // The contract, stated as an assertion over *every* value the loader returns. A future
-  // field that leaks the material fails here even if it is named something new.
-  const raw = JSON.parse(fs.readFileSync(REAL_WEBUI_CONFIG, "utf8")) as Record<string, unknown>;
+test("the committed webui template carries no credential material", () => {
+  // The property the scrub exists to guarantee, asserted against the *committed* file
+  // rather than a fixture — no fake credential needed. `passwordHash` and `passwordSalt`
+  // must be present and empty: present so the template documents the schema, empty so
+  // nothing resembling a credential is ever in version control.
+  const raw = JSON.parse(fs.readFileSync(TEMPLATE_WEBUI_CONFIG, "utf8")) as Record<string, unknown>;
 
-  const summary = loadWebuiConfig(REAL_WEBUI_CONFIG);
-  const values = Object.values(summary);
+  assert.equal(raw["passwordHash"], "", "the committed template must ship an empty passwordHash");
+  assert.equal(raw["passwordSalt"], "", "the committed template must ship an empty passwordSalt");
 
-  assert.equal(values.includes(raw["passwordHash"]), false);
-  assert.equal(values.includes(raw["passwordSalt"]), false);
-
-  // Nothing may even *contain* the secret as a substring (e.g. a truncated hash).
-  const serialized = JSON.stringify(summary);
-  assert.equal(serialized.includes(String(raw["passwordHash"])), false);
-  assert.equal(serialized.includes(String(raw["passwordSalt"])), false);
+  // Belt and braces: no other string in the template may look like key material either
+  // (a hash smuggled into, say, `generatedAt` would otherwise slip past the checks above).
+  for (const [field, value] of Object.entries(raw)) {
+    if (typeof value !== "string") continue;
+    assert.equal(/[0-9a-f]{32,}/i.test(value), false, `${field} looks like it holds hex key material`);
+  }
 });
 
 test("a synthetic webui.json is summarized without leaking", () => {

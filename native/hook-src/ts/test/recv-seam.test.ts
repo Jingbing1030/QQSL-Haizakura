@@ -121,7 +121,9 @@ describe("recv seam: runtime -> recv ingress -> bridge -> event", () => {
     (source as EventEmitter).emit("packet", {
       status: capture.retCode,
       cmd: "trpc.msg.olpush.OlPushService.MsgPush",
-      uin: "10001",
+      // Deliberately a DIFFERENT account than `UIN`: this test only means something if the
+      // bridge's `packet.uin === identity.uin` gate actually rejects it.
+      uin: "10099",
       sequence: capture.seqId,
       body: capture.bytes,
     });
