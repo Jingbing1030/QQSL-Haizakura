@@ -144,6 +144,7 @@ import {
 import path from "node:path";
 
 import type { LogEntry, LogLevel, LogSink } from "../onebot/log.js";
+import { readEnvAlias } from "../bridge/env.js";
 
 // ---------------------------------------------------------------------------
 // Constants (reference L518-L530)
@@ -303,14 +304,14 @@ export interface FileLevelResolution {
  * `traceCoerced` is surfaced on `LogFileSink.status` so the normalisation is
  * observable rather than silent.
  */
-export function resolveFileMinLevel(raw: string | undefined = process.env["SNOWLUMA_LOG_FILE_LEVEL"]): FileLevelResolution {
+export function resolveFileMinLevel(raw: string | undefined = readEnvAlias("LOG_FILE_LEVEL")): FileLevelResolution {
   if (raw === undefined || raw.trim() === "") return { level: "debug", traceCoerced: false };
   const normalized = raw.trim().toLowerCase();
   if (normalized === "trace") return { level: "debug", traceCoerced: true };
   if ((FILE_LEVELS as readonly string[]).includes(normalized)) {
     return { level: normalized as FileLogLevel, traceCoerced: false };
   }
-  throw new TypeError("SNOWLUMA_LOG_FILE_LEVEL must be one of: debug, info, success, warn, error");
+  throw new TypeError("HAIZAKURA_LOG_FILE_LEVEL (or SNOWLUMA_LOG_FILE_LEVEL) must be one of: debug, info, success, warn, error");
 }
 
 // ---------------------------------------------------------------------------
@@ -1209,7 +1210,7 @@ export class LogFileSink {
     const level = options.fileLevel === undefined ? resolveFileMinLevel() : resolveFileMinLevel(options.fileLevel);
     this.fileLevel = level.level;
     this.fileLevelTraceCoerced = level.traceCoerced;
-    this.dir = path.resolve(options.dir ?? process.env["SNOWLUMA_LOG_DIR"] ?? DEFAULT_LOG_DIR);
+    this.dir = path.resolve(options.dir ?? readEnvAlias("LOG_DIR") ?? DEFAULT_LOG_DIR);
     this.maxFileBytes = options.maxFileBytes ?? resolveMaxFileBytes();
     this.maxQueueBytes = options.maxQueueBytes ?? DEFAULT_MAX_QUEUE_BYTES;
     this.onError = options.onError ?? reportStorageError;
@@ -1460,7 +1461,7 @@ export class LogFileSink {
 
 /** L920 `SNOWLUMA_LOG_MAX_MB`, in bytes. */
 function resolveMaxFileBytes(): number {
-  const raw = process.env["SNOWLUMA_LOG_MAX_MB"];
+  const raw = readEnvAlias("LOG_MAX_MB");
   if (raw === undefined || raw.trim() === "") return DEFAULT_LOG_MAX_MB * 1024 * 1024;
   const parsed = Number(raw.trim());
   if (Number.isSafeInteger(parsed) && parsed > 0 && parsed <= MAX_LOG_TOTAL_MB) return parsed * 1024 * 1024;

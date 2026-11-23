@@ -19,6 +19,7 @@
 
 import { AsyncLocalStorage } from "node:async_hooks";
 import { format as nodeFormat } from "node:util";
+import { readEnvAlias } from "../bridge/env.js";
 
 export type LogLevel = "trace" | "debug" | "info" | "success" | "warn" | "error";
 
@@ -77,7 +78,7 @@ let nextReqId = 0;
 const requestStorage = new AsyncLocalStorage<{ id: number }>();
 
 function resolveMinLevel(): LogLevel {
-  const raw = (process.env["SNOWLUMA_LOG_LEVEL"] ?? "info").toLowerCase();
+  const raw = (readEnvAlias("LOG_LEVEL") ?? "info").toLowerCase();
   if ((LOG_LEVELS as string[]).includes(raw)) return raw as LogLevel;
   return "info";
 }

@@ -217,7 +217,7 @@ describe("BridgeActionContextHost — a real request round-trips", () => {
     assert.equal(response.status, "ok");
     assert.deepEqual(response.data, {
       app_name: "Haizakura",
-      app_version: "0.2.4.2-node",
+      app_version: "0.2.5.0-node",
       protocol_version: "v11",
     });
   });

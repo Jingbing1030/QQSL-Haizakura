@@ -311,10 +311,24 @@ test("registry: dispatchAction answers 1404 for an unknown name", async () => {
 // ===========================================================================
 
 test("info: all five actions agree with the reference", async () => {
-  for (const name of ["get_login_info", "get_status", "get_version_info", "can_send_image", "can_send_record"]) {
+  // `get_version_info` is compared field-wise below rather than whole-response: Haizakura
+  // reports its own version, so `app_version` is the one field that is *supposed* to differ
+  // from the SnowLuma bundle this oracle was sliced from. Comparing it whole would either
+  // pin our version to the upstream's or hide a regression in the other fields.
+  for (const name of ["get_login_info", "get_status", "can_send_image", "can_send_record"]) {
     const { mine, theirs } = await both(name, {});
     assertMatchesReference(mine, theirs, name);
   }
+
+  const { mine, theirs } = await both("get_version_info", {});
+  const mineData = { ...(dataOf(mine) as Record<string, unknown>) };
+  const theirsData = { ...(dataOf(theirs) as Record<string, unknown>) };
+  assert.equal(mineData["app_version"], `${APP_VERSION}-node`, "app_version must be ours, not the upstream's");
+  assert.equal(theirsData["app_version"], "0.2.4.2-node", "the oracle still reports the version it was sliced from");
+  delete mineData["app_version"];
+  delete theirsData["app_version"];
+  assert.deepStrictEqual(mineData, theirsData, "every other get_version_info field must match the reference");
+  assert.equal((mine as { retcode?: number }).retcode, (theirs as { retcode?: number }).retcode);
 });
 
 test("info: get_status composes good from online AND receiveHealthy", async () => {
@@ -342,8 +356,8 @@ test("info: get_status composes good from online AND receiveHealthy", async () =
 
 test("info: get_version_info reports the string APP_VERSION, not the package object", () => {
   // The bundle assigns `var APP_VERSION = { ...package.json... }.version`, i.e. the
-  // STRING "0.2.4.2". A port that kept the object would answer "[object Object]-node".
-  assert.equal(APP_VERSION, "0.2.4.2");
+  // STRING "0.2.5.0". A port that kept the object would answer "[object Object]-node".
+  assert.equal(APP_VERSION, "0.2.5.0");
   const data = dataOf(
     (actionRegistry.resolve("get_version_info")!.action!.spec.toHandler(makeCtx())({}) as unknown) ?? null,
   );
@@ -352,14 +366,14 @@ test("info: get_version_info reports the string APP_VERSION, not the package obj
 
 test("info: get_version_info reports the STRING APP_VERSION, not the package object", async () => {
   // The bundle assigns `var APP_VERSION = { ...package.json... }.version`, i.e. the
-  // STRING "0.2.4.2" (reference:6085 — the `.version` suffix is easy to miss on the
+  // STRING "0.2.5.0" (reference:6085 — the `.version` suffix is easy to miss on the
   // closing brace, and this oracle caught exactly that mistake in the test helper).
   // A port that kept the object would answer "[object Object]-node".
-  assert.equal(APP_VERSION, "0.2.4.2");
+  assert.equal(APP_VERSION, "0.2.5.0");
   const response = await actionRegistry.resolve("get_version_info")!.action!.spec.toHandler(makeCtx())({});
   assert.deepStrictEqual(dataOf(response), {
     app_name: "Haizakura",
-    app_version: "0.2.4.2-node",
+    app_version: "0.2.5.0-node",
     protocol_version: "v11",
   });
 });

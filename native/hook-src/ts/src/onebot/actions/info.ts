@@ -18,7 +18,7 @@ import type { ActionContext } from "./context.js";
  * version the server reports is `0.2.4.2-node`. Kept as a constant with its source
  * line rather than read from a package.json this port does not share.
  */
-export const APP_VERSION = "0.2.4.2";
+export const APP_VERSION = "0.2.5.0";
 
 export type InfoAction = ActionSpec<Record<string, never>, ActionContext>;
 
