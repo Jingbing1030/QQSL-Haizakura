@@ -17,6 +17,28 @@
 
 namespace {
 
+// A 16-byte struct return: the case the relay's register restore used to corrupt.
+struct Pair {
+  int first;
+  int second;
+};
+
+__attribute__((noinline)) Pair pair_return(int v) {
+  return Pair{v, v * 2};
+}
+
+// Post-call recording, so the test can assert the callback saw the result rather than merely
+// having been registered.
+uint64_t g_after_calls = 0;
+uint64_t g_after_result = 0;
+uint64_t* g_after_frame = nullptr;
+
+__attribute__((noinline)) void after_observer(uint64_t result, uint64_t* frame) {
+  ++g_after_calls;
+  g_after_result = result;
+  g_after_frame = frame;
+}
+
 int g_observed = 0;
 uint32_t g_last_slot = 0;
 uint64_t g_last_original = 0;
@@ -31,7 +53,10 @@ uint64_t g_last_original = 0;
 //
 // Writing to all eight with distinct values means a relay that forgets one of them restores a
 // wrong number into the callee and the sum comes back visibly different.
-__attribute__((noinline)) void fp_clobber_observer(uint32_t slot, uint64_t original) {
+__attribute__((noinline)) void fp_clobber_observer(uint32_t slot, uint64_t original,
+                                                   uint64_t a0, uint64_t a1, uint64_t a2,
+                                                   uint64_t a3, uint64_t* frame) {
+  (void)a0; (void)a1; (void)a2; (void)a3; (void)frame;
   volatile double sink[8];
   sink[0] = 101.0; sink[1] = 102.0; sink[2] = 103.0; sink[3] = 104.0;
   sink[4] = 105.0; sink[5] = 106.0; sink[6] = 107.0; sink[7] = 108.0;
@@ -41,7 +66,12 @@ __attribute__((noinline)) void fp_clobber_observer(uint32_t slot, uint64_t origi
   g_last_original = original;
 }
 
-void observer(uint32_t slot, uint64_t original) {
+void observer(uint32_t slot, uint64_t original, uint64_t a0, uint64_t a1, uint64_t a2,
+              uint64_t a3, uint64_t* frame) {
+  (void)a0; (void)a1; (void)a2; (void)a3;
+  // The relay reports the save area so an observer on a send path can rewrite arguments. This
+  // test observes only, and ignoring the pointer is exactly what an unmodified observer does.
+  (void)frame;
   ++g_observed;
   g_last_slot = slot;
   g_last_original = original;
@@ -236,6 +266,58 @@ int main() {
     const int relayed = fn(9, 8, 7, 6, 5, 4);
     std::printf("  null observer: relayed=%d\n", relayed);
     check(relayed == add6(9, 8, 7, 6, 5, 4), "a null observer forwards unchanged");
+    hz::slot_relay_remove(relay);
+  }
+
+  // The post-call path: the relay must still forward correctly when a callback is attached, and
+  // the callback must see the result.
+  //
+  // This exists because the first attempt at it broke the frame lifetime: the stub released its
+  // frame before calling the target, so the result was stored into the caller's live stack. On the
+  // target that killed the client on the first send, and nothing in the local suite noticed,
+  // because no local test attached a callback at all.
+  //
+  // AArch64 only. The x64 stub tail-jumps, so there is no point at which a post-call callback
+  // could run, and `slot_relay_set_after` refuses there rather than storing one that never fires.
+  {
+    const uint64_t relay = hz::slot_relay_install(
+        10, reinterpret_cast<uint64_t>(&add6), &observer);
+#if defined(__aarch64__)
+    hz::slot_relay_set_after(relay, &after_observer);
+#endif
+    auto fn = reinterpret_cast<int (*)(int, int, int, int, int, int)>(relay);
+    const int relayed = fn(2, 3, 4, 5, 6, 7);
+    std::printf("  with after callback: relayed=%d\n", relayed);
+    check(relayed == add6(2, 3, 4, 5, 6, 7),
+          "a relay with a post-call callback still forwards correctly");
+#if defined(__aarch64__)
+    check(g_after_calls == 1, "the post-call callback ran exactly once");
+    check(g_after_result == static_cast<uint64_t>(add6(2, 3, 4, 5, 6, 7)),
+          "the post-call callback saw the target's return value");
+    check(g_after_frame != nullptr, "the post-call callback received the argument frame");
+#else
+    std::printf("  (post-call callbacks are aarch64-only; the x64 stub tail-jumps)\n");
+#endif
+    hz::slot_relay_remove(relay);
+  }
+
+  // A 16-byte struct return must survive the relay, with and without a callback.
+  //
+  // This is the specific bug the previous version had: it restored x1 from the save area after the
+  // call, which overwrites the second word of a struct return. A function returning a 16-byte
+  // value is common enough in this codebase that guessing would have been careless.
+  {
+    const uint64_t relay = hz::slot_relay_install(
+        11, reinterpret_cast<uint64_t>(&pair_return), &observer);
+#if defined(__aarch64__)
+    hz::slot_relay_set_after(relay, &after_observer);
+    g_after_calls = 0;
+#endif
+    auto fn = reinterpret_cast<Pair (*)(int)>(relay);
+    const Pair got = fn(21);
+    std::printf("  struct return: %d %d (expected 21 42)\n", got.first, got.second);
+    check(got.first == 21 && got.second == 42,
+          "both words of a 16-byte struct return survive the relay");
     hz::slot_relay_remove(relay);
   }
 

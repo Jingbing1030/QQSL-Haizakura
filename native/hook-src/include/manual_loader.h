@@ -49,7 +49,19 @@ class ManualLoader {
   // released before the exception escapes.
   ManualMapHandle load();
 
+  // When set, the image is mapped and its constructors run, but the start entry
+  // is not called.
+  //
+  // The entry creates the listening sockets, and creating them unlinks whatever
+  // path is already bound.  That is right for a payload taking over a process
+  // and wrong for observing one that is already served by another payload: the
+  // unlink kills the working channel and the observation never happens.  With
+  // this flag the module's exported functions can still be called directly, so
+  // a hook can be installed without touching the transport at all.
+  void set_skip_entry(bool skip) { skip_entry_ = skip; }
+
  private:
+  bool skip_entry_ = false;
   // Falls back to the payload's well-known start function when the image has no
   // e_entry, and finds .eh_frame_hdr so the unwinder can reach hook frames.
   uint64_t resolve_start_symbol(uint64_t base) const;

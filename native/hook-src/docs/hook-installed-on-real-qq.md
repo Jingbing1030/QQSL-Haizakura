@@ -8,7 +8,7 @@
 
 ## 环境
 
-容器 `hz-scan`（Debian 12，glibc **2.36**，aarch64），QQ PID **85885**，
+容器 `hz-test`（Debian 12，glibc **2.36**，aarch64），QQ PID **85885**，
 `SNOWLUMA_HOOK_RUNTIME_DIR=/tmp/runtime-1000`。
 
 ## 决定性证据：槽 11 被改写
@@ -130,7 +130,7 @@ GLIBCXX_3.4.30，而 `_M_replace_cold` 是 3.4.31。
 | listener | fd 231（闭源） | fd 231（闭源，已失效路径）+ fd 469（我们） |
 
 闭源那条 fd 还开着但已**不再可达**（文件被替换）。这等于我们在真实容器里**把生产
-hook 顶掉了**——`hz-scan` 是测试容器，可以接受；`snowluma-hz` 上如果这么做，
+hook 顶掉了**——`hz-test` 是测试容器，可以接受；`snowluma-hz` 上如果这么做，
 正在用的账号会瞬间失去 hook。
 
 ### 所以正式部署必须三选一

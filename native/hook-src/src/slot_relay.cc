@@ -1,5 +1,9 @@
 #include "slot_relay.h"
 
+#include <fcntl.h>
+#include <unistd.h>
+#include <cstdio>
+
 #include <cstring>
 #include <vector>
 #include <sys/mman.h>
@@ -38,6 +42,13 @@ struct RelayState {
   // siting, not about the relay. It sits after the fields the assembly reads so their
   // offsets are unchanged.
   uint64_t hits;
+  // Called after the target returns, with the return value and the address of the frame that held
+  // the arguments.
+  //
+  // Needed because the `out` block a send writes its reply into is only populated once the call
+  // has finished, and an observer that runs before it therefore cannot see the response. The
+  // struct is ordered so that hits keeps its offset and this is appended after it.
+  uint64_t after;
 };
 
 // The stub assembly reads these offsets as literals, so they are asserted rather than assumed.
@@ -50,6 +61,7 @@ static_assert(offsetof(RelayState, slot) == 0, "relay stub reads slot at offset 
 static_assert(offsetof(RelayState, original) == 8, "relay stub reads original at offset 8");
 static_assert(offsetof(RelayState, observer) == 16, "relay stub reads observer at offset 16");
 static_assert(offsetof(RelayState, hits) == 24, "relay stub increments hits at offset 24");
+static_assert(offsetof(RelayState, after) == 32, "relay stub reads after at offset 32");
 
 // The shared entry.  Reached only through a trampoline, which leaves the state pointer
 // in the architecture's scratch register: r11 on x86-64, x9 on aarch64.  Both are
@@ -207,48 +219,61 @@ void emit_trampoline(uint8_t* p, const RelayState* state, uint64_t entry) {
 // SP must stay 16-byte aligned at every instruction boundary -- the trap the detached-call path
 // hit -- so the save area is a multiple of 16.
 //
-// Layout of the 224-byte frame: x0..x7 at 0..64, x8 at 64, the state pointer at 72, q0..q7 at
-// 80..208, x29/x30 at 208.  224 % 16 == 0, which aarch64 requires at every instruction.
+// Layout of the 240-byte frame: x0..x7 at 0..64, x8 at 64, the state pointer at 72, q0..q7 at
+// 80..208, x29/x30 at 208, and the parked return value in x0/x1 at 224/232.  240 % 16 == 0,
+// which aarch64 requires at every instruction.
 asm(R"(
   .text
   .p2align 4
   .globl hz_slot_relay_entry
   .type  hz_slot_relay_entry, %function
 hz_slot_relay_entry:
-  sub  sp, sp, #224
+  sub  sp, sp, #240
   stp  x29, x30, [sp, #208]
   stp  x0, x1, [sp, #0]
   stp  x2, x3, [sp, #16]
   stp  x4, x5, [sp, #32]
   stp  x6, x7, [sp, #48]
   # x8 is the struct-return pointer and has no partner, so it cannot go in an stp pair --
-  # `stp x8,x8` is architecturally UNPREDICTABLE (the assembler warns about it) and on real
-  # hardware the two halves of the store may not both land.  str is the correct form.
+  # `stp x8,x8` is architecturally UNPREDICTABLE and the two halves may not both land.
   str  x8, [sp, #64]
   stp  q0, q1, [sp, #80]
   stp  q2, q3, [sp, #112]
   stp  q4, q5, [sp, #144]
   stp  q6, q7, [sp, #176]
 
-  # Count the entry.  x9 still holds the state pointer here, and `hits` sits at offset 32
-  # -- past the four fields the rest of this stub reads, so adding it moved nothing.
-  # Done before the observer call so the count is visible even if the observer faults.
+  # Count the entry before anything can fault, so a broken observer still leaves a trace of
+  # having been reached.
   ldr  x10, [x9, #24]
   add  x10, x10, #1
   str  x10, [x9, #24]
 
-  # x9 is caller-saved, so the observer may and will clobber it.  Park the state
-  # pointer in the spare slot at 72(sp) and reload it after the call: without that the
-  # tail branch reads the original through a register the observer has overwritten.
+  # Park the state pointer: it lives in x9, which is caller-saved, so the observer call below
+  # would clobber it.
   str  x9, [sp, #72]
 
-  # The observer takes (slot, original).  `observer` is at offset 16, not 24.
+  # The entry observer takes (slot, original, x0..x3, frame). Arguments are read from the save
+  # area rather than the live registers, because the observer call itself overwrites them.
+  # `frame` is the save area itself, and whatever the observer writes back into it is what the
+  # target receives below -- that is how the send injector substitutes a payload.
   ldr  w0, [x9, #0]
   ldr  x1, [x9, #8]
+  ldr  x2, [sp, #0]
+  ldr  x3, [sp, #8]
+  ldr  x4, [sp, #16]
+  ldr  x5, [sp, #24]
+  mov  x6, sp
   ldr  x10, [x9, #16]
   cbz  x10, 1f
   blr  x10
 1:
+  # Restore the arguments and call the original. Do NOT release the frame first.
+  #
+  # The old shape restored everything, released the frame and tail-branched, which was right while
+  # this stub only observed on entry and is wrong once the result must be observed: the frame has
+  # to outlive the call both to park the result and because the after hook reads the arguments back
+  # out of it. Releasing it early stored the result into the caller's live stack, which killed the
+  # client on the first send.
   ldr  x9, [sp, #72]
   ldp  x0, x1, [sp, #0]
   ldp  x2, x3, [sp, #16]
@@ -259,12 +284,30 @@ hz_slot_relay_entry:
   ldp  q2, q3, [sp, #112]
   ldp  q4, q5, [sp, #144]
   ldp  q6, q7, [sp, #176]
-  ldp  x29, x30, [sp, #208]
-  add  sp, sp, #224
+  ldr  x10, [x9, #8]
+  blr  x10
 
-  # Tail-branch to the original through x9, which is free again.
-  ldr  x9, [x9, #8]
-  br   x9
+  # Park both halves of the result across the after hook, which is an ordinary C function and may
+  # clobber every caller-saved register. Two words because a struct return uses x0 and x1, and
+  # because the argument registers must NOT be put back afterwards -- doing that would overwrite
+  # the result of anything returning 16 bytes in x0/x1 or a float in d0-d3.
+  stp  x0, x1, [sp, #224]
+  ldr  x9, [sp, #72]
+  ldr  x11, [x9, #32]
+  cbz  x11, 2f
+  # The callback takes (result, frame), so the result goes in x0 and the frame in x1.
+  #
+  # An earlier version passed the frame in x0 and nothing in x1, which ran without faulting and
+  # reported a plausible-looking result of zero -- a callback that "works" but is handed the wrong
+  # argument is harder to notice than one that crashes.
+  ldr  x0, [sp, #224]
+  mov  x1, sp
+  blr  x11
+  ldp  x0, x1, [sp, #224]
+2:
+  ldp  x29, x30, [sp, #208]
+  add  sp, sp, #240
+  ret
   .size hz_slot_relay_entry, .-hz_slot_relay_entry
 )");
 
@@ -348,6 +391,56 @@ uint64_t slot_relay_install(uint32_t slot, uint64_t original, SlotObserver obser
   return r.trampoline;
 }
 
+bool slot_relay_set_after(uint64_t relay, SlotAfter after) {
+  // Found by address rather than by a pointer field, because the caller holds the trampoline
+  // address -- that is what gets installed in the vtable -- and nothing else.
+  if (relay == 0) return false;
+  bool found = false;
+#if !defined(__aarch64__)
+  // Only the AArch64 stub calls the target and can therefore run code afterwards. The x64 stub
+  // tail-jumps, so the target returns straight to the original caller and there is no point at
+  // which a post-call callback could run.
+  //
+  // Refused explicitly rather than stored and silently ignored: a callback that is registered and
+  // never fires looks like "the function was never called", which is the exact confusion that
+  // has cost the most time in this project. The local test suite runs on x64, so this is also why
+  // the post-call path can only be exercised on the target.
+  (void)after;
+  return false;
+#endif
+  for (const Relay& r : g_relays) {
+    if (r.trampoline != relay) continue;
+    r.state->after = reinterpret_cast<uint64_t>(after);
+    // Record which state block received the callback, and confirm it reads back. A registration
+    // that lands on a different block than the one the stub uses looks identical to a callback
+    // that is never invoked, which is the state this has been stuck in.
+    {
+      const int lf = ::open("/tmp/hz-relay.log", O_WRONLY | O_CREAT | O_APPEND, 0644);
+      if (lf >= 0) {
+        char lb[192];
+        const int ln = std::snprintf(
+            lb, sizeof(lb), "set_after tramp=0x%llx state=0x%llx after_written=0x%llx readback=0x%llx\n",
+            static_cast<unsigned long long>(relay),
+            static_cast<unsigned long long>(reinterpret_cast<uint64_t>(r.state)),
+            static_cast<unsigned long long>(reinterpret_cast<uint64_t>(after)),
+            static_cast<unsigned long long>(r.state->after));
+        if (ln > 0) (void)::write(lf, lb, static_cast<std::size_t>(ln));
+        ::close(lf);
+      }
+    }
+    found = true;
+    break;
+  }
+  // The relay address matched nothing. Returning quietly here is what made a registered callback
+  // that never fires look identical to a function that was never called: the send hook fired
+  // twice on a real message while this stored the callback nowhere at all.
+  //
+  // Nothing is aborted -- this runs inside the host process, and a diagnostic refusing to attach
+  // is not a reason to take QQ down. It is reported instead, which is enough: the caller records
+  // the return value, and an absent log line then means "not installed" rather than "not called".
+  return found;
+}
+
 uint64_t slot_relay_hits(uint64_t relay) {
   if (relay == 0) return 0;
   for (const Relay& r : g_relays) {
@@ -400,6 +493,12 @@ uint64_t slot_relay_install_function(uint64_t target, const uint8_t* saved, uint
   off += 16;
 
   // The relay's tail branch goes to the stub, not to the function.
+  //
+  // This is also what makes a hook capable of *forwarding*: the stub replays the displaced
+  // prologue and then continues into the function body, so calling it reaches the original code
+  // without re-entering the relay. Calling `target` instead would land on the two-word jump that
+  // was just written there, re-enter the observer, and recurse -- which is exactly what killed QQ
+  // on the first forwarding attempt ("reentry blocked" then a dead client).
   state->original = reinterpret_cast<uint64_t>(stub);
   (void)off;
 

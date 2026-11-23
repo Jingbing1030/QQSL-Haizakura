@@ -1,0 +1,682 @@
+{
+  "generatedBy": "probe/harness-ws.mjs",
+  "cases": [
+    {
+      "name": "ws_bootstrap_universal",
+      "value": {
+        "frames": [
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"connect\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"enable\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"heartbeat\",\"status\":{\"online\":true,\"good\":true},\"interval\":30000}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"app_name\":\"Haizakura\",\"app_version\":\"0.1.0\",\"protocol_version\":\"v11\"}}",
+            "isBinary": false
+          }
+        ],
+        "handshake": {
+          "statusCode": 101,
+          "statusMessage": "Switching Protocols",
+          "headers": {
+            "upgrade": "websocket",
+            "connection": "Upgrade",
+            "sec-websocket-accept": "xPvTrOVAC56QfDHmnFj/GaKfbhw="
+          }
+        },
+        "reason": "settled"
+      }
+    },
+    {
+      "name": "ws_bootstrap_no_action",
+      "value": {
+        "frames": [
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"connect\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"enable\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"heartbeat\",\"status\":{\"online\":true,\"good\":true},\"interval\":30000}",
+            "isBinary": false
+          }
+        ],
+        "handshake": {
+          "statusCode": 101,
+          "statusMessage": "Switching Protocols",
+          "headers": {
+            "upgrade": "websocket",
+            "connection": "Upgrade",
+            "sec-websocket-accept": "CfXgzSZQGb4AzZVNxoJrh+scf1s="
+          }
+        },
+        "reason": "settled"
+      }
+    },
+    {
+      "name": "ws_unauthenticated_upgrade",
+      "value": {
+        "frames": [],
+        "handshake": null,
+        "refused": true,
+        "message": "WebSocket handshake failed: Unexpected response status 401"
+      }
+    },
+    {
+      "name": "ws_bad_token_upgrade",
+      "value": {
+        "frames": [],
+        "handshake": null,
+        "refused": true,
+        "message": "WebSocket handshake failed: Unexpected response status 401"
+      }
+    },
+    {
+      "name": "ws_query_token",
+      "value": {
+        "frames": [
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"connect\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"enable\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"heartbeat\",\"status\":{\"online\":true,\"good\":true},\"interval\":30000}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"app_name\":\"Haizakura\",\"app_version\":\"0.1.0\",\"protocol_version\":\"v11\"}}",
+            "isBinary": false
+          }
+        ],
+        "handshake": {
+          "statusCode": 101,
+          "statusMessage": "Switching Protocols",
+          "headers": {
+            "upgrade": "websocket",
+            "connection": "Upgrade",
+            "sec-websocket-accept": "Cm1jpGbOsntSnClIa8hO0sqDXfY="
+          }
+        },
+        "reason": "settled"
+      }
+    },
+    {
+      "name": "ws_api_path",
+      "value": {
+        "frames": [
+          {
+            "data": "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"app_name\":\"Haizakura\",\"app_version\":\"0.1.0\",\"protocol_version\":\"v11\"}}",
+            "isBinary": false
+          }
+        ],
+        "handshake": {
+          "statusCode": 101,
+          "statusMessage": "Switching Protocols",
+          "headers": {
+            "upgrade": "websocket",
+            "connection": "Upgrade",
+            "sec-websocket-accept": "jg3YUvyb3HbLjCzKrlVj4mzjLL4="
+          }
+        },
+        "reason": "settled"
+      }
+    },
+    {
+      "name": "ws_event_path",
+      "value": {
+        "frames": [
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"connect\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"enable\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"heartbeat\",\"status\":{\"online\":true,\"good\":true},\"interval\":30000}",
+            "isBinary": false
+          }
+        ],
+        "handshake": {
+          "statusCode": 101,
+          "statusMessage": "Switching Protocols",
+          "headers": {
+            "upgrade": "websocket",
+            "connection": "Upgrade",
+            "sec-websocket-accept": "+hWDlL4u58wkvpJLePF3uAFpa5Y="
+          }
+        },
+        "reason": "settled"
+      }
+    },
+    {
+      "name": "ws_unknown_path",
+      "value": {
+        "frames": [],
+        "handshake": null,
+        "refused": true,
+        "message": "WebSocket handshake failed: Unexpected response status 400"
+      }
+    },
+    {
+      "name": "ws_bad_request_frame",
+      "value": {
+        "frames": [
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"connect\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"enable\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"heartbeat\",\"status\":{\"online\":true,\"good\":true},\"interval\":30000}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"status\":\"failed\",\"retcode\":1400,\"data\":null,\"wording\":\"bad request\"}",
+            "isBinary": false
+          }
+        ],
+        "handshake": {
+          "statusCode": 101,
+          "statusMessage": "Switching Protocols",
+          "headers": {
+            "upgrade": "websocket",
+            "connection": "Upgrade",
+            "sec-websocket-accept": "5An5J7OCZi8yWqW1iGLfcmkKhr4="
+          }
+        },
+        "reason": "settled"
+      }
+    },
+    {
+      "name": "ws_empty_frame",
+      "value": {
+        "frames": [
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"connect\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"enable\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"heartbeat\",\"status\":{\"online\":true,\"good\":true},\"interval\":30000}",
+            "isBinary": false
+          }
+        ],
+        "handshake": {
+          "statusCode": 101,
+          "statusMessage": "Switching Protocols",
+          "headers": {
+            "upgrade": "websocket",
+            "connection": "Upgrade",
+            "sec-websocket-accept": "M+ourchUC2db05UY1lJoVvL3L1U="
+          }
+        },
+        "reason": "settled"
+      }
+    },
+    {
+      "name": "ws_unknown_action",
+      "value": {
+        "frames": [
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"connect\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"enable\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"heartbeat\",\"status\":{\"online\":true,\"good\":true},\"interval\":30000}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"status\":\"failed\",\"retcode\":1404,\"data\":null,\"wording\":\"unknown action\"}",
+            "isBinary": false
+          }
+        ],
+        "handshake": {
+          "statusCode": 101,
+          "statusMessage": "Switching Protocols",
+          "headers": {
+            "upgrade": "websocket",
+            "connection": "Upgrade",
+            "sec-websocket-accept": "rzKcXrqcOZEGaao8JJWxrVWr/CY="
+          }
+        },
+        "reason": "settled"
+      }
+    },
+    {
+      "name": "ws_echo_roundtrip",
+      "value": {
+        "frames": [
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"connect\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"enable\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"heartbeat\",\"status\":{\"online\":true,\"good\":true},\"interval\":30000}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"message_id\":424242},\"echo\":{\"nested\":[1,2]}}",
+            "isBinary": false
+          }
+        ],
+        "handshake": {
+          "statusCode": 101,
+          "statusMessage": "Switching Protocols",
+          "headers": {
+            "upgrade": "websocket",
+            "connection": "Upgrade",
+            "sec-websocket-accept": "L2HXueFPXAJ8l9ctT7+xYoBx7M4="
+          }
+        },
+        "reason": "settled"
+      }
+    },
+    {
+      "name": "ws_stream_action",
+      "value": {
+        "frames": [
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"connect\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"enable\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"heartbeat\",\"status\":{\"online\":true,\"good\":true},\"interval\":30000}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"type\":\"stream\",\"data_type\":\"data\",\"data\":\"AAAA\"},\"message\":\"\",\"wording\":\"\",\"stream\":\"stream-action\",\"echo\":\"s1\"}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"type\":\"stream\",\"data_type\":\"data\",\"data\":\"BBBB\"},\"message\":\"\",\"wording\":\"\",\"stream\":\"stream-action\",\"echo\":\"s1\"}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"type\":\"response\",\"data_type\":\"url\",\"file\":\"/tmp/x\"},\"stream\":\"stream-action\",\"echo\":\"s1\",\"message\":\"\",\"wording\":\"\"}",
+            "isBinary": false
+          }
+        ],
+        "handshake": {
+          "statusCode": 101,
+          "statusMessage": "Switching Protocols",
+          "headers": {
+            "upgrade": "websocket",
+            "connection": "Upgrade",
+            "sec-websocket-accept": "EU3idKDueI3puqd4+AFt2BNxqIo="
+          }
+        },
+        "reason": "settled"
+      }
+    },
+    {
+      "name": "ws_stream_action_failed",
+      "value": {
+        "frames": [
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"connect\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"enable\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"heartbeat\",\"status\":{\"online\":true,\"good\":true},\"interval\":30000}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"status\":\"failed\",\"retcode\":100,\"data\":{\"type\":\"error\",\"data_type\":\"error\"},\"wording\":\"下载失败\",\"stream\":\"stream-action\",\"message\":\"下载失败\"}",
+            "isBinary": false
+          }
+        ],
+        "handshake": {
+          "statusCode": 101,
+          "statusMessage": "Switching Protocols",
+          "headers": {
+            "upgrade": "websocket",
+            "connection": "Upgrade",
+            "sec-websocket-accept": "Rb+NzMeq+oOT1PI2wmqyQujB6DE="
+          }
+        },
+        "reason": "settled"
+      }
+    },
+    {
+      "name": "ws_action_throws",
+      "value": {
+        "frames": [
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"connect\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"enable\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"heartbeat\",\"status\":{\"online\":true,\"good\":true},\"interval\":30000}",
+            "isBinary": false
+          }
+        ],
+        "handshake": {
+          "statusCode": 101,
+          "statusMessage": "Switching Protocols",
+          "headers": {
+            "upgrade": "websocket",
+            "connection": "Upgrade",
+            "sec-websocket-accept": "rV0kAVHrgOEUULaRDL68eZxxlYk="
+          }
+        },
+        "reason": "settled"
+      }
+    },
+    {
+      "name": "ws_event_push",
+      "value": {
+        "frames": [
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"connect\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"enable\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"heartbeat\",\"status\":{\"online\":true,\"good\":true},\"interval\":30000}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"message\",\"message_type\":\"group\",\"sub_type\":\"normal\",\"group_id\":7,\"user_id\":8,\"message_id\":9,\"message\":[{\"type\":\"text\",\"data\":{\"text\":\"hi\"}}],\"raw_message\":\"hi\",\"sender\":{\"user_id\":8,\"nickname\":\"peer\"}}",
+            "isBinary": false
+          }
+        ],
+        "handshake": {
+          "statusCode": 101,
+          "statusMessage": "Switching Protocols",
+          "headers": {
+            "upgrade": "websocket",
+            "connection": "Upgrade",
+            "sec-websocket-accept": "VXTOqR04dgNXOiqLUAipVNwIHZI="
+          }
+        },
+        "reason": "settled"
+      }
+    },
+    {
+      "name": "ws_event_push_self_message_hidden",
+      "value": {
+        "frames": [
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"connect\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"enable\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"heartbeat\",\"status\":{\"online\":true,\"good\":true},\"interval\":30000}",
+            "isBinary": false
+          }
+        ],
+        "handshake": {
+          "statusCode": 101,
+          "statusMessage": "Switching Protocols",
+          "headers": {
+            "upgrade": "websocket",
+            "connection": "Upgrade",
+            "sec-websocket-accept": "s4sVkBKcHCU5btiTmlwx/CrGzUI="
+          }
+        },
+        "reason": "settled"
+      }
+    },
+    {
+      "name": "ws_role_api_action",
+      "value": {
+        "frames": [
+          {
+            "data": "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"app_name\":\"Haizakura\",\"app_version\":\"0.1.0\",\"protocol_version\":\"v11\"},\"echo\":\"Api\"}",
+            "isBinary": false
+          }
+        ],
+        "handshake": {
+          "statusCode": 101,
+          "statusMessage": "Switching Protocols",
+          "headers": {
+            "upgrade": "websocket",
+            "connection": "Upgrade",
+            "sec-websocket-accept": "h6GD1JIwEeXZr4koI53+MFhAYwk="
+          }
+        },
+        "reason": "settled"
+      }
+    },
+    {
+      "name": "ws_role_api_bootstrap",
+      "value": {
+        "frames": [],
+        "handshake": {
+          "statusCode": 101,
+          "statusMessage": "Switching Protocols",
+          "headers": {
+            "upgrade": "websocket",
+            "connection": "Upgrade",
+            "sec-websocket-accept": "1yA8lq9Gw07yqpFmOIfjmhwLu6c="
+          }
+        },
+        "reason": "settled"
+      }
+    },
+    {
+      "name": "ws_role_event_action",
+      "value": {
+        "frames": [
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"connect\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"enable\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"heartbeat\",\"status\":{\"online\":true,\"good\":true},\"interval\":30000}",
+            "isBinary": false
+          }
+        ],
+        "handshake": {
+          "statusCode": 101,
+          "statusMessage": "Switching Protocols",
+          "headers": {
+            "upgrade": "websocket",
+            "connection": "Upgrade",
+            "sec-websocket-accept": "30nT4y1DhCeSOvH3mQnWSk58mXI="
+          }
+        },
+        "reason": "settled"
+      }
+    },
+    {
+      "name": "ws_role_event_bootstrap",
+      "value": {
+        "frames": [
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"connect\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"enable\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"heartbeat\",\"status\":{\"online\":true,\"good\":true},\"interval\":30000}",
+            "isBinary": false
+          }
+        ],
+        "handshake": {
+          "statusCode": 101,
+          "statusMessage": "Switching Protocols",
+          "headers": {
+            "upgrade": "websocket",
+            "connection": "Upgrade",
+            "sec-websocket-accept": "T9qQPNiLQxHXmuO/M61JCXKougA="
+          }
+        },
+        "reason": "settled"
+      }
+    },
+    {
+      "name": "http_ws_root_upgrade",
+      "value": {
+        "frames": [
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"connect\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"enable\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"heartbeat\",\"status\":{\"online\":true,\"good\":true},\"interval\":30000}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"app_name\":\"Haizakura\",\"app_version\":\"0.1.0\",\"protocol_version\":\"v11\"}}",
+            "isBinary": false
+          }
+        ],
+        "handshake": {
+          "statusCode": 101,
+          "statusMessage": "Switching Protocols",
+          "headers": {
+            "upgrade": "websocket",
+            "connection": "Upgrade",
+            "sec-websocket-accept": "bxS5OtIk0yaaXyOuVw7Pf9Qml2k="
+          }
+        },
+        "reason": "settled"
+      }
+    },
+    {
+      "name": "http_ws_plain_get_still_http",
+      "value": {
+        "frames": [
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"connect\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"enable\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"heartbeat\",\"status\":{\"online\":true,\"good\":true},\"interval\":30000}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"app_name\":\"Haizakura\",\"app_version\":\"0.1.0\",\"protocol_version\":\"v11\"}}",
+            "isBinary": false
+          }
+        ],
+        "handshake": {
+          "statusCode": 101,
+          "statusMessage": "Switching Protocols",
+          "headers": {
+            "upgrade": "websocket",
+            "connection": "Upgrade",
+            "sec-websocket-accept": "lNnCLgSG1InUofgg+J5bgGdXu5g="
+          }
+        },
+        "reason": "settled"
+      }
+    },
+    {
+      "name": "http_ws_unauthorized_upgrade",
+      "value": {
+        "frames": [],
+        "handshake": null,
+        "refused": true,
+        "message": "WebSocket handshake failed: Unexpected response status 401"
+      }
+    },
+    {
+      "name": "ws_client_connect",
+      "handshake": {
+        "url": "/",
+        "headers": {
+          "host": "127.0.0.1:35697",
+          "upgrade": "websocket",
+          "connection": "Upgrade",
+          "sec-websocket-key": "ZWbKIcTGLYAORrwySluutQ==",
+          "sec-websocket-version": "13",
+          "authorization": "Bearer tok",
+          "user-agent": "OneBot/11",
+          "x-self-id": "10001",
+          "x-client-role": "Universal"
+        }
+      },
+      "received": [
+        "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"connect\",\"status\":{\"online\":true,\"good\":true}}",
+        "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"enable\",\"status\":{\"online\":true,\"good\":true}}",
+        "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"heartbeat\",\"status\":{\"online\":true,\"good\":true},\"interval\":30000}"
+      ]
+    },
+    {
+      "name": "ws_client_action_response",
+      "received": [
+        "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"app_name\":\"Haizakura\",\"app_version\":\"0.1.0\",\"protocol_version\":\"v11\"},\"echo\":5}"
+      ]
+    },
+    {
+      "name": "ws_client_stream_response",
+      "received": [
+        "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"type\":\"stream\",\"data_type\":\"data\",\"data\":\"AAAA\"},\"message\":\"\",\"wording\":\"\",\"stream\":\"stream-action\",\"echo\":\"sc\"}",
+        "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"type\":\"stream\",\"data_type\":\"data\",\"data\":\"BBBB\"},\"message\":\"\",\"wording\":\"\",\"stream\":\"stream-action\",\"echo\":\"sc\"}",
+        "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"type\":\"response\",\"data_type\":\"url\",\"file\":\"/tmp/x\"},\"stream\":\"stream-action\",\"echo\":\"sc\",\"message\":\"\",\"wording\":\"\"}"
+      ]
+    },
+    {
+      "name": "ws_client_event_push",
+      "received": [
+        "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"message\",\"message_type\":\"group\",\"sub_type\":\"normal\",\"group_id\":7,\"user_id\":8,\"message_id\":9,\"message\":[{\"type\":\"text\",\"data\":{\"text\":\"hi\"}}],\"raw_message\":\"hi\",\"sender\":{\"user_id\":8,\"nickname\":\"peer\"}}"
+      ]
+    }
+  ]
+}

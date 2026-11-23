@@ -1,0 +1,1503 @@
+{
+ "$comment": [
+  "GENERATED — do not edit by hand.",
+  "Request hex strings are the reference's own serialize+encode output;",
+  "response vectors are the reference's own decode+deserialize output.",
+  "Producer: work/oidb-a/goldens.mjs and goldens-6ff.mjs (which slice the named",
+  "regions of reference/index.mjs verbatim and evaluate them)."
+ ],
+ "oidb": {
+  "0x6d7_0 create folder": {
+   "kind": "req",
+   "slug": "create-group-folder",
+   "spec": "CreateGroupFolder",
+   "command": 1751,
+   "subCommand": 0,
+   "uinForm": true,
+   "hex": "08d70d22190a1708c0c4071a012f220ce688aae59bbee5bd92e6a1a36001",
+   "body": {
+    "create": {
+     "groupUin": 123456,
+     "rootDirectory": "/",
+     "folderName": "截图归档"
+    }
+   },
+   "params": {
+    "groupId": 123456,
+    "parentId": "/",
+    "folderName": "截图归档"
+   },
+   "ctx": {},
+   "wireBody": "0a1708c0c4071a012f220ce688aae59bbee5bd92e6a1a3",
+   "envelopeFields": {
+    "command": 1751,
+    "subCommand": null,
+    "errorCode": null,
+    "errorMsg": null,
+    "reserved": 1
+   },
+   "envelopeMatchesOwn": true
+  },
+  "0x6d7_1 delete folder": {
+   "kind": "req",
+   "slug": "delete-group-folder",
+   "spec": "DeleteGroupFolder",
+   "command": 1751,
+   "subCommand": 1,
+   "uinForm": true,
+   "hex": "08d70d1001220f120d08c0c4071a056469722d316001",
+   "body": {
+    "delete": {
+     "groupUin": 123456,
+     "folderId": "dir-1"
+    }
+   },
+   "params": {
+    "groupId": 123456,
+    "folderId": "dir-1"
+   },
+   "ctx": {},
+   "wireBody": "120d08c0c4071a056469722d31",
+   "envelopeFields": {
+    "command": 1751,
+    "subCommand": 1,
+    "errorCode": null,
+    "errorMsg": null,
+    "reserved": 1
+   },
+   "envelopeMatchesOwn": true
+  },
+  "0x6d7_2 rename folder": {
+   "kind": "req",
+   "slug": "rename-group-folder",
+   "spec": "RenameGroupFolder",
+   "command": 1751,
+   "subCommand": 2,
+   "uinForm": true,
+   "hex": "08d70d1002221a1a1808c0c4071a056469722d312209e697a7e5bd92e6a1a36001",
+   "body": {
+    "rename": {
+     "groupUin": 123456,
+     "folderId": "dir-1",
+     "newFolderName": "旧归档"
+    }
+   },
+   "params": {
+    "groupId": 123456,
+    "folderId": "dir-1",
+    "newFolderName": "旧归档"
+   },
+   "ctx": {},
+   "wireBody": "1a1808c0c4071a056469722d312209e697a7e5bd92e6a1a3",
+   "envelopeFields": {
+    "command": 1751,
+    "subCommand": 2,
+    "errorCode": null,
+    "errorMsg": null,
+    "reserved": 1
+   },
+   "envelopeMatchesOwn": true
+  },
+  "0x6d8_1 list root": {
+   "kind": "req",
+   "slug": "list-group-files-page",
+   "spec": "ListGroupFilesPage",
+   "command": 1752,
+   "subCommand": 1,
+   "uinForm": true,
+   "hex": "08d80d10012214121208c0c40710071a012f286448018801026001",
+   "body": {
+    "list": {
+     "groupUin": 123456,
+     "appId": 7,
+     "targetDirectory": "/",
+     "fileCount": 100,
+     "sortBy": 1,
+     "startIndex": 0,
+     "field17": 2,
+     "field18": 0
+    }
+   },
+   "params": {
+    "groupId": 123456,
+    "targetDirectory": "/",
+    "pageSize": 100,
+    "startIndex": 0
+   },
+   "ctx": {},
+   "wireBody": "121208c0c40710071a012f28644801880102",
+   "envelopeFields": {
+    "command": 1752,
+    "subCommand": 1,
+    "errorCode": null,
+    "errorMsg": null,
+    "reserved": 1
+   },
+   "envelopeMatchesOwn": true
+  },
+  "0x6d8_1 list subdir paged": {
+   "kind": "req",
+   "slug": "list-group-files-page",
+   "spec": "ListGroupFilesPage",
+   "command": 1752,
+   "subCommand": 1,
+   "uinForm": true,
+   "hex": "08d80d10012219121708c0c40710071a042f7375622832480168648801026001",
+   "body": {
+    "list": {
+     "groupUin": 123456,
+     "appId": 7,
+     "targetDirectory": "/sub",
+     "fileCount": 50,
+     "sortBy": 1,
+     "startIndex": 100,
+     "field17": 2,
+     "field18": 0
+    }
+   },
+   "params": {
+    "groupId": 123456,
+    "targetDirectory": "/sub",
+    "pageSize": 50,
+    "startIndex": 100
+   },
+   "ctx": {},
+   "wireBody": "121708c0c40710071a042f737562283248016864880102",
+   "envelopeFields": {
+    "command": 1752,
+    "subCommand": 1,
+    "errorCode": null,
+    "errorMsg": null,
+    "reserved": 1
+   },
+   "envelopeMatchesOwn": true
+  },
+  "0x6d8_2 count": {
+   "kind": "req",
+   "slug": "get-group-file-count",
+   "spec": "GetGroupFileCount",
+   "command": 1752,
+   "subCommand": 2,
+   "uinForm": false,
+   "hex": "08d80d1002220c1a0a08c0c40710071806",
+   "body": {
+    "count": {
+     "groupUin": 123456,
+     "appId": 7,
+     "busId": 6
+    }
+   },
+   "params": {
+    "groupId": 123456
+   },
+   "ctx": {},
+   "wireBody": "1a0a08c0c40710071806",
+   "envelopeFields": {
+    "command": 1752,
+    "subCommand": 2,
+    "errorCode": null,
+    "errorMsg": null,
+    "reserved": null
+   },
+   "envelopeMatchesOwn": true
+  },
+  "0x6d8_3 space": {
+   "kind": "req",
+   "slug": "get-group-file-space",
+   "spec": "GetGroupFileSpace",
+   "command": 1752,
+   "subCommand": 3,
+   "uinForm": false,
+   "hex": "08d80d1003220a220808c0c4071007",
+   "body": {
+    "space": {
+     "groupUin": 123456,
+     "appId": 7
+    }
+   },
+   "params": {
+    "groupId": 123456
+   },
+   "ctx": {},
+   "wireBody": "220808c0c4071007",
+   "envelopeFields": {
+    "command": 1752,
+    "subCommand": 3,
+    "errorCode": null,
+    "errorMsg": null,
+    "reserved": null
+   },
+   "envelopeMatchesOwn": true
+  },
+  "0x6d9_0 trans": {
+   "kind": "req",
+   "slug": "trans-group-file",
+   "spec": "TransGroupFile",
+   "command": 1753,
+   "subCommand": 0,
+   "uinForm": false,
+   "hex": "08d90d22140a1208c0c40710071866220666696c652d31",
+   "body": {
+    "transFile": {
+     "groupUin": {
+      "__bigint": "123456"
+     },
+     "appId": 7,
+     "busId": 102,
+     "fileId": "file-1"
+    }
+   },
+   "params": {
+    "groupId": 123456,
+    "fileId": "file-1"
+   },
+   "ctx": {},
+   "wireBody": "0a1208c0c40710071866220666696c652d31",
+   "envelopeFields": {
+    "command": 1753,
+    "subCommand": null,
+    "errorCode": null,
+    "errorMsg": null,
+    "reserved": null
+   },
+   "envelopeMatchesOwn": true
+  },
+  "0x7e5_104 like x10": {
+   "kind": "req",
+   "slug": "send-like",
+   "spec": "SendLike",
+   "command": 2021,
+   "subCommand": 104,
+   "uinForm": false,
+   "hex": "08e50f1068220f5a097569642d31303030316047680a",
+   "body": {
+    "targetUid": "uid-10001",
+    "sourceId": 71,
+    "count": 10
+   },
+   "params": {
+    "userId": 10001,
+    "count": 10
+   },
+   "ctx": {
+    "uidOf": {
+     "10001": "uid-10001"
+    }
+   },
+   "wireBody": "5a097569642d31303030316047680a",
+   "envelopeFields": {
+    "command": 2021,
+    "subCommand": 104,
+    "errorCode": null,
+    "errorMsg": null,
+    "reserved": null
+   },
+   "envelopeMatchesOwn": true
+  },
+  "0x7e5_104 like x1": {
+   "kind": "req",
+   "slug": "send-like",
+   "spec": "SendLike",
+   "command": 2021,
+   "subCommand": 104,
+   "uinForm": false,
+   "hex": "08e50f1068220f5a097569642d313030303160476801",
+   "body": {
+    "targetUid": "uid-10001",
+    "sourceId": 71,
+    "count": 1
+   },
+   "params": {
+    "userId": 10001,
+    "count": 1
+   },
+   "ctx": {
+    "uidOf": {
+     "10001": "uid-10001"
+    }
+   },
+   "wireBody": "5a097569642d313030303160476801",
+   "envelopeFields": {
+    "command": 2021,
+    "subCommand": 104,
+    "errorCode": null,
+    "errorMsg": null,
+    "reserved": null
+   },
+   "envelopeMatchesOwn": true
+  },
+  "0x1096_1 grant": {
+   "kind": "req",
+   "slug": "set-admin",
+   "spec": "SetGroupAdmin",
+   "command": 4246,
+   "subCommand": 1,
+   "uinForm": false,
+   "hex": "0896211001221308c0c40712097569642d31303030311801",
+   "body": {
+    "groupUin": 123456,
+    "uid": "uid-10001",
+    "isAdmin": true
+   },
+   "params": {
+    "groupId": 123456,
+    "userId": 10001,
+    "enable": true
+   },
+   "ctx": {
+    "uidOf": {
+     "10001": "uid-10001"
+    }
+   },
+   "wireBody": "08c0c40712097569642d31303030311801",
+   "envelopeFields": {
+    "command": 4246,
+    "subCommand": 1,
+    "errorCode": null,
+    "errorMsg": null,
+    "reserved": null
+   },
+   "envelopeMatchesOwn": true
+  },
+  "0x1096_1 revoke": {
+   "kind": "req",
+   "slug": "set-admin",
+   "spec": "SetGroupAdmin",
+   "command": 4246,
+   "subCommand": 1,
+   "uinForm": false,
+   "hex": "0896211001221108c0c40712097569642d3130303031",
+   "body": {
+    "groupUin": 123456,
+    "uid": "uid-10001",
+    "isAdmin": false
+   },
+   "params": {
+    "groupId": 123456,
+    "userId": 10001,
+    "enable": false
+   },
+   "ctx": {
+    "uidOf": {
+     "10001": "uid-10001"
+    }
+   },
+   "wireBody": "08c0c40712097569642d3130303031",
+   "envelopeFields": {
+    "command": 4246,
+    "subCommand": 1,
+    "errorCode": null,
+    "errorMsg": null,
+    "reserved": null
+   },
+   "envelopeMatchesOwn": true
+  },
+  "0x1097_1 leave": {
+   "kind": "req",
+   "slug": "leave-group",
+   "spec": "SetGroupLeave",
+   "command": 4247,
+   "subCommand": 1,
+   "uinForm": false,
+   "hex": "0897211001220608c0c407",
+   "body": {
+    "groupUin": 123456
+   },
+   "params": {
+    "groupId": 123456
+   },
+   "ctx": {},
+   "wireBody": "08c0c407",
+   "envelopeFields": {
+    "command": 4247,
+    "subCommand": 1,
+    "errorCode": null,
+    "errorMsg": null,
+    "reserved": null
+   },
+   "envelopeMatchesOwn": true
+  },
+  "0x112a_2 nickname": {
+   "kind": "req",
+   "slug": "set-profile",
+   "spec": "SetProfile",
+   "command": 4394,
+   "subCommand": 2,
+   "uinForm": false,
+   "hex": "08aa221002221708914e120f08a29c011209e696b0e698b5e7a7b0",
+   "body": {
+    "uin": {
+     "__bigint": "10001"
+    },
+    "stringProfiles": [
+     {
+      "fieldId": 20002,
+      "value": "新昵称"
+     }
+    ]
+   },
+   "params": {
+    "nickname": "新昵称"
+   },
+   "ctx": {
+    "uin": 10001
+   },
+   "wireBody": "08914e120f08a29c011209e696b0e698b5e7a7b0",
+   "envelopeFields": {
+    "command": 4394,
+    "subCommand": 2,
+    "errorCode": null,
+    "errorMsg": null,
+    "reserved": null
+   },
+   "envelopeMatchesOwn": true
+  },
+  "0x112a_2 all three": {
+   "kind": "req",
+   "slug": "set-profile",
+   "spec": "SetProfile",
+   "command": 4394,
+   "subCommand": 2,
+   "uinForm": false,
+   "hex": "08aa221002222408914e120a08a29c0112046e69636b1208086612046e6f74651a0608a99c011001",
+   "body": {
+    "uin": {
+     "__bigint": "10001"
+    },
+    "stringProfiles": [
+     {
+      "fieldId": 20002,
+      "value": "nick"
+     },
+     {
+      "fieldId": 102,
+      "value": "note"
+     }
+    ],
+    "intProfiles": [
+     {
+      "fieldId": 20009,
+      "value": {
+       "__bigint": "1"
+      }
+     }
+    ]
+   },
+   "params": {
+    "nickname": "nick",
+    "personalNote": "note",
+    "sex": 1
+   },
+   "ctx": {
+    "uin": 10001
+   },
+   "wireBody": "08914e120a08a29c0112046e69636b1208086612046e6f74651a0608a99c011001",
+   "envelopeFields": {
+    "command": 4394,
+    "subCommand": 2,
+    "errorCode": null,
+    "errorMsg": null,
+    "reserved": null
+   },
+   "envelopeMatchesOwn": true
+  },
+  "0x112a_2 sex only": {
+   "kind": "req",
+   "slug": "set-profile",
+   "spec": "SetProfile",
+   "command": 4394,
+   "subCommand": 2,
+   "uinForm": false,
+   "hex": "08aa221002220c08914e1a0408a99c01",
+   "body": {
+    "uin": {
+     "__bigint": "10001"
+    },
+    "intProfiles": [
+     {
+      "fieldId": 20009,
+      "value": {
+       "__bigint": "0"
+      }
+     }
+    ]
+   },
+   "params": {
+    "sex": 0
+   },
+   "ctx": {
+    "uin": 10001
+   },
+   "wireBody": "08914e1a0408a99c01",
+   "envelopeFields": {
+    "command": 4394,
+    "subCommand": 2,
+    "errorCode": null,
+    "errorMsg": null,
+    "reserved": null
+   },
+   "envelopeMatchesOwn": true
+  },
+  "0x112a_2 long nick": {
+   "kind": "req",
+   "slug": "set-self-long-nick",
+   "spec": "SetSelfLongNick",
+   "command": 4394,
+   "subCommand": 2,
+   "uinForm": false,
+   "hex": "08aa221002221508914e120d08661209e7adbee5908de6a1a3",
+   "body": {
+    "uin": {
+     "__bigint": "10001"
+    },
+    "profile": {
+     "tag": 102,
+     "value": "签名档"
+    }
+   },
+   "params": {
+    "longNick": "签名档"
+   },
+   "ctx": {
+    "uin": 10001
+   },
+   "wireBody": "08914e120d08661209e7adbee5908de6a1a3",
+   "envelopeFields": {
+    "command": 4394,
+    "subCommand": 2,
+    "errorCode": null,
+    "errorMsg": null,
+    "reserved": null
+   },
+   "envelopeMatchesOwn": true
+  },
+  "0x112e_1 click": {
+   "kind": "req",
+   "slug": "click-inline-keyboard-button",
+   "spec": "ClickInlineKeyboardButton",
+   "command": 4398,
+   "subCommand": 1,
+   "uinForm": false,
+   "hex": "08ae221001221a1881cbd13020072a0562746e2d313202636240c0c4074801",
+   "body": {
+    "botAppid": {
+     "__bigint": "102000001"
+    },
+    "msgSeq": {
+     "__bigint": "7"
+    },
+    "buttonId": "btn-1",
+    "callbackData": "cb",
+    "unknown7": 0,
+    "groupId": {
+     "__bigint": "123456"
+    },
+    "unknown9": 1
+   },
+   "params": {
+    "groupId": 123456,
+    "botAppid": 102000001,
+    "msgSeq": 7,
+    "buttonId": "btn-1",
+    "callbackData": "cb"
+   },
+   "ctx": {},
+   "wireBody": "1881cbd13020072a0562746e2d313202636240c0c4074801",
+   "envelopeFields": {
+    "command": 4398,
+    "subCommand": 1,
+    "errorCode": null,
+    "errorMsg": null,
+    "reserved": null
+   },
+   "envelopeMatchesOwn": true
+  },
+  "0x112e_1 click no callback": {
+   "kind": "req",
+   "slug": "click-inline-keyboard-button",
+   "spec": "ClickInlineKeyboardButton",
+   "command": 4398,
+   "subCommand": 1,
+   "uinForm": false,
+   "hex": "08ae22100122161881cbd13020072a0562746e2d3140c0c4074801",
+   "body": {
+    "botAppid": {
+     "__bigint": "102000001"
+    },
+    "msgSeq": {
+     "__bigint": "7"
+    },
+    "buttonId": "btn-1",
+    "callbackData": "",
+    "unknown7": 0,
+    "groupId": {
+     "__bigint": "123456"
+    },
+    "unknown9": 1
+   },
+   "params": {
+    "groupId": 123456,
+    "botAppid": 102000001,
+    "msgSeq": 7,
+    "buttonId": "btn-1",
+    "callbackData": ""
+   },
+   "ctx": {},
+   "wireBody": "1881cbd13020072a0562746e2d3140c0c4074801",
+   "envelopeFields": {
+    "command": 4398,
+    "subCommand": 1,
+    "errorCode": null,
+    "errorMsg": null,
+    "reserved": null
+   },
+   "envelopeMatchesOwn": true
+  },
+  "0x7ed_12 other user": {
+   "kind": "req",
+   "slug": "get-like",
+   "spec": "GetLike",
+   "command": 2029,
+   "subCommand": 12,
+   "uinForm": false,
+   "hex": "08ed0f100c22150a097569642d313030303110011801a80601b8060a",
+   "body": {
+    "targetUids": [
+     "uid-10001"
+    ],
+    "basic": 1,
+    "vote": 1,
+    "favorite": 0,
+    "userProfile": 1,
+    "start": 0,
+    "limit": 10
+   },
+   "params": {
+    "userId": 10001,
+    "start": 0,
+    "limit": 10
+   },
+   "ctx": {
+    "uidOf": {
+     "10001": "uid-10001"
+    }
+   },
+   "wireBody": "0a097569642d313030303110011801a80601b8060a",
+   "envelopeFields": {
+    "command": 2029,
+    "subCommand": 12,
+    "errorCode": null,
+    "errorMsg": null,
+    "reserved": null
+   },
+   "envelopeMatchesOwn": true
+  },
+  "0x6d7_0 create at empty root": {
+   "kind": "req",
+   "slug": "create-group-folder",
+   "spec": "CreateGroupFolder",
+   "command": 1751,
+   "subCommand": 0,
+   "uinForm": true,
+   "hex": "08d70d22130a1108c0c4072209726f6f742d6c6573736001",
+   "body": {
+    "create": {
+     "groupUin": 123456,
+     "rootDirectory": "",
+     "folderName": "root-less"
+    }
+   },
+   "params": {
+    "groupId": 123456,
+    "parentId": "",
+    "folderName": "root-less"
+   },
+   "ctx": {},
+   "wireBody": "0a1108c0c4072209726f6f742d6c657373",
+   "envelopeFields": {
+    "command": 1751,
+    "subCommand": null,
+    "errorCode": null,
+    "errorMsg": null,
+    "reserved": 1
+   },
+   "envelopeMatchesOwn": true
+  },
+  "0x6d9_4 publish": {
+   "kind": "req",
+   "slug": "publish-group-file",
+   "spec": "PublishGroupFile",
+   "command": 1753,
+   "subCommand": 4,
+   "uinForm": false,
+   "hex": "08d90d1004221e2a1c08c0c40710021a120866120666696c652d3118ffffffff032801",
+   "body": {
+    "body": {
+     "groupUin": 123456,
+     "type": 2,
+     "info": {
+      "busiType": 102,
+      "fileId": "file-1",
+      "field3": 1073741823,
+      "field5": true
+     }
+    }
+   },
+   "params": {
+    "groupId": 123456,
+    "fileId": "file-1"
+   },
+   "ctx": {},
+   "wireBody": "2a1c08c0c40710021a120866120666696c652d3118ffffffff032801",
+   "envelopeFields": {
+    "command": 1753,
+    "subCommand": 4,
+    "errorCode": null,
+    "errorMsg": null,
+    "reserved": null
+   },
+   "envelopeMatchesOwn": true
+  },
+  "0x7ed_13 self": {
+   "kind": "req",
+   "slug": "get-like",
+   "spec": "GetLike",
+   "command": 2029,
+   "subCommand": 13,
+   "uinForm": false,
+   "hex": "08ed0f100d22170a0873656c662d75696410011801a80601b00605b80614",
+   "body": {
+    "targetUids": [
+     "self-uid"
+    ],
+    "basic": 1,
+    "vote": 1,
+    "favorite": 0,
+    "userProfile": 1,
+    "start": 5,
+    "limit": 20
+   },
+   "params": {
+    "userId": 0,
+    "start": 5,
+    "limit": 20
+   },
+   "ctx": {
+    "selfUid": "self-uid"
+   },
+   "wireBody": "0a0873656c662d75696410011801a80601b00605b80614",
+   "envelopeFields": {
+    "command": 2029,
+    "subCommand": 13,
+    "errorCode": null,
+    "errorMsg": null,
+    "reserved": null
+   },
+   "envelopeMatchesOwn": true
+  },
+  "resp create folder": {
+   "kind": "resp",
+   "slug": "create-group-folder",
+   "spec": "CreateGroupFolder",
+   "rawHex": "08d70d22410a3f080012026f6b1a0ce6938de4bd9ce68890e58a9f22290a0a666f6c6465722d61626312012f1a06e68aa5e5918a2081c3bbc2062882c3bbc20630914e48924e",
+   "decoded": {
+    "create": {
+     "retcode": 0,
+     "retMsg": "ok",
+     "clientWording": "操作成功",
+     "folderInfo": {
+      "folderId": "folder-abc",
+      "folderPath": "/",
+      "folderName": "报告",
+      "createTime": 1750000001,
+      "modifyTime": 1750000002,
+      "createUin": 10001,
+      "modifyUin": 10002
+     }
+    },
+    "delete": null,
+    "rename": null
+   },
+   "result": {
+    "folderId": "folder-abc",
+    "folderName": "报告",
+    "folderPath": "/",
+    "createTime": 1750000001,
+    "modifyTime": 1750000002,
+    "createUin": 10001,
+    "modifyUin": 10002
+   }
+  },
+  "resp delete folder": {
+   "kind": "resp",
+   "slug": "delete-group-folder",
+   "spec": "DeleteGroupFolder",
+   "rawHex": "08d70d100122081206080012026f6b",
+   "decoded": {
+    "create": null,
+    "delete": {
+     "retcode": 0,
+     "retMsg": "ok",
+     "clientWording": null,
+     "folderInfo": null
+    },
+    "rename": null
+   },
+   "result": {
+    "__undefined": true
+   }
+  },
+  "resp delete folder retcode 8821": {
+   "kind": "resp",
+   "slug": "delete-group-folder",
+   "spec": "DeleteGroupFolder",
+   "rawHex": "08d70d1001221e121c08f54412036261641a12e69687e4bbb6e5a4b9e4b88de5ad98e59ca8",
+   "decoded": {
+    "create": null,
+    "delete": {
+     "retcode": 8821,
+     "retMsg": "bad",
+     "clientWording": "文件夹不存在",
+     "folderInfo": null
+    },
+    "rename": null
+   },
+   "error": "group folder delete failed: code=8821 msg=文件夹不存在"
+  },
+  "resp rename folder": {
+   "kind": "resp",
+   "slug": "rename-group-folder",
+   "spec": "RenameGroupFolder",
+   "rawHex": "08d70d100222081a06080012026f6b",
+   "decoded": {
+    "create": null,
+    "delete": null,
+    "rename": {
+     "retcode": 0,
+     "retMsg": "ok",
+     "clientWording": null,
+     "folderInfo": null
+    }
+   },
+   "result": {
+    "__undefined": true
+   }
+  },
+  "resp list": {
+   "kind": "resp",
+   "slug": "list-group-files-page",
+   "spec": "ListGroupFilesPage",
+   "rawHex": "08d80d1001228a01128701080012026f6b1a06e68890e58a9f20012a35080112310a056469722d3112012f1a037375622080e2cfaa0628e4e2cfaa0630a19c013a05616c696365400348a29c015203626f622a3e08021a3a0a0666696c652d311205612e74787418b960206630c8e3cfaa0638ace4cfaa064090e5cfaa06480772056361726f6c78b1ea018201042f737562",
+   "decoded": {
+    "list": {
+     "retCode": 0,
+     "retMsg": "ok",
+     "clientWording": "成功",
+     "isEnd": true,
+     "items": [
+      {
+       "type": 1,
+       "folderInfo": {
+        "folderId": "dir-1",
+        "parentDirectoryId": "/",
+        "folderName": "sub",
+        "createTime": 1700000000,
+        "modifiedTime": 1700000100,
+        "creatorUin": 20001,
+        "creatorName": "alice",
+        "totalFileCount": 3,
+        "modifierUin": {
+         "__bigint": "20002"
+        },
+        "modifierName": "bob"
+       },
+       "fileInfo": null
+      },
+      {
+       "type": 2,
+       "folderInfo": null,
+       "fileInfo": {
+        "fileId": "file-1",
+        "fileName": "a.txt",
+        "fileSize": {
+         "__bigint": "12345"
+        },
+        "busId": 102,
+        "uploadedTime": 1700000200,
+        "expireTime": 1700000300,
+        "modifiedTime": 1700000400,
+        "downloadedTimes": 7,
+        "uploaderName": "carol",
+        "uploaderUin": 30001,
+        "parentDirectory": "/sub"
+       }
+      }
+     ]
+    }
+   },
+   "result": {
+    "items": [
+     {
+      "type": 1,
+      "folderInfo": {
+       "folderId": "dir-1",
+       "parentDirectoryId": "/",
+       "folderName": "sub",
+       "createTime": 1700000000,
+       "modifiedTime": 1700000100,
+       "creatorUin": 20001,
+       "creatorName": "alice",
+       "totalFileCount": 3,
+       "modifierUin": {
+        "__bigint": "20002"
+       },
+       "modifierName": "bob"
+      },
+      "fileInfo": null
+     },
+     {
+      "type": 2,
+      "folderInfo": null,
+      "fileInfo": {
+       "fileId": "file-1",
+       "fileName": "a.txt",
+       "fileSize": {
+        "__bigint": "12345"
+       },
+       "busId": 102,
+       "uploadedTime": 1700000200,
+       "expireTime": 1700000300,
+       "modifiedTime": 1700000400,
+       "downloadedTimes": 7,
+       "uploaderName": "carol",
+       "uploaderUin": 30001,
+       "parentDirectory": "/sub"
+      }
+     }
+    ],
+    "isEnd": true
+   }
+  },
+  "resp count": {
+   "kind": "resp",
+   "slug": "get-group-file-count",
+   "spec": "GetGroupFileCount",
+   "rawHex": "08d80d100222171a07201130904e3801220c208080808028288080808004",
+   "decoded": {
+    "count": {
+     "fileCount": 17,
+     "maxCount": 10000,
+     "isFull": true
+    },
+    "space": {
+     "totalSpace": {
+      "__bigint": "10737418240"
+     },
+     "usedSpace": {
+      "__bigint": "1073741824"
+     }
+    }
+   },
+   "result": {
+    "fileCount": 17,
+    "maxCount": 10000
+   }
+  },
+  "resp space": {
+   "kind": "resp",
+   "slug": "get-group-file-space",
+   "spec": "GetGroupFileSpace",
+   "rawHex": "08d80d1003220e220c208080808028288080808008",
+   "decoded": {
+    "count": null,
+    "space": {
+     "totalSpace": {
+      "__bigint": "10737418240"
+     },
+     "usedSpace": {
+      "__bigint": "2147483648"
+     }
+    }
+   },
+   "result": {
+    "usedSpace": 2147483648,
+    "totalSpace": 10737418240
+   }
+  },
+  "resp trans": {
+   "kind": "resp",
+   "slug": "trans-group-file",
+   "spec": "TransGroupFile",
+   "rawHex": "08d90d22240a22080012026f6b1a0ce8bdace5ad98e68890e58a9f20662a0a2f736176652f68657265",
+   "decoded": {
+    "transFile": {
+     "retCode": 0,
+     "retMsg": "ok",
+     "clientWording": "转存成功",
+     "saveBusId": 102,
+     "saveFilePath": "/save/here"
+    }
+   },
+   "result": {
+    "saveBusId": 102,
+    "saveFilePath": "/save/here"
+   }
+  },
+  "resp trans retcode -1": {
+   "kind": "resp",
+   "slug": "trans-group-file",
+   "spec": "TransGroupFile",
+   "rawHex": "08d90d22150a1308ffffffffffffffffff0112066661696c6564",
+   "decoded": {
+    "transFile": {
+     "retCode": -1,
+     "retMsg": "failed",
+     "clientWording": null,
+     "saveBusId": null,
+     "saveFilePath": null
+    }
+   },
+   "error": "group file transfer failed: code=-1 msg=failed"
+  },
+  "resp like": {
+   "kind": "resp",
+   "slug": "get-like",
+   "spec": "GetLike",
+   "rawHex": "08ed0f2294010a8c010a0873656c662d75696410f4e5cfaa061a3e082a1090e5cfaa06180722320a03752d3110011880e2cfaa062003280030004000a80105b00101aa06056e69636b31b00601b80614c00601c80600d00600223a08631005180220ace4cfaa062a2c0a03752d3210021881e2cfaa062009a80100b00100aa06056e69636b32b00602b8061ec00600c80601d006011014a80600",
+   "decoded": {
+    "userLikeInfos": [
+     {
+      "uid": "self-uid",
+      "time": 1700000500,
+      "favoriteInfo": {
+       "totalCount": 42,
+       "lastTime": 1700000400,
+       "todayCount": 7,
+       "userInfos": [
+        {
+         "uid": "u-1",
+         "src": 1,
+         "latestTime": 1700000000,
+         "count": 3,
+         "giftCount": 0,
+         "customId": 0,
+         "lastCharged": 0,
+         "availableCount": 5,
+         "todayVotedCount": 1,
+         "nick": "nick1",
+         "gender": 1,
+         "age": 20,
+         "isFriend": true,
+         "isVip": false,
+         "isSvip": false
+        }
+       ]
+      },
+      "voteInfo": {
+       "totalCount": 99,
+       "newCount": 5,
+       "newNearbyCount": 2,
+       "lastVisitTime": 1700000300,
+       "userInfos": [
+        {
+         "uid": "u-2",
+         "src": 2,
+         "latestTime": 1700000001,
+         "count": 9,
+         "giftCount": null,
+         "customId": null,
+         "lastCharged": null,
+         "availableCount": 0,
+         "todayVotedCount": 0,
+         "nick": "nick2",
+         "gender": 2,
+         "age": 30,
+         "isFriend": false,
+         "isVip": true,
+         "isSvip": true
+        }
+       ]
+      }
+     }
+    ],
+    "friendMaxVotes": 20,
+    "start": 0
+   },
+   "result": {
+    "uid": "self-uid",
+    "time": 1700000500,
+    "favoriteInfo": {
+     "total_count": 42,
+     "last_time": 1700000400,
+     "today_count": 7,
+     "userInfos": [
+      {
+       "uid": "u-1",
+       "uin": 0,
+       "src": 1,
+       "latestTime": 1700000000,
+       "count": 3,
+       "giftCount": 0,
+       "customId": 0,
+       "lastCharged": 0,
+       "bAvailableCnt": 5,
+       "bTodayVotedCnt": 1,
+       "nick": "nick1",
+       "gender": 1,
+       "age": 20,
+       "isFriend": true,
+       "isvip": false,
+       "isSvip": false
+      }
+     ]
+    },
+    "voteInfo": {
+     "total_count": 99,
+     "new_count": 5,
+     "new_nearby_count": 2,
+     "last_visit_time": 1700000300,
+     "userInfos": [
+      {
+       "uid": "u-2",
+       "uin": 0,
+       "src": 2,
+       "latestTime": 1700000001,
+       "count": 9,
+       "giftCount": 0,
+       "customId": 0,
+       "lastCharged": 0,
+       "bAvailableCnt": 0,
+       "bTodayVotedCnt": 0,
+       "nick": "nick2",
+       "gender": 2,
+       "age": 30,
+       "isFriend": false,
+       "isvip": true,
+       "isSvip": true
+      }
+     ]
+    }
+   }
+  },
+  "resp keyboard": {
+   "kind": "resp",
+   "slug": "click-inline-keyboard-button",
+   "spec": "ClickInlineKeyboardButton",
+   "rawHex": "08ae221001220f18002209e5b7b2e68f90e4baa42a00",
+   "decoded": {
+    "result": 0,
+    "promptText": "已提交",
+    "errMsg": ""
+   },
+   "result": {
+    "result": 0,
+    "errMsg": "",
+    "status": 0,
+    "promptText": "已提交",
+    "promptType": 0,
+    "promptIcon": 0
+   }
+  },
+  "resp list empty not-end": {
+   "kind": "resp",
+   "slug": "list-group-files-page",
+   "spec": "ListGroupFilesPage",
+   "rawHex": "08d80d100122081206080012026f6b",
+   "decoded": {
+    "list": {
+     "retCode": 0,
+     "retMsg": "ok",
+     "clientWording": null,
+     "isEnd": null,
+     "items": []
+    }
+   },
+   "result": {
+    "items": [],
+    "isEnd": false
+   }
+  },
+  "resp list retcode 3": {
+   "kind": "resp",
+   "slug": "list-group-files-page",
+   "spec": "ListGroupFilesPage",
+   "rawHex": "08d80d1001221a12180803120664656e6965641a0ce6b2a1e69c89e69d83e99990",
+   "decoded": {
+    "list": {
+     "retCode": 3,
+     "retMsg": "denied",
+     "clientWording": "没有权限",
+     "isEnd": null,
+     "items": []
+    }
+   },
+   "error": "group file list failed: code=3 msg=没有权限"
+  },
+  "resp count missing": {
+   "kind": "resp",
+   "slug": "get-group-file-count",
+   "spec": "GetGroupFileCount",
+   "rawHex": "08d80d100222051a0330904e",
+   "decoded": {
+    "count": {
+     "fileCount": null,
+     "maxCount": 10000,
+     "isFull": null
+    },
+    "space": null
+   },
+   "result": {
+    "fileCount": 0,
+    "maxCount": 10000
+   }
+  },
+  "resp keyboard result 42": {
+   "kind": "resp",
+   "slug": "click-inline-keyboard-button",
+   "spec": "ClickInlineKeyboardButton",
+   "rawHex": "08ae2210012223182a220fe68c89e992aee5b7b2e5a4b1e695882a0e696e76616c696420627574746f6e",
+   "decoded": {
+    "result": 42,
+    "promptText": "按钮已失效",
+    "errMsg": "invalid button"
+   },
+   "result": {
+    "result": 42,
+    "errMsg": "invalid button",
+    "status": 0,
+    "promptText": "按钮已失效",
+    "promptType": 0,
+    "promptIcon": 0
+   }
+  },
+  "resp publish empty": {
+   "kind": "resp",
+   "slug": "publish-group-file",
+   "spec": "PublishGroupFile",
+   "rawHex": "08d90d10042200",
+   "decoded": {},
+   "result": {
+    "__undefined": true
+   }
+  },
+  "resp profile empty": {
+   "kind": "resp",
+   "slug": "set-profile",
+   "spec": "SetProfile",
+   "rawHex": "08aa2210022200",
+   "decoded": {},
+   "result": {
+    "__undefined": true
+   }
+  },
+  "resp longnick empty": {
+   "kind": "resp",
+   "slug": "set-self-long-nick",
+   "spec": "SetSelfLongNick",
+   "rawHex": "08aa2210022200",
+   "decoded": {},
+   "result": {
+    "__undefined": true
+   }
+  }
+ },
+ "httpconn": {
+  "6ff_501 request": {
+   "kind": "req-shape",
+   "hex": "8a501b18102001300338013805380a38154802500958087a05312e302e31",
+   "conn": {
+    "field1": 0,
+    "field2": 0,
+    "field3": 16,
+    "field4": 1,
+    "field6": 3,
+    "serviceTypes": [
+     1,
+     5,
+     10,
+     21
+    ],
+    "field9": 2,
+    "field10": 9,
+    "field11": 8,
+    "ver": "1.0.1"
+   },
+   "wireName": "HttpConn.0x6ff_501"
+  },
+  "6ff_501 request zero serviceType": {
+   "kind": "req-shape",
+   "hex": "8a5017181020013003380038014802500958087a05312e302e31",
+   "conn": {
+    "field1": 0,
+    "field2": 0,
+    "field3": 16,
+    "field4": 1,
+    "field6": 3,
+    "serviceTypes": [
+     0,
+     1
+    ],
+    "field9": 2,
+    "field10": 9,
+    "field11": 8,
+    "ver": "1.0.1"
+   },
+   "wireName": "HttpConn.0x6ff_501"
+  },
+  "6ff_501 resp session": {
+   "kind": "resp",
+   "rawHex": "8a507d0a077369672d6162631204010203041a1e0801120c0801150b00000a18903f2000120c0801150b00000a18903f20001a100805120c0801156401a8c018824720001a3a0801120b0801156401a8c018002000120c0801150000000018d8362000120d0801156401a8c018f0a2042000120c0801156401a8c018bb032000",
+   "decoded": {
+    "httpConn": {
+     "sigSession": {
+      "__bytes": "7369672d616263"
+     },
+     "sessionKey": {
+      "__bytes": "01020304"
+     },
+     "serverInfos": [
+      {
+       "serviceType": 1,
+       "serverAddrs": [
+        {
+         "type": 1,
+         "ip": 167772171,
+         "port": 8080,
+         "area": 0
+        },
+        {
+         "type": 1,
+         "ip": 167772171,
+         "port": 8080,
+         "area": 0
+        }
+       ]
+      },
+      {
+       "serviceType": 5,
+       "serverAddrs": [
+        {
+         "type": 1,
+         "ip": 3232235876,
+         "port": 9090,
+         "area": 0
+        }
+       ]
+      },
+      {
+       "serviceType": 1,
+       "serverAddrs": [
+        {
+         "type": 1,
+         "ip": 3232235876,
+         "port": 0,
+         "area": 0
+        },
+        {
+         "type": 1,
+         "ip": 0,
+         "port": 7000,
+         "area": 0
+        },
+        {
+         "type": 1,
+         "ip": 3232235876,
+         "port": 70000,
+         "area": 0
+        },
+        {
+         "type": 1,
+         "ip": 3232235876,
+         "port": 443,
+         "area": 0
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "session": {
+    "sigSession": {
+     "__bytes": "7369672d616263"
+    },
+    "sessionKey": {
+     "__bytes": "01020304"
+    },
+    "servers": [
+     {
+      "host": "11.0.0.10",
+      "port": 8080
+     },
+     {
+      "host": "100.1.168.192",
+      "port": 443
+     }
+    ]
+   }
+  },
+  "6ff_501 resp no sig": {
+   "kind": "resp",
+   "rawHex": "8a5016120209091a100801120c0801150b00000a18903f2000",
+   "decoded": {
+    "httpConn": {
+     "sigSession": {
+      "__bytes": ""
+     },
+     "sessionKey": {
+      "__bytes": "0909"
+     },
+     "serverInfos": [
+      {
+       "serviceType": 1,
+       "serverAddrs": [
+        {
+         "type": 1,
+         "ip": 167772171,
+         "port": 8080,
+         "area": 0
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "error": "HttpConn response missing sig_session"
+  },
+  "6ff_501 resp no servers": {
+   "kind": "resp",
+   "rawHex": "8a501b0a077369672d6162631a100802120c0801150b00000a18903f2000",
+   "decoded": {
+    "httpConn": {
+     "sigSession": {
+      "__bytes": "7369672d616263"
+     },
+     "sessionKey": {
+      "__bytes": ""
+     },
+     "serverInfos": [
+      {
+       "serviceType": 2,
+       "serverAddrs": [
+        {
+         "type": 1,
+         "ip": 167772171,
+         "port": 8080,
+         "area": 0
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "error": "HttpConn response has no upload servers"
+  },
+  "6ff_501 resp empty": {
+   "kind": "resp",
+   "rawHex": "980601",
+   "decoded": {
+    "httpConn": null
+   },
+   "error": "HttpConn response body missing"
+  }
+ }
+}

@@ -1,5 +1,4 @@
-# Build trees: three naming schemes exist (build/, build-arm64/, buildx/, buildx-arm/), so ignore
-# by content rather than by name.
+# 构建产物
 build/
 build-*/
 buildx/
@@ -8,22 +7,26 @@ buildx-arm/
 *.node
 *.so
 
-# Generated test artifacts
+# 测试产物
 /tmp/
 *.log
 core
 core.*
+
+# 运行期配置（含凭据：密码哈希、盐值、token）
+# 只入库脱敏模板 *.example.json
+config/*.json
+!config/*.example.json
+
+# 运行日志（含 UIN、消息内容）
+logs/
+*.log
+
+# Node
+node_modules/
 __pycache__/
 *.pyc
-re/dis.txt
-re/dis_raw.txt
 
-# Reverse-engineering intermediates. These are regenerated from the target .so with objdump,
-# they run to 12 MB, and they are not source: a checkout that has the scripts in re/ can
-# reproduce any of them. Keeping them in history made the repository 9.5 MB of mostly
-# disassembly text and turned every transfer into a multi-megabyte problem.
-work/
-re/dis/
-re/__pycache__/
-*.pyc
-re/*.txt
+# 开发笔记：含真实 UIN、群号、服务器 IP、token 和内部调试细节，不适合公开
+MEMORY.md
+PROGRESS.md

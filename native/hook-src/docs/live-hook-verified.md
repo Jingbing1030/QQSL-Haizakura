@@ -2,7 +2,7 @@
 
 ## 环境
 
-- 容器 `hz-scan`（Debian 12，glibc **2.36**，aarch64）
+- 容器 `hz-test`（Debian 12，glibc **2.36**，aarch64）
 - QQ PID **85885**，`/opt/QQ/qq`，wrapper.node 144,561,472 B，已运行 9h59m
 - `SNOWLUMA_HOOK_RUNTIME_DIR=/tmp/runtime-1000`
 - socket 从 12:59 就存在：
@@ -62,7 +62,7 @@ fd 287 由 node 用户持有。这是闭源 payload 的 **helper 模块**——
 ## 复验
 
 ```bash
-sudo docker exec hz-scan sh -c \
+sudo docker exec hz-test sh -c \
   'HZ_RUNTIME_DIR=/tmp/runtime-1000 HZ_PID=85885 node /tmp/read-live.mjs'
 ```
 

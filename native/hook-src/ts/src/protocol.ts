@@ -261,11 +261,11 @@ export const REFUSAL_MESSAGES: Readonly<Record<number, string>> = {
   0: "This request is not valid. Please check it and try again.",
   1: "QQ is not ready. Please finish signing in and try again.",
   2: "The QQ connection changed. Please restart QQ and try again.",
-  3: "SnowLuma could not prepare the request. Please restart SnowLuma and try again.",
+  3: "Haizakura could not prepare the request. Please restart Haizakura and try again.",
 };
 
 export const REFUSAL_FALLBACK =
-  "SnowLuma could not send the request. Please try again.";
+  "Haizakura could not send the request. Please try again.";
 
 /**
  * Interprets an op 5 frame.

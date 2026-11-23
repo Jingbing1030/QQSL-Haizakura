@@ -592,6 +592,101 @@
 所以「发送前拦一刀」还有一个更省事的位置：`TaskManager` 槽 3（`0x407a8ac`）——
 它在 task 真正下到 socket 前被调用。
 
+#### 7.3.1 槽 5 的**参数布局**（【实测】2026-11-22，本机 arm64 反汇编 + 独立交叉校验）
+
+用 `/usr/bin/aarch64-linux-gnu-objdump -d --start-address=0x407b840 --stop-address=0x407be90`
+直接读本机 `/home/ubuntu/hzwork/wrapper-arm64.node`。**注意工具**：x86 的 `objdump`
+不能反汇编 arm64（只输出 5 行），本机也没装 capstone（无 pip），必须用
+`aarch64-linux-gnu-objdump`。
+
+函数范围 `0x407b840 – 0x407be90`（依据 `.eh_frame_hdr` FDE）；帧 `sub sp,sp,#0x110`，
+`add x29,sp,#0xc0`。**`.text` 内无任何静态 `bl` 调用者**（全分支扫描确认），
+唯一引用是 vtable `0x88b4aa0` 槽 5 的相对重定位 `0x88b4ac8`（`R_AARCH64_RELATIVE`,
+addend `0x407b840`；typeinfo `0x88b4ad0` → `N3msf8internal11TaskManagerE`）。
+
+**字段来源总表**（这是接线唯一该看的表；已二次交叉校验，曾有一版把 seq/uin 写反）：
+
+| 字段 | 来源（槽 5 入口） | 置信度 |
+|---|---|---|
+| `this` (TaskManager) | **`x0`**（`407b86c mov x19,x0`；当 `[x19,#392]`、`x19+0x190`、`x19+0x178` 观察者链根用） | 指令确认 |
+| **retcode** | **`w2`**（`407b85c mov w21,w2`；`407b970 str w21,[x8,#228]`；槽 4 同样把 `w2` 存 `+228` 并作为 `error {}` 打印） | 指令确认 |
+| 响应对象 | **`*x1`**（`407b874 ldr x24,[x20]`）；**退出时被置空**（`407ba94 str xzr,[x20]`） | 指令确认 |
+| **uin** | **`resp+0x00`**，libc++ `std::Cr` 字符串 | 指令确认 |
+| **seq** | **`resp+0x18`**，标量（`407b880 ldr x23,[x24,#24]`，日志 `seq:{}` 的实参） | 指令确认 |
+| **serviceCmd** | **`resp+0x20`**，libc++ `std::Cr` 字符串 | 指令确认 |
+| **body ptr + len** | **`resp+0x38` 是一个指针**，指向 `{begin,end}` 对：`range=*(resp+0x38)`、`begin=*range`、`end=*(range+8)`、`len=end-begin`（`407b890 ldr x8,[x8,#56]` / `407b894 ldp x8,x9,[x8]` / `407b898 sub x8,x9,x8`） | 指令确认 + **实拍确认** |
+| `resp+0x40` | 32 位，被写入 `task+224`（`407b988 ldr w10,[x9,#64]`；`407b98c str w10,[x8,#224]`） | 偏移确认 / **语义未定**（子返回码或 32 位序号，二者均未证） |
+| `resp+0xA8` | 时间戳，仅被前置函数 `0x407af08` 读 | 指令确认 |
+| `x3`–`x7` 入口值 | **全为死值**（`0x407b840–0x407be90` 内除紧邻 `bl` 前写入的日志/构造实参外无读取） | 指令确认 |
+
+**为什么 `seq` 是 `resp+0x18` 而不是 `w2`——判定依据**：日志调用
+`407b8d4 bl 0x407d884` 前，`x0`=`"MSF-NG"`、`x2`=`"task_manager.cc"`、`w3`=718、
+`x4`=`"DidRecvResponseData"`、`x5`=格式串、`x6`=`x23`(=`resp+0x18`)、
+`x7`=`x29-0x20`(=`resp+0x20` 字符串副本)、`[sp]`=`data_size`、`[sp+8]`=`w2`。
+即 Chromium 的 `LogMessage(tag, sev, file, line, func, fmt, ...)`，变参自 `x6` 起，
+与格式串 `"MSF recv seq:{} cmd:{} data_size:{}, error_code:{}"` 对齐后：
+seq→`+0x18`、cmd→`+0x20`、size→`end-begin`、error_code→`w2`。
+`0x407af08` 前置函数的返回值被丢弃，但它读 `resp+0xA8` 与时钟比较（超时/期限），
+**只读 relay 照常调用原函数无碍；把原函数 stub 掉会静默改变超时行为**。
+
+**三条必须记住的结论**：
+
+1. **`w2` 是 retcode，不是 seq；seq 要额外从 `resp+0x18` 读。**
+   两条独立证据：主路径日志第 4 个变参 `[sp+8]=w2` 对应 `error_code:{}`；
+   槽 4（`0x407a928`）格式串是 `"Did Finish sending task {} error {}"`，
+   它把 `w2` 存进 `[x8,#228]`（`0x407a9f4 str w20,[x8,#228]`），槽 5 做同一件事
+   （`0x407b970 str w21,[x8,#228]`）——**`+228` 是共享的 error_code 字段**。
+   早退路径（`*x1==0`）里 `407ba68 mov w6,w21` 打 `"recv data error: {}"`
+   （rodata `0x6c6126f`），同样是状态量，自洽。
+2. **`x1` 是 in/out：`*x1` 在 `407ba94` 被置空，响应对象的所有权转移进 task。**
+   因此 body **只能在调用期间消费**，绝不能留给 `SlotAfter` 再去读——
+   task 表释放后那是悬垂指针。安全做法是当场拷贝。
+3. **`resp+0x00`(uin) 与 `resp+0x20`(cmd) 都是 libc++（Chromium `std::Cr`）字符串，
+   SSO 边界是 22 不是 15。** 两者都必须走同一个解码器规则。
+   解码器 `0x13efc7c` 的规则（**已逐条复核，早先一版把 +8/+16 写反**）：
+   `ldrb w8,[x1]` → **byte0 LSB=1 → 长形 `{cap@+0, size@+8, ptr@+16}`**
+   （`13efcc0 ldp x22,x20,[x1,#8]`：`x22`=size@+8、`x20`=指针@+16）；
+   **LSB=0 → 内联，`len = byte0>>1`，字符从 +1 起**；
+   长形还会 `cmp x22,#0x16; b.ls` 走内联（**SSO=22**）、`cmn x22,#0x10; b.cs throw`。
+   **这正是历史上杀死客户端两次的坑**（按 libstdc++ 的 SSO=15、flag `(len<<1)|1` 处理）。
+   注意 `resp+0x18`（seq）是**标量**，不要当字符串解；`resp+0x40` 语义未定，
+   不要当 retcode 用（早期一版曾这样误判）。
+
+**rodata 交叉验证**（把函数身份钉死，非推断）：
+
+```
+0x6c60ceb  "MSF-NG"
+0x6c60d73  "task_manager.cc"
+0x6c6125b  "DidRecvResponseData"
+0x6c6126f  "recv data error: {}"                ← 早退路径专用
+0x6c61283  "MSF recv seq:{} cmd:{} data_size:{}, error_code:{}"
+0x6c612b6  "Response data should belong to task(seq:{} cmd:{} uin:{}), but not found."
+```
+
+**`emit_packet` 能不能直接接在槽 5？**
+
+- **能拿到全部所需字段，但只能"只读 + 当场拷贝"**。所需读取集恰为：
+  `x0`=this、`x2`=retcode、`x1`→`*x1`=响应对象，再 `+0x00`=uin(std::Cr 串)、
+  `+0x18`=seq(标量)、`+0x20`=cmd(std::Cr 串)、`+0x38`→`{begin,end}`=body。
+- **严格只读观察 + 当场拷贝：可行**，前提是全部满足：
+  ① `resp+0x00` 与 `resp+0x20` 都用上面 libc++ 规则解码（**SSO=22**）；
+  ② `resp+0x18` 按标量读，别当指针/字符串；③ retcode 用 `x2`（**不是 `resp+0x40`**）；
+  ④ body 取 `*x1`→`+0x38`→`{begin,end}`，长度 `end-begin`；
+  ⑤ **绝不写对象任何字段**；⑥ body 与两个字符串都在返回前拷走。
+- **为什么不透传原始入参**：`emit_packet(cmd,uin,retcode,seq,body,len)` 的参数分散在
+  寄存器与对象内部两处，没有哪个单一寄存器是完整报文；且 body 生命周期只到调用结束。
+- **前置副作用**：`407b870 bl 0x407af08` 不是空操作——它读 `resp+0xA8`（时间戳/期限）
+  并与时钟比较、不匹配就记日志，返回值被忽略。只读 relay 照常调用原函数无碍；
+  但若把原函数 stub 掉，会静默改变超时行为。
+
+**仍未证实（必须读完）**：上表全部来自**静态反汇编**，没有在真实收包时打过点。
+`resp+0x40` 的语义、`resp+0x00` 是"十进制 uin"、以及调用后响应对象的所有权
+都是**推断**；`std::Cr` 布局、`{begin,end}` 取 body、`+228`=seq、`x1` 被写回
+是**指令级确认**。接线后必须让真实 op6 与该日志模板同时命中才算打通。
+原始记录：
+（容器 `SNOWLUMA_LOG_LEVEL=info`，trace 级 `packet_recv` 尚未开启）。
+接线后必须用真实 op6 报文 + 该日志模板同时命中来确认，不能凭本表就算打通。
+
 ---
 
 ## 8. 怎么验证的（QQ 升级后如何重做）

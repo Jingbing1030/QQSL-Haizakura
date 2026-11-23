@@ -442,7 +442,7 @@ ManualMapHandle ManualLoader::load() {
     // the call needs a landing pad, and detaching before the callee returns would
     // leave that landing pad trapping with nobody to catch it -- which kills the
     // host process instead of starting the hook.
-    if (handle.entry != 0) remote_.remote_call(handle.entry, {}, 0);
+    if (handle.entry != 0 && !skip_entry_) remote_.remote_call(handle.entry, {}, 0);
   } catch (const UnresolvedSymbol&) {
     // A missing symbol is fatal but recoverable-by-the-caller: release the window
     // so the target does not carry an unreachable executable region.

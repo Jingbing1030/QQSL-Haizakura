@@ -17,7 +17,11 @@
 #include "vtable_hook.h"
 
 static int g_hits = 0;
-static void observe(uint32_t slot, uint64_t original) { (void)slot; (void)original; ++g_hits; }
+static void observe(uint32_t slot, uint64_t original, uint64_t a0, uint64_t a1, uint64_t a2,
+                    uint64_t a3, uint64_t* frame) {
+  (void)slot; (void)original; (void)a0; (void)a1; (void)a2; (void)a3; (void)frame;
+  ++g_hits;
+}
 
 int main(int argc, char** argv) {
   if (argc < 3) { std::printf("usage: %s <pid> <lib.so>\n", argv[0]); return 2; }

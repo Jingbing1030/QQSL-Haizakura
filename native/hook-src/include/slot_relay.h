@@ -40,7 +40,38 @@ namespace hz {
 // is forwarded.  It must not throw and must not modify the machine state: the relay
 // restores registers immediately afterwards, so anything it changes is discarded --
 // which is the point, because the callee must see what the caller passed.
-using SlotObserver = void (*)(uint32_t slot, uint64_t original);
+// The second half of the signature is the call's own first four integer arguments (x0..x3 on
+// aArch64, rdi/rsi/rdx/rcx on x64). Without them a probe can say a slot was entered but not what
+// it was entered with, and the send path is exactly the case where the argument is the finding:
+// MSFSDK::sendPacket carries the request object in x0.
+//
+// The seventh argument, `frame`, points at the relay's save area: x0..x7 at offsets 0..56 and x8
+// at 64, one 8-byte slot each. Writing through it changes what the target receives.
+//
+// This was deliberately withheld at first, so that an observer could not corrupt the frame the
+// relay is about to restore. That is the right default for a probe, and it is the wrong one for
+// the send path: the only way to get QQ to transmit a payload of ours is to hand it that payload
+// while it is already inside the function, since calling the function ourselves re-enters it and
+// kills the client. Writing x1's slot at offset 8 replaces the command pointer; writing offset 16
+// replaces the body range. An observer that ignores `frame` behaves exactly as before, which is
+// every observer except the send injector.
+using SlotObserver = void (*)(uint32_t slot, uint64_t original, uint64_t a0, uint64_t a1,
+                              uint64_t a2, uint64_t a3, uint64_t* frame);
+
+// Called after the target returns. Receives the return value's first word and, when `callee`
+// is false, nothing else -- the point is the side effect the callee produced (a reply written
+// into an `out` argument), not the return value itself.
+//
+// This exists because a relay that only sees the entry cannot observe anything the callee
+// produces. A send writes its response into a caller-supplied block at x4, so the response does
+// not exist at entry time and cannot be captured there.
+using SlotAfter = void (*)(uint64_t result, uint64_t* frame);
+
+// Registers a post-call callback on an existing relay. Passing 0 removes it.
+//
+// Separate from slot_relay_install so that the common case -- observe the arguments, change
+// nothing -- keeps working unchanged, and the more invasive one is opt-in per relay.
+bool slot_relay_set_after(uint64_t relay, SlotAfter after);
 
 // Builds a relay for `slot` that forwards to `original` and reports each call to
 // `observer`.  Returns the address to install in the vtable, or 0 on failure.

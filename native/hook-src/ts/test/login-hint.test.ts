@@ -36,10 +36,10 @@ test("the counter limit is exclusive: 9999 is accepted and 10000 is not", () => 
 });
 
 test("a bare uin is refused, which is why value0 is not a uin", () => {
-  // 3083456343 is a real account number (~10^9), so its high word is 0. Sending it would look
+  // 10001 is a real account number (~10^9), so its high word is 0. Sending it would look
   // like it worked -- the frame arrives -- while every hint was rejected and the keepalive
   // window never opened.
-  assert.equal(decodeLoginHint(3083456343n), null);
+  assert.equal(decodeLoginHint(10001n), null);
 });
 
 test("values below the base are refused rather than wrapping in", () => {
@@ -128,5 +128,5 @@ test("remaining reports the time left and zero when closed", () => {
 test("the account report requestId is an inverted presence flag", () => {
   // (id == 0) ? 1 : 0 -- not a sequence number. Pinned because it reads like one.
   assert.equal(accountReportRequestId(0n), 1);
-  assert.equal(accountReportRequestId(3083456343n), 0);
+  assert.equal(accountReportRequestId(10001n), 0);
 });

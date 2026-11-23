@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["src/onebot/**/*.ts", "test/onebot-*.test.ts"]
+}

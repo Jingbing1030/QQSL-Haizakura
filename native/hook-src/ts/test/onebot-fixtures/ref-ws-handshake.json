@@ -1,0 +1,95 @@
+{
+  "generatedBy": "probe/harness-handshake.mjs",
+  "cases": [
+    {
+      "name": "ok",
+      "note": "baseline 101",
+      "request": "GET /?access_token=tok HTTP/1.1\r\nHost: 127.0.0.1:42031\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+      "response": "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n\r\n~\u0000{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"connect\",\"status\":{\"online\":true,\"good\":true}}~\u0000{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"enable\",\"status\":{\"online\":true,\"good\":true}}~\u0000{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"heartbeat\",\"status\":{\"online\":true,\"good\":true},\"interval\":30000}",
+      "hex": "485454502f312e312031303120537769746368696e672050726f746f636f6c730d0a557067726164653a20776562736f636b65740d0a436f6e6e656374696f6e3a20557067726164650d0a5365632d576562536f636b65742d4163636570743a20733370504c4d426954786151396b59477a7a685a52624b2b784f6f3d0d0a0d0a817e00947b2274696d65223a313730303030303030302c2273656c665f6964223a31303030312c22706f73745f74797065223a226d6574615f6576656e74222c226d6574615f6576656e745f74797065223a226c6966656379636c65222c227375625f74797065223a22636f6e6e656374222c22737461747573223a7b226f6e6c696e65223a747275652c22676f6f64223a747275657d7d817e00937b2274696d65223a313730303030303030302c2273656c665f6964223a31303030312c22706f73745f74797065223a226d6574615f6576656e74222c226d6574615f6576656e745f74797065223a226c6966656379636c65222c227375625f74797065223a22656e61626c65222c22737461747573223a7b226f6e6c696e65223a747275652c22676f6f64223a747275657d7d817e00907b2274696d65223a313730303030303030302c2273656c665f6964223a31303030312c22706f73745f74797065223a226d6574615f6576656e74222c226d6574615f6576656e745f74797065223a22686561727462656174222c22737461747573223a7b226f6e6c696e65223a747275652c22676f6f64223a747275657d2c22696e74657276616c223a33303030307d"
+    },
+    {
+      "name": "unauthorized",
+      "note": "verifyClient(false) → abortUpgrade(401,'Unauthorized')",
+      "request": "GET / HTTP/1.1\r\nHost: 127.0.0.1:42031\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+      "response": "HTTP/1.1 401 Unauthorized\r\nConnection: close\r\nContent-Length: 12\r\nContent-Type: text/plain\r\n\r\nUnauthorized",
+      "hex": "485454502f312e312034303120556e617574686f72697a65640d0a436f6e6e656374696f6e3a20636c6f73650d0a436f6e74656e742d4c656e6774683a2031320d0a436f6e74656e742d547970653a20746578742f706c61696e0d0a0d0a556e617574686f72697a6564"
+    },
+    {
+      "name": "bad_path",
+      "note": "verifyClient(done(false,400,...))",
+      "request": "GET /nope?access_token=tok HTTP/1.1\r\nHost: 127.0.0.1:42031\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+      "response": "HTTP/1.1 400 Bad Request\r\nConnection: close\r\nContent-Length: 22\r\nContent-Type: text/plain\r\n\r\nBad path for WebSocket",
+      "hex": "485454502f312e31203430302042616420526571756573740d0a436f6e6e656374696f6e3a20636c6f73650d0a436f6e74656e742d4c656e6774683a2032320d0a436f6e74656e742d547970653a20746578742f706c61696e0d0a0d0a426164207061746820666f7220576562536f636b6574"
+    },
+    {
+      "name": "method_post",
+      "note": "handleUpgrade: method !== GET → 405",
+      "request": "POST /?access_token=tok HTTP/1.1\r\nHost: 127.0.0.1:42031\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\nContent-Length: 0\r\n\r\n",
+      "response": "HTTP/1.1 405 Method Not Allowed\r\nConnection: close\r\nContent-Length: 18\r\nContent-Type: text/plain\r\n\r\nMethod not allowed",
+      "hex": "485454502f312e3120343035204d6574686f64204e6f7420416c6c6f7765640d0a436f6e6e656374696f6e3a20636c6f73650d0a436f6e74656e742d4c656e6774683a2031380d0a436f6e74656e742d547970653a20746578742f706c61696e0d0a0d0a4d6574686f64206e6f7420616c6c6f776564"
+    },
+    {
+      "name": "no_upgrade_header",
+      "note": "missing Upgrade → 400",
+      "request": "GET /?access_token=tok HTTP/1.1\r\nHost: 127.0.0.1:42031\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+      "response": "HTTP/1.1 426 Upgrade Required\r\nContent-Length: 16\r\nContent-Type: text/plain\r\nDate: Fri, 20 Nov 2026 13:47:50 GMT\r\nConnection: keep-alive\r\nKeep-Alive: timeout=5\r\n\r\nUpgrade Required",
+      "hex": "485454502f312e312034323620557067726164652052657175697265640d0a436f6e74656e742d4c656e6774683a2031360d0a436f6e74656e742d547970653a20746578742f706c61696e0d0a446174653a204672692c203230204e6f7620323032362031333a34373a353020474d540d0a436f6e6e656374696f6e3a206b6565702d616c6976650d0a4b6565702d416c6976653a2074696d656f75743d350d0a0d0a55706772616465205265717569726564"
+    },
+    {
+      "name": "bad_connection_header",
+      "note": "Connection lacks upgrade → 400",
+      "request": "GET /?access_token=tok HTTP/1.1\r\nHost: 127.0.0.1:42031\r\nUpgrade: websocket\r\nConnection: keep-alive\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+      "response": "HTTP/1.1 426 Upgrade Required\r\nContent-Length: 16\r\nContent-Type: text/plain\r\nDate: Fri, 20 Nov 2026 13:47:50 GMT\r\nConnection: keep-alive\r\nKeep-Alive: timeout=5\r\n\r\nUpgrade Required",
+      "hex": "485454502f312e312034323620557067726164652052657175697265640d0a436f6e74656e742d4c656e6774683a2031360d0a436f6e74656e742d547970653a20746578742f706c61696e0d0a446174653a204672692c203230204e6f7620323032362031333a34373a353020474d540d0a436f6e6e656374696f6e3a206b6565702d616c6976650d0a4b6565702d416c6976653a2074696d656f75743d350d0a0d0a55706772616465205265717569726564"
+    },
+    {
+      "name": "wrong_version",
+      "note": "version !== 13 → 426 with Sec-WebSocket-Version header, no body",
+      "request": "GET /?access_token=tok HTTP/1.1\r\nHost: 127.0.0.1:42031\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 8\r\n\r\n",
+      "response": "HTTP/1.1 426 Upgrade Required\r\nSec-WebSocket-Version: 13\r\nConnection: close\r\n\r\n",
+      "hex": "485454502f312e312034323620557067726164652052657175697265640d0a5365632d576562536f636b65742d56657273696f6e3a2031330d0a436f6e6e656374696f6e3a20636c6f73650d0a0d0a"
+    },
+    {
+      "name": "bad_key",
+      "note": "key not 22 chars + == → 400",
+      "request": "GET /?access_token=tok HTTP/1.1\r\nHost: 127.0.0.1:42031\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: short\r\nSec-WebSocket-Version: 13\r\n\r\n",
+      "response": "HTTP/1.1 400 Bad Request\r\nConnection: close\r\nContent-Length: 25\r\nContent-Type: text/plain\r\n\r\nInvalid Sec-WebSocket-Key",
+      "hex": "485454502f312e31203430302042616420526571756573740d0a436f6e6e656374696f6e3a20636c6f73650d0a436f6e74656e742d4c656e6774683a2032350d0a436f6e74656e742d547970653a20746578742f706c61696e0d0a0d0a496e76616c6964205365632d576562536f636b65742d4b6579"
+    },
+    {
+      "name": "no_key",
+      "note": "missing key → 400",
+      "request": "GET /?access_token=tok HTTP/1.1\r\nHost: 127.0.0.1:42031\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Version: 13\r\n\r\n",
+      "response": "HTTP/1.1 400 Bad Request\r\nConnection: close\r\nContent-Length: 25\r\nContent-Type: text/plain\r\n\r\nInvalid Sec-WebSocket-Key",
+      "hex": "485454502f312e31203430302042616420526571756573740d0a436f6e6e656374696f6e3a20636c6f73650d0a436f6e74656e742d4c656e6774683a2032350d0a436f6e74656e742d547970653a20746578742f706c61696e0d0a0d0a496e76616c6964205365632d576562536f636b65742d4b6579"
+    },
+    {
+      "name": "upgrade_case_insensitive",
+      "note": "header value casing + comma list still accepted",
+      "request": "GET /?access_token=tok HTTP/1.1\r\nHost: 127.0.0.1:42031\r\nupgrade: WebSocket\r\nconnection: keep-alive, Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+      "response": "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n\r\n~\u0000{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"connect\",\"status\":{\"online\":true,\"good\":true}}~\u0000{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"enable\",\"status\":{\"online\":true,\"good\":true}}~\u0000{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"heartbeat\",\"status\":{\"online\":true,\"good\":true},\"interval\":30000}",
+      "hex": "485454502f312e312031303120537769746368696e672050726f746f636f6c730d0a557067726164653a20776562736f636b65740d0a436f6e6e656374696f6e3a20557067726164650d0a5365632d576562536f636b65742d4163636570743a20733370504c4d426954786151396b59477a7a685a52624b2b784f6f3d0d0a0d0a817e00947b2274696d65223a313730303030303030302c2273656c665f6964223a31303030312c22706f73745f74797065223a226d6574615f6576656e74222c226d6574615f6576656e745f74797065223a226c6966656379636c65222c227375625f74797065223a22636f6e6e656374222c22737461747573223a7b226f6e6c696e65223a747275652c22676f6f64223a747275657d7d817e00937b2274696d65223a313730303030303030302c2273656c665f6964223a31303030312c22706f73745f74797065223a226d6574615f6576656e74222c226d6574615f6576656e745f74797065223a226c6966656379636c65222c227375625f74797065223a22656e61626c65222c22737461747573223a7b226f6e6c696e65223a747275652c22676f6f64223a747275657d7d817e00907b2274696d65223a313730303030303030302c2273656c665f6964223a31303030312c22706f73745f74797065223a226d6574615f6576656e74222c226d6574615f6576656e745f74797065223a22686561727462656174222c22737461747573223a7b226f6e6c696e65223a747275652c22676f6f64223a747275657d2c22696e74657276616c223a33303030307d"
+    },
+    {
+      "name": "protocol_offered_not_supported",
+      "note": "no configured protocols → no Sec-WebSocket-Protocol echo",
+      "request": "GET /?access_token=tok HTTP/1.1\r\nHost: 127.0.0.1:42031\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Protocol: chat\r\n\r\n",
+      "response": "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n\r\n~\u0000{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"connect\",\"status\":{\"online\":true,\"good\":true}}~\u0000{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"enable\",\"status\":{\"online\":true,\"good\":true}}~\u0000{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"heartbeat\",\"status\":{\"online\":true,\"good\":true},\"interval\":30000}",
+      "hex": "485454502f312e312031303120537769746368696e672050726f746f636f6c730d0a557067726164653a20776562736f636b65740d0a436f6e6e656374696f6e3a20557067726164650d0a5365632d576562536f636b65742d4163636570743a20733370504c4d426954786151396b59477a7a685a52624b2b784f6f3d0d0a0d0a817e00947b2274696d65223a313730303030303030302c2273656c665f6964223a31303030312c22706f73745f74797065223a226d6574615f6576656e74222c226d6574615f6576656e745f74797065223a226c6966656379636c65222c227375625f74797065223a22636f6e6e656374222c22737461747573223a7b226f6e6c696e65223a747275652c22676f6f64223a747275657d7d817e00937b2274696d65223a313730303030303030302c2273656c665f6964223a31303030312c22706f73745f74797065223a226d6574615f6576656e74222c226d6574615f6576656e745f74797065223a226c6966656379636c65222c227375625f74797065223a22656e61626c65222c22737461747573223a7b226f6e6c696e65223a747275652c22676f6f64223a747275657d7d817e00907b2274696d65223a313730303030303030302c2273656c665f6964223a31303030312c22706f73745f74797065223a226d6574615f6576656e74222c226d6574615f6576656e745f74797065223a22686561727462656174222c22737461747573223a7b226f6e6c696e65223a747275652c22676f6f64223a747275657d2c22696e74657276616c223a33303030307d"
+    },
+    {
+      "name": "deflate_offered_not_accepted",
+      "note": "perMessageDeflate unset → extension ignored, no response header",
+      "request": "GET /?access_token=tok HTTP/1.1\r\nHost: 127.0.0.1:42031\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Extensions: permessage-deflate\r\n\r\n",
+      "response": "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n\r\n~\u0000{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"connect\",\"status\":{\"online\":true,\"good\":true}}~\u0000{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"enable\",\"status\":{\"online\":true,\"good\":true}}~\u0000{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"heartbeat\",\"status\":{\"online\":true,\"good\":true},\"interval\":30000}",
+      "hex": "485454502f312e312031303120537769746368696e672050726f746f636f6c730d0a557067726164653a20776562736f636b65740d0a436f6e6e656374696f6e3a20557067726164650d0a5365632d576562536f636b65742d4163636570743a20733370504c4d426954786151396b59477a7a685a52624b2b784f6f3d0d0a0d0a817e00947b2274696d65223a313730303030303030302c2273656c665f6964223a31303030312c22706f73745f74797065223a226d6574615f6576656e74222c226d6574615f6576656e745f74797065223a226c6966656379636c65222c227375625f74797065223a22636f6e6e656374222c22737461747573223a7b226f6e6c696e65223a747275652c22676f6f64223a747275657d7d817e00937b2274696d65223a313730303030303030302c2273656c665f6964223a31303030312c22706f73745f74797065223a226d6574615f6576656e74222c226d6574615f6576656e745f74797065223a226c6966656379636c65222c227375625f74797065223a22656e61626c65222c22737461747573223a7b226f6e6c696e65223a747275652c22676f6f64223a747275657d7d817e00907b2274696d65223a313730303030303030302c2273656c665f6964223a31303030312c22706f73745f74797065223a226d6574615f6576656e74222c226d6574615f6576656e745f74797065223a22686561727462656174222c22737461747573223a7b226f6e6c696e65223a747275652c22676f6f64223a747275657d2c22696e74657276616c223a33303030307d"
+    },
+    {
+      "name": "plain_http_to_ws_port",
+      "request": "",
+      "response": "HTTP/1.1 426 Upgrade Required\r\nContent-Length: 16\r\nContent-Type: text/plain\r\nDate: Fri, 20 Nov 2026 13:47:51 GMT\r\nConnection: keep-alive\r\nKeep-Alive: timeout=5\r\n\r\nUpgrade Required",
+      "hex": "485454502f312e312034323620557067726164652052657175697265640d0a436f6e74656e742d4c656e6774683a2031360d0a436f6e74656e742d547970653a20746578742f706c61696e0d0a446174653a204672692c203230204e6f7620323032362031333a34373a353120474d540d0a436f6e6e656374696f6e3a206b6565702d616c6976650d0a4b6565702d416c6976653a2074696d656f75743d350d0a0d0a55706772616465205265717569726564"
+    }
+  ]
+}

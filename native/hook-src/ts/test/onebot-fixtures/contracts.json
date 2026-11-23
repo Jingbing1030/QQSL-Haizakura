@@ -1,0 +1,22 @@
+{
+  "get_login_info": { "kind": "normal", "response": { "status": "ok", "retcode": 0, "data": { "user_id": 10001, "nickname": "haizakura" } } },
+  "get_version_info": { "kind": "normal", "response": { "status": "ok", "retcode": 0, "data": { "app_name": "Haizakura", "app_version": "0.1.0", "protocol_version": "v11" } } },
+  "send_group_msg": { "kind": "normal", "response": { "status": "ok", "retcode": 0, "data": { "message_id": 424242 } } },
+  "send_msg_failed": { "kind": "normal", "response": { "status": "failed", "retcode": 100, "data": null, "wording": "发送失败" } },
+  "send_msg_weird_retcode": { "kind": "normal", "response": { "status": "failed", "retcode": 100, "data": null, "wording": "消息内容为空" } },
+  "throws_plain": { "kind": "normal", "throws": "boom" },
+  "throws_validation": { "kind": "normal", "throwsValidation": "message: unsupported segment" },
+  "download_file_stream": {
+    "kind": "stream",
+    "frames": [
+      { "type": "stream", "data_type": "data", "data": "AAAA" },
+      { "type": "stream", "data_type": "data", "data": "BBBB" }
+    ],
+    "terminal": { "status": "ok", "retcode": 0, "data": { "type": "response", "data_type": "url", "file": "/tmp/x" } }
+  },
+  "download_file_stream_failed": {
+    "kind": "stream",
+    "frames": [],
+    "terminal": { "status": "failed", "retcode": 100, "data": null, "wording": "下载失败" }
+  }
+}

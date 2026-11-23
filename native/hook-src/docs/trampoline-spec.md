@@ -1,10 +1,10 @@
 # 原版 `probe.node` 逆向行为规格 —— attach / trampoline / 远程调用
 
-> 逆向对象：`/tmp/probe.node`（oracle 容器 `hz-scan` 内 `/tmp/probe.node`，与 oracle 主机副本 md5 一致）
+> 逆向对象：`/tmp/probe.node`（oracle 容器 `hz-test` 内 `/tmp/probe.node`，与 oracle 主机副本 md5 一致）
 > 318,640 字节 · `aarch64` ELF64 `ET_DYN` shared object · `stripped` · BuildID `b6d15708…4c72` · md5 `8786a929f11856db2f93a01d09916214`
 > 本地副本：`~/probe.node`
 > 分析日期：2026-11-19
-> **未跑过任何注入、未 attach 过 QQ、未启动/重启 hz-scan 容器内任何进程。**
+> **未跑过任何注入、未 attach 过 QQ、未启动/重启 hz-test 容器内任何进程。**
 
 ## 0. 方法学与证据分级
 

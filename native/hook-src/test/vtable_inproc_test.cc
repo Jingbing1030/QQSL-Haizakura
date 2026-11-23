@@ -25,10 +25,12 @@ class Subject {
 
 static int g_hits = 0;
 static uint32_t g_last_slot = 0;
-static void observer(uint32_t slot, uint64_t original) {
+static void observer(uint32_t slot, uint64_t original, uint64_t a0, uint64_t a1, uint64_t a2,
+                     uint64_t a3, uint64_t* frame) {
+  (void)frame;
   ++g_hits;
   g_last_slot = slot;
-  (void)original;
+  (void)original; (void)a0; (void)a1; (void)a2; (void)a3;
 }
 
 // Returns the pointer unchanged but is opaque to the optimiser: without this the compiler

@@ -78,6 +78,7 @@ set_target_properties(fake_wrapper PROPERTIES PREFIX "" SUFFIX ".node" OUTPUT_NA
 # reported was a test entry point rather than something QQ actually produced.
 add_library(payload SHARED
   test/payload.cc
+  src/cr_string.cc
   src/payload_hook.cc
   src/vtable_hook.cc
   src/slot_relay.cc
@@ -133,6 +134,14 @@ add_executable(hook_vtable_list test/hook_vtable_list.cc src/common.cc)
 target_include_directories(hook_vtable_list PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 enable_testing()
+
+# Path to a wrapper.node, for the tests that need the real 144 MB binary rather than a live
+# process. Those tests are registered but disabled unless this is set, because the file is far
+# too large to keep in the tree. Supply it with:
+#   cmake -DHZ_WRAPPER_NODE=/path/to/wrapper.node
+# and they become part of the normal run. Without it the suite still covers every test that
+# does not need the binary, which is the majority.
+set(HZ_WRAPPER_NODE "" CACHE FILEPATH "Path to wrapper.node, enables tests that need the real binary")
 add_executable(hook_selftest test/selftest.cc
   src/common.cc
   src/process_enumerate.cc
@@ -211,6 +220,15 @@ add_executable(vtable_hook_test test/vtable_hook_test.cc
 target_include_directories(vtable_hook_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
+# Registered but DISABLED unless a wrapper.node is supplied, because the binary is 144 MB and
+# is not in the repository -- the same reasoning as reloc_check below. Without this guard the
+# test would be an unregistered executable that nobody runs, which is how it spent its life so
+# far; with it, the command to run the real thing is at least written down.
+add_test(NAME vtable_hook
+  COMMAND vtable_hook_test ${HZ_WRAPPER_NODE})
+if(NOT HZ_WRAPPER_NODE)
+  set_tests_properties(vtable_hook PROPERTIES DISABLED TRUE)
+endif()
 
 # The relay's register save/restore, exercising every calling shape a vtable slot can
 # have.  A relay that only handles the integer cases passes a naive test and then
@@ -332,3 +350,19 @@ add_executable(runtime_targets_test test/runtime_targets_test.cc
 target_include_directories(runtime_targets_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
+
+# The receive path's std::Cr decoder, tested directly.
+#
+# This is the one piece of the op6 receive path whose correctness cannot be established by
+# diffing against a reference encoder: QQ's own libc++ is the only authority for the string
+# layout, and it does not run on the build host. What can be pinned down is the rule from the
+# binary's copy ctor at 0x13efc7c -- {cap,+0}{size,+8}{ptr,+16} with SSO 22 -- and the two
+# mistakes that rule rules out: the libstdc++ {ptr,+0}{len,+8} convention, and SSO 15.
+#
+# Deliberately a standalone executable: it links only cr_string.cc, so it needs neither a
+# live target nor a mapped payload, and therefore runs in CI on any architecture.
+add_executable(cr_string_test test/cr_string_test.cc src/cr_string.cc)
+target_include_directories(cr_string_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+add_test(NAME cr_string COMMAND cr_string_test)

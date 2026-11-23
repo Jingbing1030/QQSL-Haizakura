@@ -86,10 +86,16 @@ InstalledHook g_hooks[kMaxHooks];
 // entry counter, and a callback that also tried to report would make a hit ambiguous between
 // "the slot is live" and "the reporting path works". Declared here because the sweep function
 // references it before the C interface below defines the real observer.
-extern "C" void hz_sweep_observer(std::uint32_t, std::uint64_t);
-extern "C" void hz_probe_observer(std::uint32_t, std::uint64_t);
-void g_sweep_observer(std::uint32_t slot, std::uint64_t original) {
-  hz_sweep_observer(slot, original);
+extern "C" void hz_sweep_observer(std::uint32_t, std::uint64_t, std::uint64_t, std::uint64_t,
+                                  std::uint64_t, std::uint64_t, std::uint64_t*);
+extern "C" void hz_probe_observer(std::uint32_t, std::uint64_t, std::uint64_t, std::uint64_t,
+                                  std::uint64_t, std::uint64_t, std::uint64_t*);
+// Forwards to the observer in the payload module, passing the frame through so an observer on the
+// send path can still rewrite arguments. Dropping it here would silently reintroduce the old
+// read-only behaviour for every export-sweep hook.
+void g_sweep_observer(std::uint32_t slot, std::uint64_t original, std::uint64_t a0,
+                      std::uint64_t a1, std::uint64_t a2, std::uint64_t a3, std::uint64_t* frame) {
+  hz_sweep_observer(slot, original, a0, a1, a2, a3, frame);
 }
 // 4 MB: a maps file larger than this is not a real process map.
 constexpr std::size_t kMapsBufferSize = 4u << 20;
@@ -177,6 +183,268 @@ constexpr std::uint32_t kTrunkSlot = 36;
 // looked for the file by name in the working directory, which finds the file on disk and
 // not the mapping the running code uses -- two different addresses when QQ has been
 // updated or when a second copy exists.
+// Finds the load base of any mapped module whose path contains `needle`.
+//
+// Pure C on purpose. The first version used std::string_view and a static 4 MB buffer and faulted
+// before writing a single log line, with the failure inside a call that had no C++ state to
+// speak of -- the module is mapped by hand, and every C++ facility it uses has to already exist
+// by the time this runs. open/read/malloc/memcmp have no such requirement.
+constexpr std::size_t kMaxPathLen = 512;
+
+std::uint64_t find_module_base(const char* needle) {
+  if (needle == nullptr || needle[0] == '\0') return 0;
+  const int fd = ::open("/proc/self/maps", O_RDONLY | O_CLOEXEC);
+  if (fd < 0) return 0;
+  char* buf = static_cast<char*>(::malloc(kMapsBufferSize));
+  if (buf == nullptr) { ::close(fd); return 0; }
+  std::size_t size = 0;
+  while (size < kMapsBufferSize - 1) {
+    const ssize_t n = ::read(fd, buf + size, kMapsBufferSize - 1 - size);
+    if (n < 0) {
+      if (errno == EINTR) continue;
+      break;
+    }
+    if (n == 0) break;
+    size += static_cast<std::size_t>(n);
+  }
+  ::close(fd);
+  buf[size] = '\0';
+
+  const std::size_t needle_len = std::strlen(needle);
+  std::uint64_t best = 0;
+  char* line = buf;
+  while (line < buf + size) {
+    char* eol = line;
+    while (eol < buf + size && *eol != '\n') ++eol;
+    *eol = '\0';
+    // Substring search by hand: std::string_view is what faulted.
+    bool has = false;
+    {
+      const std::size_t line_len = static_cast<std::size_t>(eol - line);
+      if (line_len >= needle_len) {
+        for (std::size_t i = 0; i + needle_len <= line_len; ++i) {
+          if (std::memcmp(line + i, needle, needle_len) == 0) { has = true; break; }
+        }
+      }
+    }
+    if (has) {
+      char* dash = nullptr;
+      for (char* q = line; *q != '\0'; ++q) {
+        if (*q == '/') { dash = nullptr; break; }
+        if (*q == '-') { dash = q; break; }
+      }
+      if (dash != nullptr) {
+        std::uint64_t lo = 0;
+        bool ok = true;
+        for (char* q = line; q < dash; ++q) {
+          const char c = *q;
+          lo <<= 4;
+          if (c >= '0' && c <= '9') lo |= static_cast<std::uint64_t>(c - '0');
+          else if (c >= 'a' && c <= 'f') lo |= static_cast<std::uint64_t>(c - 'a' + 10);
+          else if (c >= 'A' && c <= 'F') lo |= static_cast<std::uint64_t>(c - 'A' + 10);
+          else { ok = false; break; }
+        }
+        if (ok && lo != 0 && (best == 0 || lo < best)) best = lo;
+      }
+    }
+    line = eol + 1;
+  }
+  ::free(buf);
+  return best;
+}
+
+// Recovers the on-disk path of the mapping that starts at `base`.
+//
+// Pure C for the same reason find_module_base is: this runs inside a hand-mapped module before
+// any C++ runtime guarantee holds.
+bool path_for_base(std::uint64_t base, char* out, std::size_t cap) {
+  if (out == nullptr || cap == 0) return false;
+  out[0] = '\0';
+  // Stage logging: this function has failed silently once already, and the reason matters --
+  // a null buffer, a short read and a genuine mismatch all look identical from the caller.
+  {
+    const int lfd = ::open("/tmp/hz-path.log", O_WRONLY | O_CREAT | O_APPEND, 0644);
+    if (lfd >= 0) {
+      char lb[128];
+      const int ln = std::snprintf(lb, sizeof(lb), "enter base=0x%llx cap=%zu\n",
+                                   (unsigned long long)base, cap);
+      if (ln > 0) (void)::write(lfd, lb, (size_t)ln);
+      ::close(lfd);
+    }
+  }
+  const int fd = ::open("/proc/self/maps", O_RDONLY | O_CLOEXEC);
+  if (fd < 0) return false;
+  char* buf = static_cast<char*>(::malloc(kMapsBufferSize));
+  if (buf == nullptr) { ::close(fd); return false; }
+  std::size_t size = 0;
+  while (size < kMapsBufferSize - 1) {
+    const ssize_t n = ::read(fd, buf + size, kMapsBufferSize - 1 - size);
+    if (n < 0) {
+      if (errno == EINTR) continue;
+      break;
+    }
+    if (n == 0) break;
+    size += static_cast<std::size_t>(n);
+  }
+  ::close(fd);
+  buf[size] = '\0';
+
+  bool found = false;
+  int lines_seen = 0;
+  int lines_with_both = 0;
+  std::uint64_t first_lo = 0;
+  int first_ok = 0;
+  char* line = buf;
+  while (line < buf + size && !found) {
+    ++lines_seen;
+    char* eol = line;
+    while (eol < buf + size && *eol != '\n') ++eol;
+    *eol = '\0';
+    char* dash = nullptr;
+    char* slash = nullptr;
+    // Deliberately not a single break-on-either loop.
+    //
+    // The dash separates the start and end addresses and always comes before the path, so a loop
+    // that breaks on the first of the two characters can only ever find the dash: slash stays
+    // null and every line is rejected. Measured before the fix -- 980 lines read, 0 with both
+    // fields, so this function had never resolved a path at all. Every caller saw only
+    // "return -4", which reads like a missing module rather than a parser that cannot match.
+    for (char* q = line; *q != '\0'; ++q) {
+      if (*q == '/') { slash = q; break; }
+      if (*q == '-' && dash == nullptr) dash = q;
+    }
+    if (dash != nullptr && slash != nullptr) {
+      std::uint64_t lo = 0;
+      bool ok = true;
+      for (char* q = line; q < dash; ++q) {
+        const char c = *q;
+        lo <<= 4;
+        if (c >= '0' && c <= '9') lo |= static_cast<std::uint64_t>(c - '0');
+        else if (c >= 'a' && c <= 'f') lo |= static_cast<std::uint64_t>(c - 'a' + 10);
+        else if (c >= 'A' && c <= 'F') lo |= static_cast<std::uint64_t>(c - 'A' + 10);
+        else { ok = false; break; }
+      }
+      if (lines_with_both == 0) { first_lo = lo; first_ok = ok ? 1 : 0; }
+      ++lines_with_both;
+      if (ok && lo == base) {
+        std::size_t n = std::strlen(slash);
+        if (n < cap) {
+          std::memcpy(out, slash, n + 1);
+          found = true;
+        }
+      }
+    }
+    line = eol + 1;
+  }
+  ::free(buf);
+  {
+    const int lfd = ::open("/tmp/hz-path.log", O_WRONLY | O_CREAT | O_APPEND, 0644);
+    if (lfd >= 0) {
+      char lb[320];
+      const int ln = std::snprintf(lb, sizeof(lb),
+                                   "done found=%d path=%s size=%zu lines=%d withboth=%d firstLo=0x%llx firstOk=%d\n",
+                                   found ? 1 : 0, out, size, lines_seen, lines_with_both,
+                                   (unsigned long long)first_lo, first_ok);
+      if (ln > 0) (void)::write(lfd, lb, (size_t)ln);
+      ::close(lfd);
+    }
+  }
+  return found;
+}
+
+// Patches one exactly-named symbol inside a module given by its load base.
+int hook_symbol_in_base(std::uint64_t base, const char* symbol, hz_hook_observer observer) {
+  char path[kMaxPathLen];
+  if (!path_for_base(base, path, sizeof(path))) {
+    set_error("cannot resolve module path for base");
+    return -4;
+  }
+  {
+    const int lfd = ::open("/tmp/hz-libhook.log", O_WRONLY | O_CREAT | O_APPEND, 0644);
+    if (lfd >= 0) {
+      char lb[256];
+      const int ln = std::snprintf(lb, sizeof(lb), "stage=path-resolved path=%s\n", path);
+      if (ln > 0) (void)::write(lfd, lb, (size_t)ln);
+      ::close(lfd);
+    }
+  }
+  hz::ElfImage image(hz::MappedFile::open(path));
+  const hz::DynSymbol* sym = nullptr;
+  const std::size_t n = std::strlen(symbol);
+  for (const hz::DynSymbol& sref : image.symbols()) {
+    if (!sref.defined || sref.value == 0) continue;
+    if (sref.name.size() != n) continue;
+    if (std::strncmp(sref.name.data(), symbol, n) != 0) continue;
+    sym = &sref;
+    break;
+  }
+  if (sym == nullptr) { set_error("symbol not found in module"); return -5; }
+  const std::uint64_t addr = base + (sym->value - image.image_base());
+  {
+    // Log the resolved address before installing. The previous attempt stopped after
+    // "stage=path-resolved" and returned without another line, which is indistinguishable
+    // between three failures: symbol missing, address computed wrong, or the patch itself
+    // refusing. One line here separates the first two from the third.
+    const int afd = ::open("/tmp/hz-libhook.log", O_WRONLY | O_CREAT | O_APPEND, 0644);
+    if (afd >= 0) {
+      char ab[256];
+      const int an = std::snprintf(ab, sizeof(ab),
+                                   "stage=resolved symbol=%s value=0x%llx image_base=0x%llx "
+                                   "module_base=0x%llx addr=0x%llx\n",
+                                   symbol, (unsigned long long)sym->value,
+                                   (unsigned long long)image.image_base(),
+                                   (unsigned long long)base, (unsigned long long)addr);
+      if (an > 0) (void)::write(afd, ab, (size_t)an);
+      ::close(afd);
+    }
+  }
+
+  std::size_t index = kMaxHooks;
+  for (std::size_t i = 0; i < kMaxHooks; ++i) {
+    if (!g_hooks[i].used) { index = i; break; }
+  }
+  if (index >= kMaxHooks) {
+    set_error("no free hook slot");
+    return -6;
+  }
+  try {
+    const hz::HookedFunction hooked = hz::hook_function_relayed_in_process(
+        addr, reinterpret_cast<hz::SlotObserver>(observer), static_cast<std::uint32_t>(index));
+    g_hooks[index].used = true;
+    g_hooks[index].vtable = 0;
+    g_hooks[index].slot = 0;
+    g_hooks[index].original = addr;
+    g_hooks[index].relay = hooked.relay;
+    g_hooks[index].is_function = true;
+    g_hooks[index].saved_len = hooked.saved_len;
+    for (std::uint32_t b = 0; b < hooked.saved_len && b < sizeof(g_hooks[index].saved); ++b) {
+      g_hooks[index].saved[b] = hooked.saved[b];
+    }
+    std::size_t k = 0;
+    while (symbol[k] != '\0' && k + 1 < sizeof(g_hooks[index].class_name)) {
+      g_hooks[index].class_name[k] = symbol[k];
+      ++k;
+    }
+    g_hooks[index].class_name[k] = '\0';
+    // Print target and saved_len alongside relay. relay printed as 0x0 while the throw above it
+    // did not fire, which is self-contradictory unless the struct came back garbled -- so log all
+    // the fields that would reveal a misaligned return rather than just the suspicious one.
+    note("lib hook installed on %s target=0x%llx relay=0x%llx saved_len=%u\n", symbol,
+         static_cast<unsigned long long>(hooked.target),
+         static_cast<unsigned long long>(hooked.relay),
+         static_cast<unsigned>(hooked.saved_len));
+  } catch (const std::exception& e) {
+    note("lib hook failed: %s\n", e.what());
+    set_error("library hook installation failed");
+    return -7;
+  } catch (...) {
+    note("lib hook failed with a non-std exception\n");
+    set_error("library hook installation failed");
+    return -7;
+  }
+  return 0;
+}
+
 std::uint64_t find_wrapper_base(std::string* out_path) {
   // read(), not MappedFile.
   //
@@ -324,6 +592,23 @@ extern "C" int hz_hook_install_login_observer(hz_hook_observer observer) {
     note("trunk: slot %u currently 0x%llx (offset 0x%llx)\n", kTrunkSlot,
          static_cast<unsigned long long>(trunk_cur),
          static_cast<unsigned long long>(trunk_cur - base));
+
+    // Idempotence: a second install must not stack a relay on top of our own relay.
+    //
+    // Installing twice used to succeed and produce a chain, and the log made the damage
+    // visible in the one field nobody would look at twice: the second call reported
+    // original=0xf9673ce2a020, an address inside our own mapping, where the first had reported
+    // the real wrapper.node function. That chain still forwards correctly as long as every
+    // relay preserves the original it captured, but it turns one hook into N and makes the
+    // recorded `original` useless for reasoning about what QQ's function actually was.
+    for (std::size_t i = 0; i < kMaxHooks; ++i) {
+      if (!g_hooks[i].used) continue;
+      if (g_hooks[i].vtable == vt_live && g_hooks[i].slot == kTrunkSlot) {
+        note("trunk: slot %u already relayed (hook %zu), not stacking another\n", kTrunkSlot, i);
+        return 0;
+      }
+    }
+
     bool placed = false;
     for (std::size_t i = 0; i < kMaxHooks; ++i) {
       if (g_hooks[i].used) continue;
@@ -539,6 +824,153 @@ extern "C" int hz_hook_all_exports(std::size_t max_hooks) {
 //
 // Deliberately skips any target whose prologue cannot be relocated safely: hook_function
 // rejects pc-relative forms, and one refusal must not abort the sweep.
+// The observer a named-export hook reports to. Set by the variant below so the SPY command can
+// see what a call carried while PROBE keeps its counter-only observer.
+static hz_hook_observer g_exports_observer = nullptr;
+
+extern "C" int hz_hook_exports_matching_with(const char* needle, int max_hooks,
+                                             hz_hook_observer observer) {
+  g_exports_observer = observer;
+  return hz_hook_exports_matching(needle, max_hooks);
+}
+
+// Hooks a named export inside an arbitrary module already mapped in the process.
+//
+// The reason this exists: every export of wrapper.node was instrumented and a real send still
+// resolved to nothing, so the boundary is elsewhere -- either libc's send/write or a surface we
+// cannot see. Patching the module that actually owns the syscall is the only remaining way to
+// learn which code emits the bytes, and it needs a base address that find_wrapper_base() cannot
+// give because libc is not wrapper.node.
+//
+// module  : substring of the path in /proc/self/maps, e.g. "libc.so.6" or "qq"
+// symbol  : exact undefined/defined symbol name to patch, e.g. "send" or "write"
+// observer: called on every entry with the raw argument registers
+//
+// Returns 0 on success, negative on failure. Deliberately exact-name rather than substring:
+// "send" as a substring also matches sendto/sendmsg/sendmmsg, and patching all four at once
+// during a live send is a reliable way to hang the client.
+// Exposes find_module_base to the payload's other translation units.
+//
+// observer-only mode installs no hook, so nothing has populated g_module_base yet; the probe
+// needs the base before installing anything.
+extern "C" std::uint64_t hz_hook_find_module_base(const char* module) {
+  return find_module_base(module);
+}
+
+// Attaches a post-call callback to a hook, addressed by the index hz_hook_function_offset
+// returned. Exposed as a C entry point so the payload can use it without including the relay
+// header, which is C++ and declares the observer types it would then have to match.
+extern "C" int hz_hook_set_after(unsigned idx, hz_hook_after after) {
+  if (idx >= kMaxHooks) return -1;
+  if (!g_hooks[idx].used) return -2;
+  if (g_hooks[idx].relay == 0) return -3;
+  if (!hz::slot_relay_set_after(g_hooks[idx].relay, reinterpret_cast<hz::SlotAfter>(after))) {
+    // The trampoline address was not in the relay table, so nothing was stored. Reporting 0 here
+    // is what let a post-call callback look installed while it never ran.
+    set_error("relay not found for post-call registration");
+    return -4;
+  }
+  return 0;
+}
+
+extern "C" std::uint64_t hz_hook_relay_of_return(unsigned idx) {
+  if (idx >= kMaxHooks) return 0;
+  if (!g_hooks[idx].used) return 0;
+  return g_hooks[idx].relay;
+}
+
+extern "C" int hz_hook_function_offset(std::uint64_t offset, hz_hook_observer observer) {
+  if (observer == nullptr) {
+    set_error("observer is null");
+    return -1;
+  }
+  const std::uint64_t base = find_module_base("wrapper.node");
+  if (base == 0) {
+    set_error("wrapper.node is not mapped in this process");
+    return -2;
+  }
+  const std::uint64_t target = base + offset;
+  std::size_t index = kMaxHooks;
+  for (std::size_t i = 0; i < kMaxHooks; ++i) {
+    if (!g_hooks[i].used) { index = i; break; }
+  }
+  if (index == kMaxHooks) {
+    set_error("no free hook slot");
+    return -3;
+  }
+  {
+    const int lfd = ::open("/tmp/hz-fn.log", O_WRONLY | O_CREAT | O_APPEND, 0644);
+    if (lfd >= 0) {
+      char lb[160];
+      const int ln = std::snprintf(lb, sizeof(lb), "hook offset=0x%llx addr=0x%llx\n",
+                                   (unsigned long long)offset, (unsigned long long)target);
+      if (ln > 0) (void)::write(lfd, lb, (size_t)ln);
+      ::close(lfd);
+    }
+  }
+  try {
+    const hz::HookedFunction hooked = hz::hook_function_relayed_in_process(
+        target, reinterpret_cast<hz::SlotObserver>(observer), 0);
+    g_hooks[index].used = true;
+    g_hooks[index].vtable = 0;
+    g_hooks[index].slot = 0;
+    g_hooks[index].original = target;
+    g_hooks[index].relay = hooked.relay;
+    g_hooks[index].is_function = true;
+    g_hooks[index].saved_len = hooked.saved_len;
+    note("fn: hooked offset=0x%llx relay=0x%llx saved=%u\n",
+         (unsigned long long)offset, (unsigned long long)hooked.relay,
+         static_cast<unsigned>(hooked.saved_len));
+    // relay == 0 means the target was already relayed by this process, so nothing new was
+    // installed. Reporting success here is how a second install silently replaced the first
+    // observer with nothing: the caller saw rc >= 0, the original observer kept running, and the
+    // log of the one that was "installed" stayed empty forever. Say so instead.
+    if (hooked.relay == 0) {
+      g_hooks[index].used = false;
+      set_error("already relayed by this process; uninstall first");
+      return -7;
+    }
+  } catch (const std::exception& e) {
+    set_error(e.what());
+    return -5;
+  } catch (...) {
+    set_error("unknown failure");
+    return -6;
+  }
+  return static_cast<int>(index);
+}
+
+extern "C" int hz_hook_library_symbol(const char* module, const char* symbol,
+                                      hz_hook_observer observer) {
+  if (module == nullptr || symbol == nullptr) {
+    set_error("module or symbol is null");
+    return -1;
+  }
+  const std::uint64_t base = find_module_base(module);
+  {
+    // Both halves of the lookup, because "return -4" from path resolution and "return -2" from
+    // the base search are the same symptom from outside -- no hook -- and the two have entirely
+    // different causes. Cheap to log, expensive to guess.
+    const int lfd = ::open("/tmp/hz-libhook.log", O_WRONLY | O_CREAT | O_APPEND, 0644);
+    if (lfd >= 0) {
+      char lb[256];
+      const int ln = std::snprintf(lb, sizeof(lb), "lookup module=%s base=0x%llx symbol=%s\n",
+                                   module, (unsigned long long)base, symbol);
+      if (ln > 0) (void)::write(lfd, lb, (size_t)ln);
+      ::close(lfd);
+    }
+  }
+  if (base == 0) {
+    set_error("module is not mapped in this process");
+    return -2;
+  }
+  char note_buf[192];
+  std::snprintf(note_buf, sizeof(note_buf), "lib hook: module=%s base=0x%llx symbol=%s\n",
+                module, static_cast<unsigned long long>(base), symbol);
+  note(note_buf);
+  return hook_symbol_in_base(base, symbol, observer);
+}
+
 extern "C" int hz_hook_exports_matching(const char* needle, int max_hooks) {
   if (needle == nullptr || needle[0] == '\0') {
     set_error("needle is empty");
@@ -589,8 +1021,11 @@ extern "C" int hz_hook_exports_matching(const char* needle, int max_hooks) {
 
     const std::uint64_t target = base + (sym.value - image.image_base());
     try {
+      // Default to the counter-only sweep observer; SPY overrides it through the wrapper above.
+      hz_hook_observer chosen = g_exports_observer;
+      if (chosen == nullptr) chosen = hz_sweep_observer;
       const hz::HookedFunction hooked = hz::hook_function_relayed_in_process(
-          target, reinterpret_cast<hz::SlotObserver>(hz_sweep_observer),
+          target, reinterpret_cast<hz::SlotObserver>(chosen),
           static_cast<std::uint32_t>(index));
       g_hooks[index].used = true;
       g_hooks[index].vtable = 0;
@@ -855,6 +1290,62 @@ extern "C" unsigned long long hz_hook_hits(int index) {
   return hz::slot_relay_hits(g_hooks[index].relay);
 }
 
+// Hooks a vtable slot addressed as (absolute vtable address, slot index).
+//
+// The existing installers find vtables by class name through RTTI, which is what the login and
+// trunk hooks need because those classes are named in the binary. This one takes the address
+// directly, because the send entry the reference payload uses has no name at all: it is slot 36
+// of nt::MSFService, and neither the class nor its virtuals appear in .dynsym. The reference
+// finds it the same way -- its own log prints "primary vtable off=0x87173e8 slots=44, slot 36".
+//
+// Returns the hook index, or a negative value on failure.
+extern "C" int hz_hook_vtable_slot(std::uint64_t vtable_addr, std::uint32_t slot,
+                                   hz_hook_observer observer) {
+  if (vtable_addr == 0) {
+    set_error("vtable address is null");
+    return -1;
+  }
+  if (observer == nullptr) {
+    set_error("observer is null");
+    return -2;
+  }
+  std::size_t index = kMaxHooks;
+  for (std::size_t i = 0; i < kMaxHooks; ++i) {
+    if (!g_hooks[i].used) { index = i; break; }
+  }
+  if (index == kMaxHooks) {
+    set_error("no free hook slot");
+    return -3;
+  }
+  // Reading the slot first makes a wrong address fail here, with a message, instead of
+  // installing a relay over whatever happened to be mapped there.
+  const std::uint64_t original = hz::read_vtable_slot_live(vtable_addr, slot);
+  if (original == 0) {
+    set_error("slot is empty");
+    return -4;
+  }
+  try {
+    const hz::HookedSlot hooked = hz::hook_vtable_slot_relayed_in_process(
+        vtable_addr, slot, reinterpret_cast<hz::SlotObserver>(observer));
+    g_hooks[index].used = true;
+    g_hooks[index].vtable = vtable_addr;
+    g_hooks[index].slot = slot;
+    g_hooks[index].original = original;
+    g_hooks[index].relay = hooked.relay;
+    g_hooks[index].is_function = false;
+    g_hooks[index].saved_len = 0;
+    note("slot: hooked vtable=0x%llx slot=%u original=0x%llx\n",
+         (unsigned long long)vtable_addr, slot, (unsigned long long)original);
+  } catch (const std::exception& e) {
+    set_error(e.what());
+    return -5;
+  } catch (...) {
+    set_error("unknown failure");
+    return -6;
+  }
+  return static_cast<int>(index);
+}
+
 extern "C" int hz_hook_count() {
   int n = 0;
   for (const auto& h : g_hooks) if (h.used) ++n;
@@ -884,3 +1375,82 @@ extern "C" long long hz_hook_login_uin() { return 0; }
 extern "C" const char* hz_hook_last_error() { return g_last_error; }
 
 extern "C" std::uint64_t hz_hook_module_base() { return g_module_base; }
+// Finds the hook whose entry patch is at `offset` inside wrapper.node, by resolving the module
+// base the same way the installer does. Returns kMaxHooks when there is no such hook.
+//
+// Offsets rather than absolute addresses because the caller reasons in module terms --
+// 0x137cf84 means the same thing in every process, while the live address changes per run.
+std::size_t hook_index_of_offset(std::uint64_t offset) {
+  std::uint64_t base = 0;
+  {
+    std::string ignored;
+    base = find_wrapper_base(&ignored);
+  }
+  if (base == 0) return kMaxHooks;
+  const std::uint64_t target = base + offset;
+  for (std::size_t i = 0; i < kMaxHooks; ++i) {
+    if (g_hooks[i].used && g_hooks[i].is_function && g_hooks[i].original == target) return i;
+  }
+  return kMaxHooks;
+}
+
+// The replay stub of an installed function hook: the address that runs the displaced prologue and
+// then continues into the function, bypassing the entry jump.
+//
+// Read out of the relay state rather than recomputed, because the relay's own tail branch uses
+// exactly this value -- so a caller forwarding through it and the hook's normal pass-through take
+// the identical path. slot_relay.cc asserts that `original` sits at offset 8 of RelayState.
+std::uint64_t hook_replay_stub(std::size_t index) {
+  if (index >= kMaxHooks || !g_hooks[index].used || g_hooks[index].relay == 0) return 0;
+
+  // The stub sits 64 bytes past the trampoline, not behind a pointer in the relay state.
+  //
+  // I first read `relay + 8`, on the assumption that the relay state lived there and that its
+  // `original` field held the stub. It does not: slot_relay_install_function lays the page out as
+  //   [ RelayState | trampoline (32 bytes) | 32 bytes padding | replay stub ]
+  // and returns the trampoline's address. So `relay + 8` is inside the trampoline's own
+  // instructions, and forwarding through it jumped to 0xd503201fd61f0140 -- the nop and br of the
+  // trampoline read as a pointer. QQ died immediately; the log line before it looked plausible,
+  // which is what made this worth spelling out.
+  //
+  // The layout is computed in slot_relay.cc as sizeof(RelayState) + 64 from the page base, and the
+  // trampoline begins at sizeof(RelayState), so the offset between them is exactly 64.
+  return g_hooks[index].relay + 64;
+}
+
+// Resolves `nt::wrapper::INTSessionShell::CreateNTSessionShell` and reports what it can without
+// calling it.
+//
+// Kept in this translation unit because the ELF reader lives here; test/payload.cc has no access
+// to hz::ElfImage. The address is the deliverable: whether [obj+0x30] is a send exit point can
+// only be settled by constructing the shell, and that needs a live session, so calling blind
+// would fault inside the client and destroy the very session being examined.
+extern "C" int hz_find_create_session_shell(std::uint64_t* out_addr, std::uint64_t* out_base,
+                                            std::uint32_t* out_words) {
+  if (out_addr == nullptr || out_base == nullptr || out_words == nullptr) return -1;
+  *out_addr = 0;
+  *out_base = 0;
+  std::string path;
+  const std::uint64_t base = find_wrapper_base(&path);
+  if (base == 0) return -2;
+  *out_base = base;
+  hz::ElfImage image(hz::MappedFile::open(path));
+  const std::vector<hz::DynSymbol>& syms = image.symbols();
+  const char* want =
+      "_ZN2nt7wrapper15INTSessionShell20CreateNTSessionShellERKNSt2Cr12basic_stringIcNS2_"
+      "11char_traitsIcEENS2_9allocatorIcEEEE";
+  for (const hz::DynSymbol& sym : syms) {
+    if (sym.name != want) continue;
+    {
+      const std::uint64_t at = base + sym.value;
+      *out_addr = at;
+      const std::uint32_t* w = reinterpret_cast<const std::uint32_t*>(at);
+      out_words[0] = w[0];
+      out_words[1] = w[1];
+      out_words[2] = w[2];
+      out_words[3] = w[3];
+      return 0;
+    }
+  }
+  return -3;
+}

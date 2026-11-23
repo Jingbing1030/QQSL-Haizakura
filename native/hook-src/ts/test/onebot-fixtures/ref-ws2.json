@@ -1,0 +1,420 @@
+{
+  "generatedBy": "probe/harness-ws2.mjs",
+  "cases": [
+    {
+      "name": "http_ws_path_exact_base",
+      "path": "/api",
+      "value": {
+        "frames": [
+          {
+            "data": "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"app_name\":\"Haizakura\",\"app_version\":\"0.1.0\",\"protocol_version\":\"v11\"}}",
+            "isBinary": false
+          }
+        ],
+        "handshake": {
+          "statusCode": 101,
+          "statusMessage": "Switching Protocols",
+          "headers": {
+            "upgrade": "websocket",
+            "connection": "Upgrade",
+            "sec-websocket-accept": "7IxxOA0drt/JymMtSEWbY9vB6zU="
+          }
+        }
+      }
+    },
+    {
+      "name": "http_ws_path_base_slash",
+      "path": "/api/",
+      "value": {
+        "frames": [
+          {
+            "data": "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"app_name\":\"Haizakura\",\"app_version\":\"0.1.0\",\"protocol_version\":\"v11\"}}",
+            "isBinary": false
+          }
+        ],
+        "handshake": {
+          "statusCode": 101,
+          "statusMessage": "Switching Protocols",
+          "headers": {
+            "upgrade": "websocket",
+            "connection": "Upgrade",
+            "sec-websocket-accept": "ZGpBWzlFFZzKJzy78MjP3maA9gU="
+          }
+        }
+      }
+    },
+    {
+      "name": "http_ws_path_api_suffix",
+      "path": "/api/api",
+      "value": {
+        "frames": [
+          {
+            "data": "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"app_name\":\"Haizakura\",\"app_version\":\"0.1.0\",\"protocol_version\":\"v11\"}}",
+            "isBinary": false
+          }
+        ],
+        "handshake": {
+          "statusCode": 101,
+          "statusMessage": "Switching Protocols",
+          "headers": {
+            "upgrade": "websocket",
+            "connection": "Upgrade",
+            "sec-websocket-accept": "OFIEgBm/1LTL5pqhu7ur0RSfUSA="
+          }
+        }
+      }
+    },
+    {
+      "name": "http_ws_path_event_suffix",
+      "path": "/api/event",
+      "value": {
+        "frames": [
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"connect\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"enable\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"heartbeat\",\"status\":{\"online\":true,\"good\":true},\"interval\":30000}",
+            "isBinary": false
+          }
+        ],
+        "handshake": {
+          "statusCode": 101,
+          "statusMessage": "Switching Protocols",
+          "headers": {
+            "upgrade": "websocket",
+            "connection": "Upgrade",
+            "sec-websocket-accept": "UObY/choGZR3loN7cVD2I6B+mA4="
+          }
+        }
+      }
+    },
+    {
+      "name": "http_ws_path_outside",
+      "path": "/other",
+      "value": {
+        "frames": [
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"connect\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"enable\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"heartbeat\",\"status\":{\"online\":true,\"good\":true},\"interval\":30000}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"app_name\":\"Haizakura\",\"app_version\":\"0.1.0\",\"protocol_version\":\"v11\"}}",
+            "isBinary": false
+          }
+        ],
+        "handshake": {
+          "statusCode": 101,
+          "statusMessage": "Switching Protocols",
+          "headers": {
+            "upgrade": "websocket",
+            "connection": "Upgrade",
+            "sec-websocket-accept": "eNP7bRm/FskO4am/lb/7Yp7n9Pk="
+          }
+        }
+      }
+    },
+    {
+      "name": "http_ws_path_root",
+      "path": "/",
+      "value": {
+        "frames": [
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"connect\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"enable\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"heartbeat\",\"status\":{\"online\":true,\"good\":true},\"interval\":30000}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"app_name\":\"Haizakura\",\"app_version\":\"0.1.0\",\"protocol_version\":\"v11\"}}",
+            "isBinary": false
+          }
+        ],
+        "handshake": {
+          "statusCode": 101,
+          "statusMessage": "Switching Protocols",
+          "headers": {
+            "upgrade": "websocket",
+            "connection": "Upgrade",
+            "sec-websocket-accept": "3ccdJNHJCvyHvuixTujyIlU++ds="
+          }
+        }
+      }
+    },
+    {
+      "name": "http_ws_raw_token_header",
+      "value": {
+        "refused": true,
+        "message": "WebSocket handshake failed: Unexpected response status 401"
+      }
+    },
+    {
+      "name": "http_ws_wrong_query_token",
+      "value": {
+        "refused": true,
+        "message": "WebSocket handshake failed: Unexpected response status 401"
+      }
+    },
+    {
+      "name": "ws_path_exact",
+      "path": "/ws",
+      "value": {
+        "frames": [
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"connect\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"enable\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"heartbeat\",\"status\":{\"online\":true,\"good\":true},\"interval\":30000}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"app_name\":\"Haizakura\",\"app_version\":\"0.1.0\",\"protocol_version\":\"v11\"}}",
+            "isBinary": false
+          }
+        ],
+        "handshake": {
+          "statusCode": 101,
+          "statusMessage": "Switching Protocols",
+          "headers": {
+            "upgrade": "websocket",
+            "connection": "Upgrade",
+            "sec-websocket-accept": "oe4Zo3D/rzcGAGgbdlIiA/El9NI="
+          }
+        }
+      }
+    },
+    {
+      "name": "ws_path_slash",
+      "path": "/ws/",
+      "value": {
+        "frames": [
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"connect\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"enable\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"heartbeat\",\"status\":{\"online\":true,\"good\":true},\"interval\":30000}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"app_name\":\"Haizakura\",\"app_version\":\"0.1.0\",\"protocol_version\":\"v11\"}}",
+            "isBinary": false
+          }
+        ],
+        "handshake": {
+          "statusCode": 101,
+          "statusMessage": "Switching Protocols",
+          "headers": {
+            "upgrade": "websocket",
+            "connection": "Upgrade",
+            "sec-websocket-accept": "EpcJfggJxNIjlOJPBMe4uauK/ek="
+          }
+        }
+      }
+    },
+    {
+      "name": "ws_path_api_child",
+      "path": "/ws/api",
+      "value": {
+        "refused": true,
+        "message": "WebSocket handshake failed: Unexpected response status 400"
+      }
+    },
+    {
+      "name": "ws_path_event_child",
+      "path": "/ws/event",
+      "value": {
+        "refused": true,
+        "message": "WebSocket handshake failed: Unexpected response status 400"
+      }
+    },
+    {
+      "name": "ws_path_bare_api",
+      "path": "/api",
+      "value": {
+        "refused": true,
+        "message": "WebSocket handshake failed: Unexpected response status 400"
+      }
+    },
+    {
+      "name": "ws_path_root",
+      "path": "/",
+      "value": {
+        "refused": true,
+        "message": "WebSocket handshake failed: Unexpected response status 400"
+      }
+    },
+    {
+      "name": "ws_no_token_upgrade",
+      "value": {
+        "frames": [
+          {
+            "data": "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"app_name\":\"Haizakura\",\"app_version\":\"0.1.0\",\"protocol_version\":\"v11\"}}",
+            "isBinary": false
+          }
+        ],
+        "handshake": {
+          "statusCode": 101,
+          "statusMessage": "Switching Protocols",
+          "headers": {
+            "upgrade": "websocket",
+            "connection": "Upgrade",
+            "sec-websocket-accept": "w5VHpnznyQlqaxA4Q8jXZnIol40="
+          }
+        }
+      }
+    },
+    {
+      "name": "ws_string_format_event",
+      "value": {
+        "frames": [],
+        "handshake": null,
+        "refused": true,
+        "message": "WebSocket handshake failed: Unexpected response status 400"
+      }
+    },
+    {
+      "name": "ws_string_format_push",
+      "value": {
+        "frames": [
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"connect\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"enable\",\"status\":{\"online\":true,\"good\":true}}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"heartbeat\",\"status\":{\"online\":true,\"good\":true},\"interval\":30000}",
+            "isBinary": false
+          },
+          {
+            "data": "{\"time\":1700000000,\"self_id\":10001,\"post_type\":\"message\",\"message_type\":\"group\",\"sub_type\":\"normal\",\"group_id\":7,\"user_id\":8,\"message_id\":9,\"message\":\"hi\",\"raw_message\":\"hi\",\"sender\":{\"user_id\":8,\"nickname\":\"peer\"}}",
+            "isBinary": false
+          }
+        ],
+        "handshake": {
+          "statusCode": 101,
+          "statusMessage": "Switching Protocols",
+          "headers": {
+            "upgrade": "websocket",
+            "connection": "Upgrade",
+            "sec-websocket-accept": "Mz5rUYQctmSBdpHX3PTEgTIxxdU="
+          }
+        },
+        "reason": "settled"
+      }
+    },
+    {
+      "name": "ws_client_reconnect",
+      "offline": {
+        "name": "wc",
+        "kind": "wsClient",
+        "status": "warn",
+        "detail": "重连中"
+      },
+      "seen": [
+        {
+          "url": "/",
+          "role": "Api"
+        }
+      ]
+    },
+    {
+      "name": "manager_reconcile",
+      "value": {
+        "applied": true,
+        "errors": [],
+        "statuses": [
+          {
+            "name": "w",
+            "kind": "wsServer",
+            "status": "ok",
+            "detail": "0 个客户端"
+          },
+          {
+            "name": "c",
+            "kind": "wsClient",
+            "status": "warn",
+            "detail": "连接中"
+          }
+        ]
+      }
+    },
+    {
+      "name": "manager_names",
+      "value": [
+        "w",
+        "c"
+      ]
+    },
+    {
+      "name": "manager_reconcile_token_change",
+      "value": {
+        "applied": true,
+        "errors": [],
+        "statuses": [
+          {
+            "name": "w",
+            "kind": "wsServer",
+            "status": "ok",
+            "detail": "0 个客户端"
+          },
+          {
+            "name": "c",
+            "kind": "wsClient",
+            "status": "warn",
+            "detail": "连接中"
+          }
+        ]
+      }
+    },
+    {
+      "name": "manager_duplicate_name",
+      "value": "network adapter name \"w\" is duplicated in httpServers and wsServers"
+    },
+    {
+      "name": "manager_port_conflict",
+      "value": "networks.wsServers[1] conflicts with networks.wsServers[0] on server binding 127.0.0.1:9137"
+    },
+    {
+      "name": "manager_shutdown",
+      "value": {
+        "closed": true,
+        "errors": []
+      }
+    },
+    {
+      "name": "manager_emit_after_shutdown",
+      "value": "network manager is shutting down; event dispatch rejected"
+    }
+  ]
+}

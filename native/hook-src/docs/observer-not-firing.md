@@ -2,7 +2,7 @@
 
 ## 最终实验（可复现，已排除所有已知干扰）
 
-容器 `hz-scan`，`supervisorctl stop snowluma` 阻止闭源实现重新注入。
+容器 `hz-test`，`supervisorctl stop snowluma` 阻止闭源实现重新注入。
 
 | 时刻 | 事件 |
 |---|---|

@@ -378,20 +378,34 @@ napi_value GetBackendInfoAsync(napi_env env, napi_callback_info info) {
 }
 
 napi_value LoadModuleManualAsync(napi_env env, napi_callback_info info) {
-  size_t argc = 2;
-  napi_value argv[2] = {nullptr, nullptr};
+  size_t argc = 3;
+  napi_value argv[3] = {nullptr, nullptr, nullptr};
   napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
   if (argc < 2) {
-    napi_throw_error(env, nullptr,
-                     "loadModuleManualAsync(pid, dylibPath) requires 2 arguments");
+    napi_throw_error(
+        env, nullptr,
+        "loadModuleManualAsync(pid, dylibPath, skipEntry?) requires 2 arguments");
     return nullptr;
   }
 
   int32_t pid = 0;
   std::string path;
+  bool skip_entry = false;
   try {
     pid = get_int_arg(env, argv[0], "pid");
     path = get_string_arg(env, argv[1], "dylibPath");
+    // The third argument is optional and only meaningful for observation: it maps the module
+    // without calling its entry, which is what keeps an already-working channel alive.
+    if (argc >= 3) {
+      napi_value v = argv[2];
+      napi_valuetype t = napi_undefined;
+      napi_typeof(env, v, &t);
+      if (t == napi_boolean) {
+        bool b = false;
+        napi_get_value_bool(env, v, &b);
+        skip_entry = b;
+      }
+    }
   } catch (const std::exception& e) {
     napi_throw_error(env, nullptr, e.what());
     return nullptr;
@@ -399,13 +413,14 @@ napi_value LoadModuleManualAsync(napi_env env, napi_callback_info info) {
 
   return schedule<hz::ManualMapHandle>(
       env, "haizakura:loadModuleManual",
-      [pid, path]() {
+      [pid, path, skip_entry]() {
         hz::RemoteProcess remote(pid);
         // Resolve through the target's mount namespace: the caller's path is
         // meaningful inside that process, not in ours.
         const std::string resolved = hz::resolve_in_process(pid, path);
         hz::ElfImage image(hz::MappedFile::open(resolved));
         hz::ManualLoader loader(remote, image);
+        loader.set_skip_entry(skip_entry);
         remote.attach();
         auto handle = loader.load();
         // Remember the image so unload can run the fini array and stop_dynamic; without this the
@@ -415,6 +430,85 @@ napi_value LoadModuleManualAsync(napi_env env, napi_callback_info info) {
         return handle;
       },
       [](napi_env e, const hz::ManualMapHandle& h) { return handle_to_object(e, h); });
+}
+
+// Calls one exported function inside an already-mapped module.
+//
+// Needed because skipEntry leaves the module mapped but inert: its hooks are only installed when
+// something calls the installer, and with no socket service there is nothing to ask over the
+// wire. Resolving the symbol in the target and calling it there is the only route.
+napi_value CallExportAsync(napi_env env, napi_callback_info info) {
+  // 5 args: pid, handle, symbolName, arg, modulePath
+  size_t argc = 5;
+  napi_value argv[5] = {nullptr, nullptr, nullptr, nullptr, nullptr};
+  napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+  if (argc < 3) {
+    napi_throw_error(env, nullptr,
+                     "callExportAsync(pid, base, symbolName, arg?, modulePath?) requires 3");
+    return nullptr;
+  }
+  int32_t pid = 0;
+  uint64_t base = 0;
+  std::string symbol;
+  int64_t arg0 = 0;
+  bool have_arg = false;
+  std::string module_path;
+  try {
+    pid = get_int_arg(env, argv[0], "pid");
+    base = get_uint64_prop(env, argv[1], "base");
+    symbol = get_string_arg(env, argv[2], "symbolName");
+    if (argc >= 4) {
+      napi_valuetype t = napi_undefined;
+      napi_typeof(env, argv[3], &t);
+      if (t == napi_number) {
+        napi_get_value_int64(env, argv[3], &arg0);
+        have_arg = true;
+      }
+    }
+    // The module path has to come from the caller.
+    //
+    // It was hardcoded to the first payload filename we happened to inject, which meant every
+    // later build resolved symbol offsets out of a *different* file than the one mapped. The
+    // addresses then landed inside the function prologue but off their real starts, and the call
+    // faulted at pc = entry+0x34 with no log from the callee at all. A wrong-but-plausible offset
+    // is the worst failure shape available here: it looks like a broken payload.
+    if (argc >= 5) {
+      napi_valuetype t5 = napi_undefined;
+      napi_typeof(env, argv[4], &t5);
+      if (t5 == napi_string) {
+        module_path = get_string_arg(env, argv[4], "modulePath");
+      }
+    }
+  } catch (const std::exception& e) {
+    napi_throw_error(env, nullptr, e.what());
+    return nullptr;
+  }
+
+  return schedule<int64_t>(
+      env, "haizakura:callExport",
+      [pid, base, symbol, arg0, have_arg, module_path]() -> int64_t {
+        hz::RemoteProcess remote(pid);
+        // The module was mapped by us, so its symbols are not in the dynamic table; read them
+        // from the image on disk and add the load bias.
+        const std::string resolved = hz::resolve_in_process(pid, module_path);
+        hz::ElfImage image(hz::MappedFile::open(resolved));
+        const hz::DynSymbol* sym = image.find_symbol(symbol);
+        if (sym == nullptr || !sym->defined || sym->value == 0) {
+          throw hz::Error("symbol not found: " + symbol);
+        }
+        const uint64_t addr = base + (sym->value - image.image_base());
+        remote.attach();
+        std::vector<uint64_t> args;
+        if (have_arg) args.push_back(static_cast<uint64_t>(arg0));
+        const uint64_t rc = remote.remote_call(addr, args, args.size());
+        remote.detach();
+        return static_cast<int64_t>(rc);
+      },
+      [](napi_env e, int64_t v) {
+        napi_value out = nullptr;
+        napi_create_int64(e, v, &out);
+        return out;
+      });
 }
 
 napi_value UnloadModuleManualAsync(napi_env env, napi_callback_info info) {
@@ -1177,6 +1271,8 @@ NAPI_MODULE_INIT(/* napi_env env, napi_value exports */) {
        napi_default_jsproperty, nullptr},
       {"unloadModuleManualAsync", nullptr, UnloadModuleManualAsync, nullptr, nullptr,
        nullptr, napi_default_jsproperty, nullptr},
+      {"callExportAsync", nullptr, CallExportAsync, nullptr, nullptr, nullptr,
+       napi_default_jsproperty, nullptr},
       {"inspectProcessAsync", nullptr, InspectProcessAsync, nullptr, nullptr, nullptr,
        napi_default_jsproperty, nullptr},
       {"resolveRuntimeTargetsAsync", nullptr, ResolveRuntimeTargetsAsync, nullptr,

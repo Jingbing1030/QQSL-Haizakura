@@ -40,10 +40,10 @@
 | 4 reply | body 可为空 | 同 | ✅ |
 | 5 error | status 为负 errno（如 -22） | 同 | ✅ |
 | 6 packet | `sub_1a590` 打包；`0x1a724` op=6，`r8`=value0 会话 id，`r9`=描述符 | 已实现并通过 hook 触发 | ✅ |
-| 7 登录态 | `0x14560`：status=(uin!=0)，value0=uin 数值，msg=十进制 uin；登录时广播 | 实测 `flags=4`，uin=3083456343，8s 内推送 | ✅ |
+| 7 登录态 | `0x14560`：status=(uin!=0)，value0=uin 数值，msg=十进制 uin；登录时广播 | 实测 `flags=4`，uin=10001，8s 内推送 | ✅ |
 | 17 登录身份提示 | **入站**。要求 value0 ∈ [0x1_0000_0000, 0x1_0000_270F]（高 32 位=1、低 32 位<10000）；合法→回 op 3 并开 60s 窗口；非法→op 5/-EINVAL | 实测：`(1,42)`→op 3；裸 uin→op 5/-22；counter=10000→op 5/-22；60s 后 `keepalive=expired` | ✅ |
 | 21 回执 | `0x1a331 mov esi,0x15`，在 op 6 之前，value0=会话 id，无载荷 | 已实现（op 6 前发送） | ✅ |
-| 22 账号上报 | `0x13c08`/`0x17316` `mov esi,0x16`，value0=会话 id，requestId=(id==0)?1:0，无载荷 | 实测登录时收到 `OP22 reqId=0 value0=3083456343 cmdlen=0` | ✅ |
+| 22 账号上报 | `0x13c08`/`0x17316` `mov esi,0x16`，value0=会话 id，requestId=(id==0)?1:0，无载荷 | 实测登录时收到 `OP22 reqId=0 value0=10001 cmdlen=0` | ✅ |
 
 ## 三、登录态来源
 
@@ -100,8 +100,26 @@ I-cache 维护、prologue 重定位），必须单独承担。
 
 ## 一句话
 
-**帧、op 1/3/4/5/6/7/17/21/22、socket 行为、虚表 hook 都已实测等价。** 没有功能缺口：
-op 2 白名单 4 条命令在旧版里就是空操作，补它只是让兼容性完整，不是补功能。
+> ## ⚠️ 这张表前半部分基于错误的分析对象
+>
+> 上面所有"旧版"一列的证据，来自 `snowluma-linux-x64.so`（**2.4.2**，425,216 字节）。
+> 但生产容器 `snowluma-hz` 实际运行的是 `snowluma-linux-arm64.so`
+> （**2.4.0**，335,040 字节）。**两者能力不同**：
+>
+> | 项 | 2.4.2 | 2.4.0（生产） |
+> | --- | --- | --- |
+> | op 2 白名单 4 条命令 | 存在 | **不存在** |
+> | `resident reply creation` | 无 | **有** |
+> | `logged-in MSF service instance` | 无 | **有** |
+> | 发送/接收能力 | 白名单是空操作 | **有真实的 MSFService/MSFCoreService 收发路径** |
+>
+> 所以下面"op 2 白名单是空操作"、"旧版从不发送任何消息"这两个结论
+> **只对 2.4.2 成立，对生产版本不成立**。详见 `snowluma-2.4-capability-map.md`。
+
+**帧、op 1/3/4/5/7/17/21/22、socket 行为、虚表 hook 都已实测等价。** 
+但**消息收发**这一项：2.4.0 有（靠 RTTI 链解析 MSFService/MSFCoreService 的
+send features 与 receive anchor），新版**完全没有**——这是真实且根本的功能缺口，
+不是"旧版本来就没有"。
 
 真正的差异只剩一处，且不是缺陷：**登录态来源机制不同**（旧版读 QQ 注入的虚表回调，
 新版读 `login.enc` 的 mtime）。两者都能拿到正确 uin，但对 QQ 变化的敏感点不同。

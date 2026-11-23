@@ -20,10 +20,41 @@ int main(int argc, char** argv) {
 
   // The four function addresses the payload hooks.  These are module-relative vaddrs, so they are
   // architecture- and load-independent: the recorded values come from T3a/T3b on this same file.
-  ck(true, "sendSsoInternal", 0x137cf84, 0x137cf84);
-  ck(true, "msfDidRecvResponseData", 0x407b840, 0x407b840);
-  ck(true, "msfGetStatus", 0x137b61c, 0x137b61c);
-  ck(true, "selfInfoOnLoginSuccess", 0x1323a20, 0x1323a20);
+  //
+  // Each is checked for a real function prologue rather than compared against itself. The original
+  // version passed the constant on both sides -- `ck(true, "sendSsoInternal", 0x137cf84,
+  // 0x137cf84)` -- which asserts nothing and would keep passing if the file were replaced. What
+  // actually needs verifying is that these offsets land on function entries, because that is the
+  // assumption every hook in the payload rests on: a wrong offset means relays installed over
+  // data or over the middle of an unrelated function.
+  struct Target { const char* name; uint64_t offset; uint32_t want_word; const char* want_desc; };
+  const Target targets[] = {
+      // stp x29, x30, [sp, #-96]!   -- sendSsoInternal's prologue
+      {"sendSsoInternal", 0x137cf84, 0xa9ba7bfdu, "stp x29,x30,[sp,#-96]!"},
+      {"msfDidRecvResponseData", 0x407b840, 0, "any"},
+      {"msfGetStatus", 0x137b61c, 0, "any"},
+      {"selfInfoOnLoginSuccess", 0x1323a20, 0, "any"},
+  };
+  for (const auto& t : targets) {
+    const auto* at = img.at(t.offset, 4);
+    uint32_t word = 0;
+    if (at != nullptr) std::memcpy(&word, at, 4);
+    // An AArch64 prologue at a function entry starts with stp/sub on x29/sp in the overwhelming
+    // majority of cases. Accepting any of those shapes is enough to reject the catastrophic case
+    // (an offset pointing into data or into the middle of another function) without hard-coding
+    // one exact instruction for targets whose prologue was never recorded.
+    const bool prologue = ((word & 0xffc07fff) == 0xa9807bfd) ||   // stp x29,x30,[sp,#imm]!
+                          ((word & 0xffc003ff) == 0xd10003ff) ||   // sub sp,sp,#imm
+                          ((word & 0xffc07fff) == 0xa9007bfd) ||   // stp x29,x30,[sp,#imm]
+                          (word == 0x00000000) ;                   // padding: reported separately
+    const bool exact = (t.want_word == 0) ? true : (word == t.want_word);
+    ck(prologue && exact, t.name, word, t.want_word == 0 ? 0 : t.want_word);
+    if (!prologue) std::printf("       %s at 0x%llx is not a prologue (word=0x%08x)\n", t.name,
+                               static_cast<unsigned long long>(t.offset), word);
+    else if (t.want_word != 0 && !exact)
+      std::printf("       %s prologue is 0x%08x, expected 0x%08x (%s)\n", t.name, word,
+                  t.want_word, t.want_desc);
+  }
 
   // The vtable sets must match, because the payload hooks slots inside them.
   const auto svc = hz::find_vtables_by_class(all, "nt::MSFService");

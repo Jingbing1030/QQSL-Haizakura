@@ -1,0 +1,752 @@
+{
+  "generatedBy": "probe/harness-http.mjs",
+  "cases": [
+    {
+      "name": "get_root",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "50"
+      },
+      "body": "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"online\":true}}",
+      "logs": []
+    },
+    {
+      "name": "get_root_no_auth",
+      "status": 401,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "71"
+      },
+      "body": "{\"status\":\"failed\",\"retcode\":1401,\"data\":null,\"wording\":\"unauthorized\"}",
+      "logs": []
+    },
+    {
+      "name": "get_root_bad_auth",
+      "status": 401,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "71"
+      },
+      "body": "{\"status\":\"failed\",\"retcode\":1401,\"data\":null,\"wording\":\"unauthorized\"}",
+      "logs": []
+    },
+    {
+      "name": "get_root_raw_token_header",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "50"
+      },
+      "body": "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"online\":true}}",
+      "logs": []
+    },
+    {
+      "name": "get_root_query_token",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "50"
+      },
+      "body": "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"online\":true}}",
+      "logs": []
+    },
+    {
+      "name": "get_root_wrong_query_token",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "50"
+      },
+      "body": "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"online\":true}}",
+      "logs": []
+    },
+    {
+      "name": "get_action_query_params",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "75"
+      },
+      "body": "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"user_id\":10001,\"nickname\":\"haizakura\"}}",
+      "params": [
+        {
+          "call": "handle",
+          "action": "get_login_info",
+          "params": {
+            "user_id": 10001,
+            "flag": true,
+            "text": "hello",
+            "bad": "{notjson"
+          }
+        }
+      ],
+      "logs": []
+    },
+    {
+      "name": "get_unknown_action",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "73"
+      },
+      "body": "{\"status\":\"failed\",\"retcode\":1404,\"data\":null,\"wording\":\"unknown action\"}",
+      "params": [
+        {
+          "call": "handle",
+          "action": "no_such_action",
+          "params": {}
+        }
+      ],
+      "logs": []
+    },
+    {
+      "name": "get_action_missing_auth",
+      "status": 401,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "71"
+      },
+      "body": "{\"status\":\"failed\",\"retcode\":1401,\"data\":null,\"wording\":\"unauthorized\"}",
+      "logs": []
+    },
+    {
+      "name": "get_root_with_traceparent",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "50"
+      },
+      "body": "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"online\":true}}",
+      "logs": []
+    },
+    {
+      "name": "get_root_with_bad_traceparent",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "50"
+      },
+      "body": "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"online\":true}}",
+      "logs": []
+    },
+    {
+      "name": "post_json_action",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "68"
+      },
+      "body": "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"message_id\":424242},\"echo\":\"e1\"}",
+      "params": [
+        {
+          "call": "handle",
+          "action": "send_group_msg",
+          "params": {
+            "group_id": 7,
+            "message": "hi"
+          }
+        }
+      ],
+      "logs": []
+    },
+    {
+      "name": "post_json_no_params",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "106"
+      },
+      "body": "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"app_name\":\"Haizakura\",\"app_version\":\"0.1.0\",\"protocol_version\":\"v11\"}}",
+      "params": [
+        {
+          "call": "handle",
+          "action": "get_version_info",
+          "params": {
+            "action": "get_version_info"
+          }
+        }
+      ],
+      "logs": []
+    },
+    {
+      "name": "post_json_flat_params",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "75"
+      },
+      "body": "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"user_id\":10001,\"nickname\":\"haizakura\"}}",
+      "params": [
+        {
+          "call": "handle",
+          "action": "get_login_info",
+          "params": {
+            "action": "get_login_info",
+            "user_id": 42
+          }
+        }
+      ],
+      "logs": []
+    },
+    {
+      "name": "post_action_in_path_json_body",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "66"
+      },
+      "body": "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"message_id\":424242},\"echo\":17}",
+      "params": [
+        {
+          "call": "handle",
+          "action": "send_group_msg",
+          "params": {
+            "group_id": 1
+          }
+        }
+      ],
+      "logs": []
+    },
+    {
+      "name": "post_json_invalid",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "84"
+      },
+      "body": "{\"status\":\"failed\",\"retcode\":1400,\"data\":null,\"wording\":\"bad request: invalid json\"}",
+      "logs": []
+    },
+    {
+      "name": "post_json_array_body",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "86"
+      },
+      "body": "{\"status\":\"failed\",\"retcode\":1400,\"data\":null,\"wording\":\"bad request: missing action\"}",
+      "logs": []
+    },
+    {
+      "name": "post_json_null_body",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "86"
+      },
+      "body": "{\"status\":\"failed\",\"retcode\":1400,\"data\":null,\"wording\":\"bad request: missing action\"}",
+      "logs": []
+    },
+    {
+      "name": "post_json_empty_body",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "86"
+      },
+      "body": "{\"status\":\"failed\",\"retcode\":1400,\"data\":null,\"wording\":\"bad request: missing action\"}",
+      "logs": []
+    },
+    {
+      "name": "post_form_action",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "71"
+      },
+      "body": "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"message_id\":424242},\"echo\":\"form1\"}",
+      "params": [
+        {
+          "call": "handle",
+          "action": "send_group_msg",
+          "params": {
+            "group_id": 7,
+            "message": [
+              {
+                "type": "text"
+              }
+            ]
+          }
+        }
+      ],
+      "logs": []
+    },
+    {
+      "name": "post_form_numeric_string",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "75"
+      },
+      "body": "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"user_id\":10001,\"nickname\":\"haizakura\"}}",
+      "params": [
+        {
+          "call": "handle",
+          "action": "get_login_info",
+          "params": {
+            "user_id": 10001,
+            "flag": false
+          }
+        }
+      ],
+      "logs": []
+    },
+    {
+      "name": "post_unsupported_content_type",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "108"
+      },
+      "body": "{\"status\":\"failed\",\"retcode\":1400,\"data\":null,\"wording\":\"bad request: unsupported content-type: text/plain\"}",
+      "logs": []
+    },
+    {
+      "name": "post_no_content_type_valid_json",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "75"
+      },
+      "body": "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"user_id\":10001,\"nickname\":\"haizakura\"}}",
+      "params": [
+        {
+          "call": "handle",
+          "action": "get_login_info",
+          "params": {
+            "action": "get_login_info"
+          }
+        }
+      ],
+      "logs": []
+    },
+    {
+      "name": "post_missing_action",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "86"
+      },
+      "body": "{\"status\":\"failed\",\"retcode\":1400,\"data\":null,\"wording\":\"bad request: missing action\"}",
+      "logs": []
+    },
+    {
+      "name": "put_root",
+      "status": 405,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "77"
+      },
+      "body": "{\"status\":\"failed\",\"retcode\":1400,\"data\":null,\"wording\":\"method not allowed\"}",
+      "logs": []
+    },
+    {
+      "name": "delete_action",
+      "status": 405,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "77"
+      },
+      "body": "{\"status\":\"failed\",\"retcode\":1400,\"data\":null,\"wording\":\"method not allowed\"}",
+      "logs": []
+    },
+    {
+      "name": "get_wrong_path_prefix",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "73"
+      },
+      "body": "{\"status\":\"failed\",\"retcode\":1404,\"data\":null,\"wording\":\"unknown action\"}",
+      "params": [
+        {
+          "call": "handle",
+          "action": "nope/get_login_info",
+          "params": {}
+        }
+      ],
+      "logs": []
+    },
+    {
+      "name": "post_action_failed_envelope",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "82"
+      },
+      "body": "{\"status\":\"failed\",\"retcode\":100,\"data\":null,\"wording\":\"发送失败\",\"echo\":\"e2\"}",
+      "params": [
+        {
+          "call": "handle",
+          "action": "send_msg_failed",
+          "params": {}
+        }
+      ],
+      "logs": []
+    },
+    {
+      "name": "post_action_throws",
+      "status": 500,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "63"
+      },
+      "body": "{\"status\":\"failed\",\"retcode\":1200,\"data\":null,\"wording\":\"boom\"}",
+      "params": [
+        {
+          "call": "handle",
+          "action": "throws_plain",
+          "params": {
+            "action": "throws_plain"
+          }
+        }
+      ],
+      "logs": []
+    },
+    {
+      "name": "post_sse_disabled",
+      "status": 404,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "74"
+      },
+      "body": "{\"status\":\"failed\",\"retcode\":1404,\"data\":null,\"wording\":\"SSE is disabled\"}",
+      "logs": []
+    },
+    {
+      "name": "get_action_with_echo_query_only",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "75"
+      },
+      "body": "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"user_id\":10001,\"nickname\":\"haizakura\"}}",
+      "params": [
+        {
+          "call": "handle",
+          "action": "get_login_info",
+          "params": {
+            "echo": 7
+          }
+        }
+      ],
+      "logs": []
+    },
+    {
+      "name": "get_root_quiesced",
+      "status": 503,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "73"
+      },
+      "body": "{\"status\":\"failed\",\"retcode\":1200,\"data\":null,\"wording\":\"server closing\"}",
+      "logs": []
+    },
+    {
+      "name": "post_action_quiesced",
+      "status": 503,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "73"
+      },
+      "body": "{\"status\":\"failed\",\"retcode\":1200,\"data\":null,\"wording\":\"server closing\"}",
+      "params": [
+        {
+          "call": "traceQuiescedAction",
+          "action": "get_login_info",
+          "params": {
+            "action": "get_login_info"
+          },
+          "response": {
+            "status": "failed",
+            "retcode": 1200,
+            "data": null,
+            "wording": "server closing"
+          }
+        }
+      ],
+      "logs": []
+    },
+    {
+      "name": "get_root_after_unquiesce",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "50"
+      },
+      "body": "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"online\":true}}",
+      "logs": []
+    },
+    {
+      "name": "prefix_root",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "50"
+      },
+      "body": "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"online\":true}}",
+      "logs": []
+    },
+    {
+      "name": "prefix_root_slash",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "50"
+      },
+      "body": "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"online\":true}}",
+      "logs": []
+    },
+    {
+      "name": "prefix_action",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "75"
+      },
+      "body": "{\"status\":\"ok\",\"retcode\":0,\"data\":{\"user_id\":10001,\"nickname\":\"haizakura\"}}",
+      "params": [
+        {
+          "call": "handle",
+          "action": "get_login_info",
+          "params": {}
+        }
+      ],
+      "logs": []
+    },
+    {
+      "name": "prefix_bare_root",
+      "status": 404,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "68"
+      },
+      "body": "{\"status\":\"failed\",\"retcode\":1404,\"data\":null,\"wording\":\"not found\"}",
+      "logs": []
+    },
+    {
+      "name": "prefix_events_path",
+      "status": 404,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:15 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "74"
+      },
+      "body": "{\"status\":\"failed\",\"retcode\":1404,\"data\":null,\"wording\":\"SSE is disabled\"}",
+      "logs": []
+    },
+    {
+      "name": "sse_bad_last_event_id",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:17 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "transfer-encoding": "chunked"
+      },
+      "body": "{\"status\":\"failed\",\"retcode\":1400,\"data\":null,\"wording\":\"invalid Last-Event-ID\"}",
+      "logs": []
+    },
+    {
+      "name": "sse_unavailable_epoch",
+      "status": 409,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:17 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "transfer-encoding": "chunked"
+      },
+      "body": "{\"status\":\"failed\",\"retcode\":1409,\"data\":null,\"wording\":\"SSE replay unavailable; resync and reconnect without Last-Event-ID\"}",
+      "logs": []
+    },
+    {
+      "name": "sse_future_sequence",
+      "status": 409,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:17 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "transfer-encoding": "chunked"
+      },
+      "body": "{\"status\":\"failed\",\"retcode\":1409,\"data\":null,\"wording\":\"SSE replay unavailable; resync and reconnect without Last-Event-ID\"}",
+      "logs": []
+    },
+    {
+      "name": "sse_post_events",
+      "status": 405,
+      "headers": {
+        "allow": "GET",
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:17 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "75"
+      },
+      "body": "{\"status\":\"failed\",\"retcode\":1405,\"data\":null,\"wording\":\"SSE requires GET\"}",
+      "logs": []
+    },
+    {
+      "name": "sse_unauthorized",
+      "status": 401,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 13:46:17 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "content-length": "71"
+      },
+      "body": "{\"status\":\"failed\",\"retcode\":1401,\"data\":null,\"wording\":\"unauthorized\"}",
+      "logs": []
+    },
+    {
+      "name": "sse_stream",
+      "status": 200,
+      "headers": {
+        "content-type": "text/event-stream; charset=utf-8",
+        "cache-control": "no-cache, no-transform",
+        "x-accel-buffering": "no",
+        "connection": "keep-alive",
+        "transfer-encoding": "chunked"
+      },
+      "body": "retry: 3000\n\nid: d671d35b-3720-4462-bf5e-6499f93897cd:0\ndata: {\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"connect\",\"status\":{\"online\":true,\"good\":true}}\n\nid: d671d35b-3720-4462-bf5e-6499f93897cd:0\ndata: {\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"enable\",\"status\":{\"online\":true,\"good\":true}}\n\nid: d671d35b-3720-4462-bf5e-6499f93897cd:0\ndata: {\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"heartbeat\",\"status\":{\"online\":true,\"good\":true},\"interval\":30000}\n\n",
+      "afterEvent": {
+        "status": 200,
+        "body": "retry: 3000\n\nid: d671d35b-3720-4462-bf5e-6499f93897cd:1\ndata: {\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"connect\",\"status\":{\"online\":true,\"good\":true}}\n\nid: d671d35b-3720-4462-bf5e-6499f93897cd:1\ndata: {\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"enable\",\"status\":{\"online\":true,\"good\":true}}\n\nid: d671d35b-3720-4462-bf5e-6499f93897cd:1\ndata: {\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"heartbeat\",\"status\":{\"online\":true,\"good\":true},\"interval\":30000}\n\n"
+      },
+      "replay": {
+        "status": 200,
+        "body": "retry: 3000\n\nid: d671d35b-3720-4462-bf5e-6499f93897cd:1\ndata: {\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"connect\",\"status\":{\"online\":true,\"good\":true}}\n\nid: d671d35b-3720-4462-bf5e-6499f93897cd:1\ndata: {\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"enable\",\"status\":{\"online\":true,\"good\":true}}\n\nid: d671d35b-3720-4462-bf5e-6499f93897cd:1\ndata: {\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"heartbeat\",\"status\":{\"online\":true,\"good\":true},\"interval\":30000}\n\n"
+      }
+    },
+    {
+      "name": "sse_replay_from_1",
+      "status": 200,
+      "body": "retry: 3000\n\nid: d671d35b-3720-4462-bf5e-6499f93897cd:1\ndata: {\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"connect\",\"status\":{\"online\":true,\"good\":true}}\n\nid: d671d35b-3720-4462-bf5e-6499f93897cd:1\ndata: {\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"enable\",\"status\":{\"online\":true,\"good\":true}}\n\nid: d671d35b-3720-4462-bf5e-6499f93897cd:1\ndata: {\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"heartbeat\",\"status\":{\"online\":true,\"good\":true},\"interval\":30000}\n\n"
+    },
+    {
+      "name": "sse_replay_from_0",
+      "status": 200,
+      "body": "retry: 3000\n\nid: d671d35b-3720-4462-bf5e-6499f93897cd:1\ndata: {\"time\":1700000000,\"self_id\":10001,\"post_type\":\"message\",\"message_type\":\"group\",\"group_id\":7,\"user_id\":8,\"message_id\":9,\"message\":[{\"type\":\"text\",\"data\":{\"text\":\"hi\"}}],\"raw_message\":\"hi\",\"sub_type\":\"normal\"}\n\nid: d671d35b-3720-4462-bf5e-6499f93897cd:1\ndata: {\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"connect\",\"status\":{\"online\":true,\"good\":true}}\n\nid: d671d35b-3720-4462-bf5e-6499f93897cd:1\ndata: {\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"lifecycle\",\"sub_type\":\"enable\",\"status\":{\"online\":true,\"good\":true}}\n\nid: d671d35b-3720-4462-bf5e-6499f93897cd:1\ndata: {\"time\":1700000000,\"self_id\":10001,\"post_type\":\"meta_event\",\"meta_event_type\":\"heartbeat\",\"status\":{\"online\":true,\"good\":true},\"interval\":30000}\n\n"
+    }
+  ]
+}
